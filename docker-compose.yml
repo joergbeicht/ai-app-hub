@@ -1,0 +1,18 @@
+# App Hub – Frontend mit Hotreload (Port 6054)
+# Wichtig: Immer aus dem Projektroot starten (z. B. ./start-docker.sh), damit ./frontend/src korrekt gemountet wird.
+
+services:
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+    container_name: app-hub-frontend
+    ports:
+      - "6054:6054"
+    volumes:
+      # :cached = Host-Änderungen zuverlässig im Container sichtbar (Docker Desktop Mac/Windows)
+      - ./frontend/src:/app/src:cached
+    environment:
+      - NODE_ENV=development
+      - CHOKIDAR_USEPOLLING=true
+    command: npm run start -- --host 0.0.0.0 --port 6054 --poll 2000

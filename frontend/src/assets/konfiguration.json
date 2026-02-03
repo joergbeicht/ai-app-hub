@@ -1,0 +1,45 @@
+{
+  "defaultIcon": "apps",
+  "apps": [
+    {
+      "id": "ai-berichtgenerator",
+      "name": "AI Berichtgenerator",
+      "description": "KI-gestützte Berichterstellung aus Notizen",
+      "url": "http://localhost:4202/notes",
+      "iconType": "image",
+      "icon": "app-icons/ai-berichtgenerator.svg"
+    },
+    {
+      "id": "ai-analytics",
+      "name": "AI Analytics",
+      "description": "Analytics Studio mit NL-zu-SQL und Visualisierungen",
+      "url": "http://localhost:6040/",
+      "iconType": "mat-icon",
+      "icon": "insights"
+    },
+    {
+      "id": "formular-generator",
+      "name": "AI App- und DataHub Plattform",
+      "description": "Zentrale Plattform für Apps, Formulare und Daten – erstellen, verwalten und analysieren",
+      "url": "http://localhost:4203/forms",
+      "iconType": "mat-icon",
+      "icon": "widgets"
+    },
+    {
+      "id": "pflege-dokumentation",
+      "name": "Flows und QM-Dokumentation",
+      "description": "Prozess-Flows und Qualitätsmanagement-Dokumentation erstellen und verwalten",
+      "url": "http://localhost:4301/flows",
+      "iconType": "mat-icon",
+      "icon": "account_tree"
+    },
+    {
+      "id": "ai-data-orchestration-hub",
+      "name": "AI Data Orchestration Hub",
+      "description": "Workflows und Datenorchestrierung",
+      "url": "http://localhost:6043/workflows",
+      "iconType": "mat-icon",
+      "icon": "hub"
+    }
+  ]
+}

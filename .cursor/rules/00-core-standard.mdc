@@ -1,0 +1,79 @@
+---
+description: Kern-Standards für Code-Stil, Architektur und Kommunikation
+alwaysApply: true
+---
+
+# Cursor Rules für Analytics Studio
+
+## Code-Stil & Best Practices
+
+### Async/Await
+- Verwende immer `async/await`, keine `.then()`-Ketten
+- Promise-Handling ausschließlich mit async/await Syntax
+
+### Clean Code Prinzipien
+- Klare, selbsterklärende Funktions- und Variablennamen
+- Funktionen sollten eine einzige Verantwortung haben (Single Responsibility Principle)
+- Code-Komplexität minimieren
+- Regelmäßige Refactorings durchführen
+- Kommentare nur dort, wo der Code nicht selbsterklärend ist
+
+### Don't Repeat Yourself (DRY)
+- Code-Duplikation vermeiden
+- Gemeinsame Logik in wiederverwendbare Funktionen/Services auslagern
+- Shared Components und Utilities nutzen
+
+## Architektur & Deployment
+
+### Docker First
+- Alle Services laufen in Docker Containern
+- Entwicklung mit docker-compose
+- Production mit Dockerfile
+- Port 6040 für Frontend, Port 6041 für Backend
+- Docker-basierte Entwicklungsumgebung bevorzugen
+
+### Hotreload für Development
+- Hotreload für automatische Code-Updates ohne Container-Neustart
+- Frontend: Angular Dev Server mit Hot Module Replacement
+- Backend: NestJS mit Watch-Mode
+- Änderungen werden automatisch übernommen
+
+### Signal First
+- Angular Signals bevorzugen für State Management
+- Reactive Programming mit Signals statt klassischem RxJS wo möglich
+- Signal-basierte Komponenten-Kommunikation
+
+### Material First
+- Angular Material Design als primäres UI-Framework
+- Material-Komponenten bevorzugen vor Custom Components
+- Konsistentes Material Design System verwenden
+- **Custom Material Dark Theme verwenden** (aus Referenz-Projekt kopieren)
+  - Theme-Datei: `/Users/joergbeicht/Entwicklung/enterprise/microservices/ai-berichtgenerator/frontend/src/theme/custom-theme.scss`
+  - CSS Custom Properties für alle Farben nutzen
+  - Dark Theme mit hohem Kontrast
+
+## Kommunikation
+
+### Sprache
+- Always respond in Deutsch
+- Code-Kommentare und Dokumentation auf Deutsch
+- Commit-Messages auf Deutsch
+
+## Projekt-spezifische Regeln
+
+### Frontend (Angular)
+- Material Design Komponenten verwenden
+- Signals für State Management
+- Komponenten nach dem Fachkonzept strukturieren
+- 3-Pane Layout: Navigation | Canvas | Chat
+
+### Backend (NestJS)
+- Microservice-Architektur beachten
+- AI Orchestrator als separater Docker Service
+- SSE für Streaming implementieren
+- RESTful API Design
+
+### Datenmodelle
+- Artefakte als zentrale Entität
+- Provenance für Nachvollziehbarkeit
+- Explizites Pinning für Persistenz
