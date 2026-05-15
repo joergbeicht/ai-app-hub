@@ -12,7 +12,7 @@ import { MatIconModule } from '@angular/material/icon';
     <div class="app-shell">
       <mat-toolbar class="header-toolbar">
         <img class="toolbar-app-icon" src="favicon.svg" alt="" />
-        <span class="toolbar-title">AI App Hub</span>
+        <span class="toolbar-title">Axora - AI App Hub</span>
         <span class="spacer"></span>
         <a mat-icon-button routerLink="/" aria-label="Startseite">
           <mat-icon>apps</mat-icon>

@@ -3,23 +3,23 @@
   "apps": [
     {
       "id": "ai-berichtgenerator",
-      "name": "AI Berichtgenerator",
-      "description": "KI-gestützte Berichterstellung aus Notizen",
+      "name": "AI Dokumentenerstellung",
+      "description": "Aus chronologischen Notizen professionelle Berichte erzeugen – KI-generiert, einheitlicher Stil, weniger manuelle Schreibtischarbeit.",
       "url": "http://localhost:4202/notes",
-      "iconType": "image",
-      "icon": "app-icons/ai-berichtgenerator.svg"
+      "iconType": "mat-icon",
+      "icon": "menu_book"
     },
     {
       "id": "ai-analytics",
-      "name": "AI Analytics",
-      "description": "Analytics Studio mit NL-zu-SQL und Visualisierungen",
+      "name": "AI Analytics Studio",
+      "description": "Fachanwender formulieren ihre Fragen im Chat, das System erzeugt passende Visualisierungen (Charts, Tabellen, KPIs), Refinements und versionierte ResultSets – ohne Programmierung, SQL oder Report-Bau.",
       "url": "http://localhost:6040/",
       "iconType": "mat-icon",
       "icon": "insights"
     },
     {
       "id": "formular-generator",
-      "name": "AI App- und DataHub Plattform",
+      "name": "AI App Generator",
       "description": "Zentrale Plattform für Apps, Formulare und Daten – erstellen, verwalten und analysieren",
       "url": "http://localhost:4203/forms",
       "iconType": "mat-icon",
@@ -27,7 +27,7 @@
     },
     {
       "id": "pflege-dokumentation",
-      "name": "Flows und QM-Dokumentation",
+      "name": "AI Flow Engine",
       "description": "Prozess-Flows und Qualitätsmanagement-Dokumentation erstellen und verwalten",
       "url": "http://localhost:4301/flows",
       "iconType": "mat-icon",
@@ -36,10 +36,74 @@
     {
       "id": "ai-data-orchestration-hub",
       "name": "AI Data Orchestration Hub",
-      "description": "Workflows und Datenorchestrierung",
+      "description": "Daten aus verschiedenen Quellen per Workflows verbinden, mit KI anreichern und als DataSets bereitstellen – weniger Schnittstellen-Entwicklung, mehr Datenqualität.",
       "url": "http://localhost:6043/workflows",
       "iconType": "mat-icon",
       "icon": "hub"
+    },
+    {
+      "id": "ai-process-steering",
+      "name": "AI Process Steering",
+      "description": "Prozessplanung aus Excel & Co. importieren, in Gruppen strukturieren und als Gantt-artige Timeline steuern – Plan, Ist und Abweichungen sichtbar, weniger Tabellen-Chaos.",
+      "url": "http://localhost:6056/plan",
+      "iconType": "mat-icon",
+      "icon": "timeline"
+    },
+    {
+      "id": "ai-firmenwissen",
+      "name": "AI Firmenwissen",
+      "description": "Ihr intelligenter Wissens-Assistent: Richtlinien, Prozesse und Unternehmenswissen auf Abruf – Antworten mit Quellenangaben, Quick-Actions (z. B. Prozess starten) und ToDo-Übersicht aus laufenden Prozessen. Schnelle Antworten, weniger Suchzeit, mehr Compliance.",
+      "url": "http://localhost:4200/chat",
+      "iconType": "mat-icon",
+      "icon": "psychology"
+    },
+    {
+      "id": "ai-belege-buchen",
+      "name": "AI Belege und Rechnungen buchen",
+      "description": "Kontierung auf Bildbasis: Belege fotografieren, KI extrahiert Daten – schnelle Buchung, DATEV-Anbindung, weniger manuelle Eingaben.",
+      "url": "https://accounting-vouchers-app.web.app/login",
+      "iconType": "mat-icon",
+      "icon": "receipt_long"
+    },
+    {
+      "id": "projekt-leistungsabrechnung",
+      "name": "AI Projekt-Management und Leistungsabrechnung",
+      "description": "Projekte, Kunden und Leistungen zentral verwalten – Rechnungen und Leistungsnachweise erstellen, von der Erfassung bis zur Abrechnung.",
+      "url": "http://localhost:4211/home",
+      "iconType": "mat-icon",
+      "icon": "assignment"
+    },
+    {
+      "id": "liquiditaetsplanung-kommune",
+      "name": "Liquiditätsmanagement",
+      "description": "Kontostruktur, Plan-Ist-Planung und Forecast für Kommunen – Ampel-Steuerung, Berichte und Frühwarnung für sichere Liquidität.",
+      "url": "https://liquiditaet-frontend-71279709000.europe-west1.run.app/kontostruktur/hierarchy",
+      "iconType": "mat-icon",
+      "icon": "account_balance"
+    },
+    {
+      "id": "service-intelligence",
+      "name": "Service Intelligence",
+      "description": "Interaktive Explosionszeichnungen aus PDF & Daten: Hotspots auf den Seiten, Verknüpfung mit Stücklistenpositionen – schnelleres Auffinden von Teilen, weniger Blättern im Handbuch, Basis für Service- und Folgeprozesse.",
+      "url": "http://localhost:6180/admin",
+      "iconType": "mat-icon",
+      "icon": "precision_manufacturing"
+    },
+    {
+      "id": "ai-pdf-generator",
+      "name": "AI PDF Generator",
+      "description": "Axora-PDF-Service: Aus strukturiertem JSON (AxoraPdfDocument) professionelle PDFs erzeugen – Abschluss-, Clearing- und Serviceberichte per Vorlage, mit Editor und Live-Vorschau, ohne manuelles Satzwerk.",
+      "url": "http://localhost:4206/pdf-generator-v2",
+      "iconType": "mat-icon",
+      "icon": "picture_as_pdf"
+    },
+    {
+      "id": "event-time-machine",
+      "name": "Event- und Time Machine",
+      "description": "Infrastrukturmodul der AI-Plattform: Event-Timeline (Plattform-Events chronologisch), Scheduled Jobs (einmalig, Intervall, Cron) und Fehleranalyse inkl. Retry – ereignis- und zeitgesteuerte Automatisierung über Systemgrenzen.",
+      "url": "http://localhost:6090/dashboard",
+      "iconType": "mat-icon",
+      "icon": "schedule"
     }
   ]
 }
