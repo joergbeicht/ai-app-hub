@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#0ea5e9">
+  <!-- Pediment / roof -->
+  <polygon points="12,2 1,8 23,8"/>
+  <!-- 3 columns -->
+  <rect x="3"  y="9" width="3" height="10" rx="0.5"/>
+  <rect x="10.5" y="9" width="3" height="10" rx="0.5"/>
+  <rect x="18" y="9" width="3" height="10" rx="0.5"/>
+  <!-- Base step -->
+  <rect x="1" y="19" width="22" height="2.5" rx="0.5"/>
+</svg>

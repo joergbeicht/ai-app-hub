@@ -11,7 +11,7 @@
     },
     {
       "id": "ai-analytics",
-      "name": "AI Analytics Studio",
+      "name": "AI Analytics",
       "description": "Fachanwender formulieren ihre Fragen im Chat, das System erzeugt passende Visualisierungen (Charts, Tabellen, KPIs), Refinements und versionierte ResultSets – ohne Programmierung, SQL oder Report-Bau.",
       "url": "http://localhost:6040/",
       "iconType": "mat-icon",
@@ -19,8 +19,8 @@
     },
     {
       "id": "formular-generator",
-      "name": "AI App Generator",
-      "description": "Zentrale Plattform für Apps, Formulare und Daten – erstellen, verwalten und analysieren",
+      "name": "AI Business Assets Generator",
+      "description": "Verwandelt PDF-Dokumente, API-Daten oder Formulare in Sekunden in intelligente Business Apps und strukturierte Business Assets – inklusive Datenmodell, Analysen und nahtloser Integration in alle Axora AI Apps.",
       "url": "http://localhost:4203/forms",
       "iconType": "mat-icon",
       "icon": "widgets"
@@ -35,11 +35,19 @@
     },
     {
       "id": "ai-data-orchestration-hub",
-      "name": "AI Data Orchestration Hub",
+      "name": "AI Datenorchestrator",
       "description": "Daten aus verschiedenen Quellen per Workflows verbinden, mit KI anreichern und als DataSets bereitstellen – weniger Schnittstellen-Entwicklung, mehr Datenqualität.",
       "url": "http://localhost:6043/workflows",
       "iconType": "mat-icon",
       "icon": "hub"
+    },
+    {
+      "id": "ai-angebotsgenerator",
+      "name": "AI Angebotsgenerator",
+      "description": "Standard-Kundenangebote per geführter Maschinenkonfiguration: Basis-Konfigurator mit Variantenlogik, Angebots-Generator mit Positionen und Entwürfen – Stammdaten aus dem AI Datenorchestrator, weniger manuelle Kalkulation.",
+      "url": "http://localhost:6061/",
+      "iconType": "mat-icon",
+      "icon": "request_quote"
     },
     {
       "id": "ai-process-steering",
@@ -59,9 +67,9 @@
     },
     {
       "id": "ai-belege-buchen",
-      "name": "AI Belege und Rechnungen buchen",
-      "description": "Kontierung auf Bildbasis: Belege fotografieren, KI extrahiert Daten – schnelle Buchung, DATEV-Anbindung, weniger manuelle Eingaben.",
-      "url": "https://accounting-vouchers-app.web.app/login",
+      "name": "AI Belege & Rechnungen",
+      "description": "Rechnungen per KI automatisch erfassen, nach §14 UStG prüfen und als XRechnung oder ZUGFeRD-PDF ausgeben – per PDF oder Foto, auch vom Smartphone.",
+      "url": "https://localhost:6073/analyse",
       "iconType": "mat-icon",
       "icon": "receipt_long"
     },
@@ -83,9 +91,9 @@
     },
     {
       "id": "service-intelligence",
-      "name": "Service Intelligence",
+      "name": "AI Service Intelligence",
       "description": "Interaktive Explosionszeichnungen aus PDF & Daten: Hotspots auf den Seiten, Verknüpfung mit Stücklistenpositionen – schnelleres Auffinden von Teilen, weniger Blättern im Handbuch, Basis für Service- und Folgeprozesse.",
-      "url": "http://localhost:6180/admin",
+      "url": "https://localhost:6180/admin",
       "iconType": "mat-icon",
       "icon": "precision_manufacturing"
     },
@@ -96,6 +104,30 @@
       "url": "http://localhost:4206/pdf-generator-v2",
       "iconType": "mat-icon",
       "icon": "picture_as_pdf"
+    },
+    {
+      "id": "ai-kanzlei",
+      "name": "AI Kanzlei",
+      "description": "Compliance- und Kanzleiverwaltung: GwG-Erhebung prüfbereit als PDF, Selbstauskunft und Kammer-Export – modularer Arbeitsplatz mit eingebetteten Fachmodulen (Belege, eRechnung, Verträge u. a.), flexibel konfigurierbare Navigation und Kanzleistammdaten.",
+      "url": "http://localhost:6063/gwg-cases",
+      "iconType": "image",
+      "icon": "app-icons/ai-kanzlei.svg"
+    },
+    {
+      "id": "ai-juris",
+      "name": "AI Juris",
+      "description": "AI-native 360°-Kanzleiplattform: Mandate, Sachverhalt und Fristen im Cockpit, juristisches GPS mit Zielsteuerung, Dokumentengenerierung und Mandanten-Portal – weniger Medienbrüche, mehr Transparenz im Verfahren.",
+      "url": "https://localhost:6066/dashboard",
+      "iconType": "mat-icon",
+      "icon": "balance"
+    },
+    {
+      "id": "ai-hr",
+      "name": "AI HR",
+      "description": "HR-Cockpit und Personalverwaltung: 360°-Mitarbeiterakte, Abwesenheiten mit Kalender, Sammelbuchung und Genehmigungsworkflow, eAU-Übersicht und Auswertungen – Ereignisse erfassen, KI unterstützt die Prüfung, Übergabe ans Zielsystem statt blinder Buchung.",
+      "url": "http://localhost:6074/cockpit",
+      "iconType": "mat-icon",
+      "icon": "groups"
     },
     {
       "id": "event-time-machine",
