@@ -1,0 +1,13 @@
+# Öffentlicher Hostname (z. B. per Azure-DNS-Label auf der Ingress-Controller-Public-IP, siehe
+# infra/bicep/README.md) - pro Umgebung über values-<env>.yaml überschreiben.
+host: ""
+
+clusterIssuer: letsencrypt-prod
+
+frontend:
+  serviceName: ai-app-hub-frontend
+  servicePort: 80
+
+backend:
+  serviceName: ai-app-hub-backend
+  servicePort: 6055

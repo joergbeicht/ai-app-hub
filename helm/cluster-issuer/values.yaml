@@ -1,0 +1,8 @@
+# E-Mail-Adresse, an die Let's Encrypt Ablauf-/Widerrufs-Hinweise zum Zertifikat schickt
+# (keine Anmeldedaten, nur Benachrichtigung) - pro Cluster über values-<env>.yaml überschreiben.
+acmeEmail: ""
+
+# Let's-Encrypt-Server: "prod" für echte, browser-vertraute Zertifikate, "staging" nur zum
+# Testen des ACME-HTTP01-Flows ohne die (großzügigen, aber vorhandenen) Prod-Rate-Limits zu
+# riskieren.
+environment: prod

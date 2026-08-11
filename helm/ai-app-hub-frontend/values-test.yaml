@@ -7,6 +7,7 @@ env:
   clusterName: "confessio-test"
   azureTenantId: "e72e80bb-76d0-4f0c-8dfe-55259ab5c6e8"
   azureClientId: "c52e2ae0-a32d-46d7-9e1b-a0fdb06ff094"
-  # Passend zum lokalen `kubectl port-forward` beim ersten Testdeploy (siehe helm/README.md) -
-  # sobald ein echter Ingress/DNS existiert, hier durch die öffentliche Backend-URL ersetzen.
-  backendApiUrl: "http://localhost:8080"
+  # Seit dem öffentlichen Ingress (ADR-11) läuft das Backend unter demselben Host wie das
+  # Frontend, nur unter dem Pfad /api (siehe helm/ai-app-hub-ingress) - kein separater Port/Host
+  # mehr nötig.
+  backendApiUrl: "https://confessio-test.westeurope.cloudapp.azure.com/api"

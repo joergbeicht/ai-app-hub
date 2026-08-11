@@ -681,10 +681,110 @@ spätere Ausbau, siehe offene Punkte).
 
 **Bekannte offene Punkte (separate, spätere Entscheidungen – nicht Teil
 dieser ADR):**
-- Kein Ingress-Controller/TLS/DNS – aktuell nur über `kubectl port-forward`
-  erreichbar, kein echter öffentlicher HTTPS-Endpunkt, MSAL-Login-Flow im
-  Cluster deshalb noch nicht End-to-End getestet.
+- ~~Kein Ingress-Controller/TLS/DNS~~ – gelöst, siehe ADR-11.
 - Deploy-Identity-Rechte auf AKS von Cluster-weit auf den `ai-app-hub`-
   Namespace verengen (Azure RBAC for Kubernetes Authorization).
 - Analoger Workflow für `confessio-prod`, sobald der Cluster existiert,
   inkl. Test→Prod-Transport-Entscheidung.
+
+## ADR-11: Öffentlicher Ingress (NGINX + cert-manager + Azure-DNS-Label) statt `kubectl port-forward`
+
+**Kontext:** ADR-10 hatte `ai-app-hub` im Cluster lauffähig, aber nur via
+`kubectl port-forward` von einem einzelnen Entwickler-Rechner aus erreichbar
+– kein echter öffentlicher Endpunkt, MSAL-Redirect-Login-Flow im Cluster
+deshalb nie End-to-End im Browser getestet ("bedeutet das, wir haben eine
+öffentliche App-URL" war explizit noch zu verneinen).
+
+**Entscheidung:** Pro Kunden-Cluster (analog für Fall 1 und Fall 2, siehe
+ADR-9) folgendes, wiederholbares Bootstrapping – einmalig cluster-weit, NICHT
+Teil des App-Deploy-Workflows (`deploy-confessio-test.yml` referenziert es
+nur):
+1. **NGINX Ingress Controller** (`ingress-nginx/ingress-nginx`-Helm-Chart,
+   Namespace `ingress-nginx`) – Standardwahl für AKS ohne bestehende
+   Azure-Application-Gateway-Anforderung (siehe `deployment.mdc`: Helm
+   Charts für K8s-Ressourcen, auch für Infra-Komponenten).
+2. **Kostenloser Hostname per Azure-DNS-Label** auf der vom Controller
+   erzeugten Public-LoadBalancer-IP
+   (`service.beta.kubernetes.io/azure-dns-label-name: confessio-test` →
+   `confessio-test.westeurope.cloudapp.azure.com`) – keine eigene Domain/DNS-
+   Zone nötig, kein zusätzlicher Kostenpunkt. Bei Kunden mit eigener Domain
+   ist ein CNAME auf diesen Hostnamen (oder ein eigenes DNS-Label) jederzeit
+   nachrüstbar, ohne dass sich am Ingress selbst etwas ändert.
+3. **cert-manager** (`jetstack/cert-manager`-Helm-Chart, Namespace
+   `cert-manager`, inkl. CRDs) + ein `ClusterIssuer` für Let's Encrypt
+   (eigenes, kleines Chart `helm/cluster-issuer/`, `environment: prod` seit
+   dem ersten erfolgreichen Testlauf) – automatisch ausgestellte, echte
+   Browser-vertraute Zertifikate statt selbstsignierter Zertifikate oder
+   manueller Erneuerung.
+4. **Ein gemeinsamer Ingress pro Fachapplikation** (`helm/ai-app-hub-ingress/`)
+   statt je einem Ingress pro Service-Chart: Frontend und Backend teilen sich
+   Host und TLS-Zertifikat (`/` → Frontend, `/api` → Backend mit
+   `rewrite-target`, Backend-Routen liegen intern auf Root-Ebene wie
+   `/users`, `/health`). Ein gemeinsamer Ingress vermeidet doppelte
+   Zertifikatsanfragen für denselben Host (cert-manager würde sonst pro
+   Ingress-Ressource ein eigenes Certificate/Secret für denselben Hostnamen
+   erzeugen).
+5. Backend `CORS_ORIGIN` und Frontend `backendApiUrl` in `values-test.yaml`
+   auf den öffentlichen HTTPS-Host umgestellt (Backend läuft intern
+   weiterhin auf Klartext-HTTP, TLS wird am Ingress terminiert). Frontend und
+   Backend sind jetzt technisch dieselbe Origin (nur unterschiedliche
+   Pfade) – CORS greift nur noch als zusätzliche Absicherung.
+6. **Azure AD App Registration**: neue SPA-Redirect-URI
+   `https://confessio-test.westeurope.cloudapp.azure.com` zusätzlich zu
+   `https://localhost:6054` ergänzt (per Microsoft-Graph-`PATCH`, da
+   `az ad app update` kein `--spa-redirect-uris`-Flag hat).
+
+**Zwei reale Fehler beim ersten Rollout gefunden und behoben (beide reine
+Azure-RBAC-Lücken, nicht app-spezifisch):**
+1. `az acr build` scheiterte mit `AuthorizationFailed` auf
+   `registries/read`, obwohl die Deploy-Identity bereits `AcrPush` auf genau
+   dieser ACR hatte – `AcrPush` deckt nur die Daten-Ebene
+   (`pull/read`, `push/write`) ab, ACR Tasks (`az acr build`) brauchen
+   zusätzlich Control-Plane-Zugriff. Fix: `Contributor`-Rolle, eng auf die
+   ACR-Ressource selbst gescoped, ergänzt.
+2. `az aks get-credentials` (ohne `--admin`) scheiterte mit
+   `AuthorizationFailed` auf `listClusterUserCredential` – die vorhandene
+   `Azure Kubernetes Service Cluster Admin Role` deckt nur
+   `listClusterAdminCredential` ab. Fix: zusätzlich `Azure Kubernetes
+   Service Cluster User Role`, gescoped auf den Cluster, ergänzt.
+
+**Ein dritter, Azure-typischer Fehler bei der Zertifikatsausstellung
+gefunden und behoben:** Die ACME-HTTP01-Challenge von Let's Encrypt schlug
+zunächst mit "Timeout during connect" fehl – Azures Load-Balancer-Health-
+Probe für den Ingress-Controller-Service prüfte standardmäßig Pfad `/` statt
+eines dedizierten Health-Endpunkts. `nginx-ingress`s Default-Backend
+antwortet auf `/` ohne passenden `Host`-Header mit `404`, wodurch Azure den
+Node als "unhealthy" markierte und gar keinen Traffic mehr weiterleitete
+(kein `RST`, daher "Timeout" statt "Connection refused"). Fix: Service-
+Annotation `service.beta.kubernetes.io/azure-load-balancer-health-probe-
+request-path: /healthz` (nginx-ingress liefert `/healthz` unabhängig vom
+`Host`-Header immer mit `200`).
+
+**Tatsächlich verifiziert (11.08., `confessio-test`):**
+`https://confessio-test.westeurope.cloudapp.azure.com/` → HTTP 200 mit
+echtem Let's-Encrypt-Zertifikat (`curl`/Browser, kein `-k` nötig);
+`/api/health` → `{"status":"ok"}`; Login-Redirect zu
+`login.microsoftonline.com` mit korrektem
+`redirect_uri=https://confessio-test.westeurope.cloudapp.azure.com` bis zur
+Konto-/Passwort-Eingabe im Browser bestätigt (MFA/Passwort selbst kann/soll
+der Agent nicht für den Nutzer eingeben).
+
+**Bekannte, bewusste Vereinfachung:** `letsencrypt-prod` direkt statt zuerst
+`letsencrypt-staging` verwendet – vertretbar, da nur ein einzelner,
+eindeutiger Hostname betroffen ist und Let's Encrypts Prod-Rate-Limits
+(z. B. 5 doppelte Zertifikate/Woche pro exaktem Hostnamen) dabei nicht
+relevant werden.
+
+**Bekannte offene Punkte (separate, spätere Entscheidungen – nicht Teil
+dieser ADR):**
+- Vollständiger Login-Flow (inkl. Passwort/MFA) wurde nur bis zur
+  Passwort-Eingabeseite verifiziert, nicht bis zum eingeloggten Zustand
+  (erfordert menschliche Eingabe).
+- `helm/ai-app-hub-ingress`, `ingress-nginx` und `cert-manager` sind noch
+  nicht Teil der GitHub-Actions-Pipeline für das initiale Cluster-
+  Bootstrapping (aktuell manuell per `helm install` beim Cluster-Setup) –
+  nur der App-eigene Ingress-Chart-Aufruf ist bereits im Workflow.
+- Eigene Kunden-Domain statt `*.cloudapp.azure.com` ist für Fall 1
+  ("1-Klick-Kauf") vermutlich irrelevant (Kunde braucht keine eigene Marke
+  auf der URL), für beratungsintensive Fall-2-Kunden ggf. gewünscht – dann
+  CNAME auf den bestehenden Hostnamen, keine Änderung am Ingress nötig.

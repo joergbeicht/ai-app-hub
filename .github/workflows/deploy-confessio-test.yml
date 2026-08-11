@@ -74,6 +74,15 @@ jobs:
             --set env.azureClientId=${{ vars.APP_AZURE_CLIENT_ID }} \
             -n ai-app-hub --wait
 
+      # ingress-nginx + cert-manager + der Let's-Encrypt-ClusterIssuer sind einmaliges,
+      # cluster-weites Bootstrapping (siehe ADR-11 / infra/bicep/README.md) - NICHT Teil dieses
+      # Workflows, der pro App-Deploy läuft. Der Ingress hier verweist nur auf sie.
+      - name: Helm upgrade ingress
+        run: |
+          helm upgrade --install ai-app-hub-ingress ./helm/ai-app-hub-ingress \
+            -f ./helm/ai-app-hub-ingress/values-test.yaml \
+            -n ai-app-hub --wait
+
       - name: Rollout status
         run: |
           kubectl rollout status deployment/ai-app-hub-backend -n ai-app-hub --timeout=120s

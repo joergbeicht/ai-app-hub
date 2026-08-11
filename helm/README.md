@@ -1,12 +1,51 @@
 # Helm-Charts – ai-app-hub im Kunden-Cluster
 
 Ein Chart pro Service (`ai-app-hub-backend`, `ai-app-hub-frontend`), siehe
-`deployment.mdc`. Wird in den per `infra/bicep/customer-cluster` erzeugten
-Kunden-Cluster deployed (siehe ADR-9/ADR-10 in
+`deployment.mdc`, plus ein gemeinsamer Routing-Chart (`ai-app-hub-ingress`).
+Wird in den per `infra/bicep/customer-cluster` erzeugten Kunden-Cluster
+deployed (siehe ADR-9/ADR-10/ADR-11 in
 `docs/ARCHITEKTUR-ENTSCHEIDUNGEN.md`).
+
+Zusätzlich `helm/cluster-issuer/`: kein App-Chart, sondern der cluster-weite
+Let's-Encrypt-`ClusterIssuer` (cert-manager) – einmalig pro Cluster, nicht
+pro Fachapplikation.
+
+## Cluster-Bootstrapping (einmalig pro Kunden-Cluster, VOR dem ersten App-Deploy)
+
+Öffentlicher Zugriff braucht einen Ingress-Controller + TLS-Automatisierung
+im Cluster – beides cluster-weite Infrastruktur, kein App-spezifisches Chart
+(siehe ADR-11):
+
+```bash
+helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
+helm repo add jetstack https://charts.jetstack.io
+helm repo update
+
+# Ersetzt <dns-label> durch einen pro Kunde eindeutigen Kurznamen (z. B. den
+# Kundennamen aus infra/bicep, "confessio-test") - ergibt
+# https://<dns-label>.<region>.cloudapp.azure.com, kostenlos, ohne eigene Domain.
+helm install ingress-nginx ingress-nginx/ingress-nginx \
+  --create-namespace --namespace ingress-nginx \
+  --set controller.service.annotations."service\.beta\.kubernetes\.io/azure-dns-label-name"="<dns-label>" \
+  --set controller.service.annotations."service\.beta\.kubernetes\.io/azure-load-balancer-health-probe-request-path"="/healthz"
+
+helm install cert-manager jetstack/cert-manager \
+  --create-namespace --namespace cert-manager --set crds.enabled=true
+
+helm install cluster-issuer ./helm/cluster-issuer \
+  --set acmeEmail=platform@axora.app
+```
+
+**Wichtig:** Ohne die `azure-load-balancer-health-probe-request-path`-
+Annotation markiert Azure den Ingress-Controller-Node als "unhealthy" (Azures
+Standard-Health-Probe prüft `/`, nginx-ingress' Default-Backend liefert dort
+`404` ohne passenden `Host`-Header) – externer Zugriff auf Port 80/443
+schlägt dann mit "Timeout during connect" fehl, auch wenn NSG-Regeln und
+Ingress-Ressourcen korrekt sind (siehe ADR-11).
 
 ## Voraussetzungen
 
+- Cluster-Bootstrapping (siehe oben) einmalig durchgeführt.
 - Images liegen bereits in der zentralen ACR (siehe unten, "Image bauen").
 - `az aks get-credentials --resource-group rg-<kunde>-<env> --name aks-<kunde>-<env>`
 - Ziel-Namespace existiert (`kubectl create namespace ai-app-hub`, einmalig
@@ -51,6 +90,12 @@ helm install ai-app-hub-frontend ./helm/ai-app-hub-frontend \
   -f helm/ai-app-hub-frontend/values-test.yaml \
   --set image.tag=$GIT_SHA \
   -n ai-app-hub
+
+# Routing/TLS für beide Services zusammen (siehe ADR-11) - kein image.tag,
+# da dieser Chart keine eigenen Container enthält.
+helm install ai-app-hub-ingress ./helm/ai-app-hub-ingress \
+  -f helm/ai-app-hub-ingress/values-test.yaml \
+  -n ai-app-hub
 ```
 
 Für ein Update: `helm upgrade` statt `helm install`, jeweils mit neuem
@@ -61,19 +106,30 @@ sondern per `--set-string` übergeben. Für den manuellen Testdeploy kommen sie
 hier aus der lokalen Shell (aus `.env`), in einer echten Pipeline aus
 GitHub Encrypted Secrets (siehe `deployment.mdc`, offener Punkt in ADR-10).
 
-## Verifizieren (solange es noch keinen öffentlichen Ingress gibt)
+## Verifizieren
+
+Über den öffentlichen Ingress (seit ADR-11):
 
 ```bash
 kubectl get pods -n ai-app-hub
-kubectl port-forward -n ai-app-hub svc/ai-app-hub-backend 8080:6055 &
-kubectl port-forward -n ai-app-hub svc/ai-app-hub-frontend 8081:80 &
-curl http://localhost:8080/health
-curl http://localhost:8081/runtime-config.json
+kubectl get ingress,certificate -n ai-app-hub
+curl https://<host>/api/health
+curl https://<host>/runtime-config.json
 ```
 
-## Bewusst noch nicht Teil dieser Charts (siehe ADR-10, offene Punkte)
+Alternativ weiterhin per `kubectl port-forward` (z. B. für Debugging ohne
+Umweg über den Ingress):
 
-- Kein Ingress-Controller/TLS/DNS – Zugriff aktuell nur per
-  `kubectl port-forward`, kein echter öffentlicher HTTPS-Endpunkt.
-- Keine GitHub-Actions-Pipeline, die diese Befehle automatisiert ausführt.
+```bash
+kubectl port-forward -n ai-app-hub svc/ai-app-hub-backend 8080:6055 &
+kubectl port-forward -n ai-app-hub svc/ai-app-hub-frontend 8081:80 &
+```
+
+## Bewusst noch nicht Teil dieser Charts (siehe ADR-11, offene Punkte)
+
+- `ingress-nginx`/`cert-manager`-Cluster-Bootstrapping ist noch nicht Teil
+  der GitHub-Actions-Pipeline (aktuell manueller `helm install` einmalig
+  pro Cluster, siehe oben).
 - Kein `HorizontalPodAutoscaler` (noch keine Lastdaten, YAGNI).
+- Eigene Kunden-Domain statt `*.cloudapp.azure.com` (aktuell kein Bedarf,
+  siehe ADR-11).

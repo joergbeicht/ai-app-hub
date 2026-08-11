@@ -1,0 +1,11 @@
+apiVersion: v2
+name: ai-app-hub-ingress
+description: >-
+  Öffentlicher Ingress (Routing + TLS) für die ai-app-hub-Fachapplikation: bündelt Frontend
+  (Pfad /) und Backend (Pfad /api) auf einem gemeinsamen Host/Zertifikat, damit cert-manager
+  genau ein Let's-Encrypt-Zertifikat pro Host ausstellt statt eines pro Chart (siehe ADR-11).
+  Setzt voraus, dass ingress-nginx und cert-manager bereits im Cluster laufen (siehe
+  infra/bicep/README.md).
+type: application
+version: 0.1.0
+appVersion: "1.0.0"

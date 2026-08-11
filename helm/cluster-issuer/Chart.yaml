@@ -1,0 +1,10 @@
+apiVersion: v2
+name: cluster-issuer
+description: >-
+  Cluster-weiter Let's-Encrypt-ClusterIssuer (cert-manager) für automatisch ausgestellte
+  TLS-Zertifikate auf allen Ingress-Ressourcen im Cluster. Einmalig pro Kunden-Cluster
+  installiert (siehe infra/bicep/README.md / ADR-11), unabhängig von den Fachapplikations-
+  Charts (ai-app-hub-*).
+type: application
+version: 0.1.0
+appVersion: "1.0.0"
