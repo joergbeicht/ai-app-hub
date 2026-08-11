@@ -1,0 +1,6 @@
+{
+  "clusterName": "${CLUSTER_NAME}",
+  "azureTenantId": "${AZURE_TENANT_ID}",
+  "azureClientId": "${AZURE_CLIENT_ID}",
+  "backendApiUrl": "${BACKEND_API_URL}"
+}

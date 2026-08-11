@@ -1,0 +1,7 @@
+{
+  "loading": "Loading configuration…",
+  "empty": "No apps configured. Add one in settings.",
+  "card": {
+    "openHint": "Open in new tab"
+  }
+}

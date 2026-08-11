@@ -1,0 +1,7 @@
+{
+  "loading": "Chargement de la configuration…",
+  "empty": "Aucune app configurée. Ajoutez-en dans les paramètres.",
+  "card": {
+    "openHint": "Ouvrir dans un nouvel onglet"
+  }
+}

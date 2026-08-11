@@ -1,0 +1,6 @@
+apiVersion: v2
+name: ai-app-hub-frontend
+description: Angular-Frontend des AI App Hub.
+type: application
+version: 0.1.0
+appVersion: "1.0.1"

@@ -3,10 +3,22 @@
   "version": "1.0.0",
   "scripts": {
     "ng": "ng",
+    "write-version": "node scripts/write-app-version.cjs",
+    "write-runtime-config": "node scripts/write-runtime-config.cjs",
+    "prestart": "npm run write-version && npm run write-runtime-config",
     "start": "ng serve --port 6054 --host 0.0.0.0",
+    "prestart:docker": "npm run write-version && npm run write-runtime-config",
+    "start:docker": "ng serve --configuration docker --port 6054 --host 0.0.0.0",
+    "prebuild": "npm run write-version",
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
-    "test": "ng test"
+    "test": "ng test",
+    "test:ci": "ng test --watch=false --browsers=ChromeHeadless",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "prepare": "husky"
   },
   "private": true,
   "dependencies": {
@@ -20,21 +32,46 @@
     "@angular/platform-browser": "^19.0.0",
     "@angular/platform-browser-dynamic": "^19.0.0",
     "@angular/router": "^19.0.0",
+    "@angular/service-worker": "^19.2.25",
+    "@azure/msal-angular": "^6.0.3",
+    "@azure/msal-browser": "^5.18.0",
+    "@jsverse/transloco": "^8.4.0",
+    "@zxing/browser": "^0.1.5",
+    "@zxing/library": "^0.21.3",
     "rxjs": "~7.8.0",
     "tslib": "^2.3.0",
     "zone.js": "~0.15.0"
   },
   "devDependencies": {
     "@angular-devkit/build-angular": "^19.0.0",
+    "@angular-eslint/builder": "^19.8.1",
+    "@angular-eslint/schematics": "^19.8.1",
     "@angular/cli": "^19.0.0",
     "@angular/compiler-cli": "^19.0.0",
     "@types/jasmine": "~5.1.0",
+    "angular-eslint": "^19.8.1",
+    "eslint": "^9.39.5",
+    "eslint-config-prettier": "^10.1.8",
+    "husky": "^9.1.7",
     "jasmine-core": "~5.1.0",
     "karma": "~6.4.0",
     "karma-chrome-launcher": "~3.2.0",
     "karma-coverage": "~2.2.0",
     "karma-jasmine": "~5.1.0",
     "karma-jasmine-html-reporter": "~2.1.0",
-    "typescript": "~5.6.0"
+    "lint-staged": "^16.4.0",
+    "prettier": "^3.9.6",
+    "puppeteer": "^24.43.1",
+    "typescript": "~5.6.0",
+    "typescript-eslint": "^8.66.0"
+  },
+  "lint-staged": {
+    "*.ts": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{html,scss,json}": [
+      "prettier --write"
+    ]
   }
 }

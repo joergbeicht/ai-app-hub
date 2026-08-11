@@ -1,0 +1,12 @@
+{
+  "title": "Axora - AI App Hub",
+  "subline": "Inicie sesión con su cuenta de Microsoft para continuar.",
+  "signIn": "Iniciar sesión con Microsoft",
+  "badgeLogin": {
+    "toggle": "Iniciar sesión con tarjeta",
+    "instructions": "Coloca tu tarjeta de empleado frente a la cámara.",
+    "notFound": "No se encontró ninguna cuenta para esta tarjeta. Vuelve a escanear o inicia sesión con Microsoft.",
+    "cameraError": "No se pudo iniciar la cámara. Permite el acceso a la cámara o inicia sesión con Microsoft.",
+    "cancel": "Cancelar"
+  }
+}

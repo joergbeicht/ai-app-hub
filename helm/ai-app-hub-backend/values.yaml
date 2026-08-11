@@ -1,0 +1,28 @@
+replicaCount: 1
+
+image:
+  repository: acraxoraplatform.azurecr.io/ai-app-hub-backend
+  tag: "v1.0.1"
+  pullPolicy: IfNotPresent
+
+service:
+  port: 6055
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 256Mi
+
+env:
+  corsOrigin: ""
+
+# Secrets werden NIE hier oder in values-<env>.yaml eingecheckt (siehe deployment.mdc) -
+# sondern beim `helm install`/`upgrade` per `--set-string secrets.xyz=...` aus der Pipeline
+# bzw. für manuelle Testdeploys aus der lokalen Shell übergeben.
+secrets:
+  azureTenantId: ""
+  azureClientId: ""
+  azureClientSecret: ""

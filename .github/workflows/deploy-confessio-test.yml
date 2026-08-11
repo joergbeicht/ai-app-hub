@@ -1,0 +1,80 @@
+name: Deploy to confessio-test
+
+# Bewusst nur manuell startbar (siehe ADR-10/ADR-9): kein Automatismus bei jedem Push, solange es
+# noch keine Prod-Smoke-Tests/Rollback-Logik gibt (siehe testing-pipeline.mdc). Das
+# "confessio-test"-GitHub-Environment erfordert zusätzlich eine manuelle Freigabe (Required
+# Reviewer), bevor der Job tatsächlich läuft.
+on:
+  workflow_dispatch: {}
+
+permissions:
+  id-token: write # Für OIDC/Workload Identity Federation (azure/login) - kein Client-Secret.
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: confessio-test
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: azure/setup-helm@v4
+      - uses: azure/setup-kubectl@v4
+
+      - name: Azure login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Determine image tag
+        id: image
+        run: echo "tag=${GITHUB_SHA::8}" >> "$GITHUB_OUTPUT"
+
+      - name: Build & push backend image
+        run: |
+          az acr build --registry acraxoraplatform \
+            --image ai-app-hub-backend:${{ steps.image.outputs.tag }} \
+            --file backend/Dockerfile backend
+
+      - name: Build & push frontend image
+        run: |
+          az acr build --registry acraxoraplatform \
+            --image ai-app-hub-frontend:${{ steps.image.outputs.tag }} \
+            --file frontend/Dockerfile \
+            --build-arg APP_VERSION=${{ steps.image.outputs.tag }} \
+            frontend
+
+      - name: Get AKS credentials
+        run: |
+          az aks get-credentials \
+            --resource-group rg-confessio-test \
+            --name aks-confessio-test \
+            --overwrite-existing
+
+      - name: Ensure namespace exists
+        run: kubectl create namespace ai-app-hub --dry-run=client -o yaml | kubectl apply -f -
+
+      - name: Helm upgrade backend
+        run: |
+          helm upgrade --install ai-app-hub-backend ./helm/ai-app-hub-backend \
+            -f ./helm/ai-app-hub-backend/values-test.yaml \
+            --set image.tag=${{ steps.image.outputs.tag }} \
+            --set-string secrets.azureTenantId=${{ vars.AZURE_TENANT_ID }} \
+            --set-string secrets.azureClientId=${{ vars.APP_AZURE_CLIENT_ID }} \
+            --set-string secrets.azureClientSecret=${{ secrets.APP_AZURE_CLIENT_SECRET }} \
+            -n ai-app-hub --wait
+
+      - name: Helm upgrade frontend
+        run: |
+          helm upgrade --install ai-app-hub-frontend ./helm/ai-app-hub-frontend \
+            -f ./helm/ai-app-hub-frontend/values-test.yaml \
+            --set image.tag=${{ steps.image.outputs.tag }} \
+            --set env.azureClientId=${{ vars.APP_AZURE_CLIENT_ID }} \
+            -n ai-app-hub --wait
+
+      - name: Rollout status
+        run: |
+          kubectl rollout status deployment/ai-app-hub-backend -n ai-app-hub --timeout=120s
+          kubectl rollout status deployment/ai-app-hub-frontend -n ai-app-hub --timeout=120s

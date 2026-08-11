@@ -1,0 +1,89 @@
+---
+description: "Test-Pipeline als Gate-Modell: Lokal -> GitHub CI -> Test-System -> Dev/Prod, mit Pflicht-Gates und automatischem Rollback"
+globs: [".github/workflows/**", "**/*.spec.ts", "**/*.e2e-spec.ts", "**/e2e/**", "**/test/**", "**/*.smoke.ts"]
+alwaysApply: false
+---
+
+# Grundprinzip: Vier Stufen, ein Fluss, harte Gates
+
+- Die Test-Pipeline hat vier Stufen: **1. Lokal → 2. GitHub CI → 3. Test-
+  System (Staging) → 4. Dev/Prod**. Je weiter rechts, desto "echter" die
+  Tests (weniger Mocks, mehr reale Infrastruktur) und desto höher die
+  Hürde, um weiterzukommen.
+- **Kernregel**: Ein Fehlschlag an Stufe N verhindert automatisch den
+  Übergang zu Stufe N+1. Tests sind **verbindliche Freigabe-Gates**, keine
+  Beobachtung nebenbei. Kein Deploy, kein Merge, kein Übergang "trotzdem",
+  auch nicht bei Zeitdruck.
+- Diese Kette gilt für **jedes Projekt** (Bausteine, Fachapplikationen,
+  z. B. auch `authenticator`, `provisioning-service`) einheitlich – kein
+  Projekt bekommt eine Abkürzung "Push → direkt Deploy" ohne Gate
+  dazwischen.
+
+# Stufe 1 – Lokal (Dev-Rechner)
+
+- Zweck: schnelles Feedback beim Entwickeln, kein Deploy, kein zwingend
+  echtes Netzwerk.
+- Frontend: Komponenten-/Service-Unit-Tests im Watch-Mode.
+- Backend: Unit-Tests mit gemockten Abhängigkeiten (Repositories, externe
+  APIs) im Watch-Mode.
+- Hier zählt Geschwindigkeit, nicht Vollständigkeit – diese Stufe ist
+  **nicht** Gate-pflichtig, sondern Entwickler-Komfort.
+
+# Stufe 2 – GitHub CI (Pflicht-Gate vor Merge)
+
+- Automatisiertes Pflicht-Gate: **kein Merge** in `main`/`develop` ohne
+  grünen Status dieses Jobs (Branch Protection Rule mit Required Status
+  Check).
+- Frontend: Unit-Tests headless (z. B. Karma/Jest im CI-Modus) + Build.
+- Backend: Unit-Tests **und** echte Integrationstests gegen containerisierte
+  Abhängigkeiten (echte Postgres-/Redis-Instanz im CI-Runner via Docker
+  Service Container, keine gemockte DB mehr auf dieser Stufe) + Build.
+- Kein Deploy-Job startet, wenn dieser Job nicht grün ist – technisch über
+  `needs:` im GitHub-Actions-Workflow abgebildet, nicht nur als Konvention.
+
+# Stufe 3 – Test-System (Staging, echte deployte Umgebung)
+
+- Wird **automatisch bei jedem Merge auf `main`/`develop`** ausgelöst,
+  direkt im Anschluss an einen erfolgreichen Deploy nach Staging – kein
+  manuelles Anstoßen nötig.
+- Ab hier: **keine Mocks mehr**, alles läuft gegen reale, deployte
+  Infrastruktur (echte DB, echtes Netzwerk, echte Service-zu-Service-
+  Kommunikation zwischen Bausteinen und Fachapplikationen).
+- Frontend: Browser-E2E-Tests gegen die echte Staging-URL (z. B.
+  Playwright/Cypress), inklusive Login-Flow über den echten IdP
+  (Microsoft Entra ID / MSAL – siehe `platform-architecture.mdc`).
+- Backend: API-Tests gegen das echte, deployte Backend (nicht gegen einen
+  lokalen Testserver).
+- Schlägt diese Stufe fehl, gilt der Merge/Deploy-Stand als **nicht
+  freigegeben** für den Übergang nach Dev/Prod – der Fehler wird sichtbar
+  gemeldet (z. B. GitHub-Check/Benachrichtigung), nicht nur geloggt.
+
+# Stufe 4 – Dev → Prod (letzte Absicherung + automatischer Rollback)
+
+- Vor dem Produktions-Deploy: dieselbe E2E-Suite wie Stufe 3, aber gegen
+  Pre-Live, als letztes Gate vor der Freigabe (siehe Environment
+  Protection Rules in `deployment.mdc`).
+- **Direkt nach dem Prod-Deploy**: automatisierte Smoke-Tests gegen die
+  echte Produktionsumgebung (kritische Kern-Flows, keine vollständige
+  E2E-Suite – schnell, aber aussagekräftig).
+- Schlagen die Prod-Smoke-Tests fehl: **automatischer Rollback** (z. B.
+  `helm rollback` auf die zuletzt bekannte gute Release-Revision), direkt
+  aus dem GitHub-Actions-Workflow ausgelöst – kein "Augen zu und durch",
+  kein Warten auf manuelles Eingreifen, bevor der fehlerhafte Stand
+  zurückgenommen wird.
+- Nach einem automatischen Rollback wird das verantwortliche Team aktiv
+  benachrichtigt (nicht nur ein grüner/roter Pipeline-Status irgendwo) –
+  Rollback ersetzt nicht die Fehleranalyse, sondern verschafft Zeit dafür.
+- Diese Kette (Smoke-Test → ggf. automatischer Rollback) ist Teil des
+  Deploy-Jobs selbst, kein separater, optionaler Nachgelagerter Schritt.
+
+# Konsistenz mit bestehenden Regeln
+
+- Diese Gate-Kette konkretisiert die Testpyramide aus `clean-code.mdc`
+  (dort: *was* getestet wird) und den Pipeline-Aufbau aus `deployment.mdc`
+  (dort: *wie* deployed wird) – bei Widersprüchen im Detail hat diese Datei
+  Vorrang für alles, was die Reihenfolge/Gate-Logik zwischen den Stufen
+  betrifft.
+- Neue Business-Logik (Backend wie Frontend) kommt weiterhin nicht ohne
+  zugehörigen Test auf Stufe 1/2 – diese Datei ergänzt das um die Stufen
+  3/4, ersetzt es nicht.

@@ -9,4 +9,5 @@ COPY . .
 
 EXPOSE 6054
 
-CMD ["npm", "run", "start", "--", "--host", "0.0.0.0", "--port", "6054", "--poll", "2000"]
+# Overridden by docker-compose (ensure-node-modules + start:docker / HTTPS).
+CMD ["npm", "run", "start:docker"]

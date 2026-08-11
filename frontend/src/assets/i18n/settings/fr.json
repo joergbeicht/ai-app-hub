@@ -1,0 +1,55 @@
+{
+  "title": "Paramètres",
+  "subtitle": "Gérer les paramètres du hub et les applications. Les modifications sont enregistrées localement.",
+  "tabs": {
+    "general": "Général",
+    "apps": "Ajouter une app",
+    "users": "Gestion des utilisateurs"
+  },
+  "general": {
+    "subtitle": "Paramètres généraux du hub.",
+    "defaultLanguage": "Langue par défaut",
+    "defaultLanguageHint": "Réutilisée lors de la prochaine ouverture de l'application."
+  },
+  "apps": {
+    "subtitle": "Modifiez les apps, réordonnez-les par glisser-déposer et activez/désactivez leur affichage sur le hub. Toutes les modifications sont enregistrées localement immédiatement. Le nom et la description s’appliquent à la langue sélectionnée.",
+    "enabled": "Afficher sur le hub",
+    "reorder": "Modifier l’ordre"
+  },
+  "addApp": "Ajouter une app",
+  "resetToDefault": "Réinitialiser par défaut",
+  "field": {
+    "name": "Nom",
+    "description": "Description",
+    "url": "URL",
+    "iconType": "Type d'icône",
+    "iconTypeMatIcon": "Icône Material",
+    "iconTypeImage": "Image (chemin)",
+    "iconName": "Nom de l'icône",
+    "iconPath": "Chemin de l'image (p. ex. app-icons/xyz.svg)"
+  },
+  "remove": "Supprimer",
+  "save": "Enregistrer",
+  "cancel": "Annuler",
+  "newAppName": "Nouvelle app",
+  "toast": {
+    "saved": "Paramètres enregistrés.",
+    "generalSaved": "Paramètres généraux enregistrés.",
+    "resetDone": "Réinitialisation effectuée."
+  },
+  "users": {
+    "subtitle": "Attribuez des rôles aux utilisateurs (Utilisateur, Administrateur, Invité) – sans le portail Azure.",
+    "loading": "Chargement des utilisateurs …",
+    "retry": "Réessayer",
+    "empty": "Aucun utilisateur trouvé.",
+    "saved": "Rôle enregistré.",
+    "saveError": "Impossible d'enregistrer le rôle.",
+    "loadError": "Impossible de charger les utilisateurs.",
+    "you": "Vous",
+    "role": {
+      "User": "Utilisateur",
+      "Administrator": "Administrateur",
+      "Guest": "Invité"
+    }
+  }
+}

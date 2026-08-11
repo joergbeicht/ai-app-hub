@@ -1,0 +1,25 @@
+replicaCount: 1
+
+image:
+  repository: acraxoraplatform.azurecr.io/ai-app-hub-frontend
+  tag: "v1.0.1"
+  pullPolicy: IfNotPresent
+
+service:
+  port: 80
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 64Mi
+  limits:
+    cpu: 200m
+    memory: 128Mi
+
+# Nicht-sensitiv (Client-ID/Tenant-ID sind für ein SPA ohnehin öffentlich sichtbar, siehe
+# platform-architecture.mdc), daher hier und in values-<env>.yaml unbedenklich.
+env:
+  clusterName: "confessio-test"
+  azureTenantId: ""
+  azureClientId: ""
+  backendApiUrl: ""

@@ -1,0 +1,12 @@
+{
+  "title": "Axora - AI App Hub",
+  "subline": "Please sign in with your Microsoft account to continue.",
+  "signIn": "Sign in with Microsoft",
+  "badgeLogin": {
+    "toggle": "Sign in with badge",
+    "instructions": "Hold your employee badge in front of the camera.",
+    "notFound": "No account was found for this badge. Please scan again or sign in with Microsoft.",
+    "cameraError": "Could not start the camera. Please allow camera access or sign in with Microsoft.",
+    "cancel": "Cancel"
+  }
+}

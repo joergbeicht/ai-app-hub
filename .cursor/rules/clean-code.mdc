@@ -1,0 +1,88 @@
+---
+description: "Clean Code, SOLID und weitere Coding-Standards (Architektur, Tooling, Testing)"
+alwaysApply: true
+---
+
+# Grundprinzipien (sprachunabhängig)
+
+- **SOLID**: Single Responsibility, Open/Closed, Liskov Substitution,
+  Interface Segregation, Dependency Inversion. In NestJS über den
+  DI-Container ohnehin nahegelegt, bei Angular-Services genauso anwenden.
+- **DRY** (Don't Repeat Yourself) – aber nicht dogmatisch: bei zufälliger
+  Ähnlichkeit zweier Codestellen nicht sofort abstrahieren ("verfrühtes
+  DRY" ist selbst ein Anti-Pattern). Lieber 2–3 Duplikate zulassen, bis ein
+  Muster wirklich stabil erkennbar ist, dann erst extrahieren.
+- **KISS** (Keep It Simple) und **YAGNI** (You Aren't Gonna Need It) –
+  keine Konfigurierbarkeit/Flexibilität für Fälle, die aktuell nicht
+  gebraucht werden.
+- **Boy Scout Rule** – berührten Code beim Anfassen minimal besser
+  hinterlassen, als er vorgefunden wurde (kein separates "Aufräum-Ticket"
+  für Kleinigkeiten nötig).
+- **Law of Demeter** – Objekte sprechen nur mit direkten "Freunden", keine
+  Ketten wie `a.getB().getC().getD()`.
+
+# Architektur
+
+- Business-Logik unabhängig von Framework/DB/HTTP halten (Ports & Adapters
+  / Hexagonal-Gedanke): Domain-Logik nicht direkt an TypeORM-Entities
+  koppeln, sondern über Repository-Interfaces entkoppeln.
+- Leichte DDD-Konzepte dort nutzen, wo sie Klarheit bringen (Value Objects,
+  klar benannte Aggregates, einheitliche fachliche Sprache in Code und
+  Doku) – volles DDD mit Bounded Contexts erst bei entsprechender Größe.
+- CQRS nur einführen, wenn Lese- und Schreibpfade nachweislich
+  unterschiedliche Anforderungen haben, sonst unnötige Komplexität (YAGNI).
+
+# Tooling-Standards
+
+- TypeScript **strict mode** (`strict: true`), kein `any`, explizite
+  Rückgabetypen bei öffentlichen Funktionen/Methoden.
+- ESLint + Prettier automatisiert über Pre-Commit-Hook (Husky +
+  lint-staged) – nicht manuell/optional.
+- **Conventional Commits** (`feat:`, `fix:`, `refactor:`, `chore:`, `test:`,
+  `docs:` ...) für automatisches Changelog/Versionierung.
+- Kurzlebige Feature-Branches statt langlebiger Branches mit großen
+  Merge-Konflikten (Trunk-Based-Development-Gedanke).
+
+# Testing
+
+- Testpyramide einhalten: viele schnelle Unit-Tests, weniger
+  Integrationstests, wenige E2E-Tests.
+- NestJS: Unit-Tests für Services mit gemockten Repositories,
+  Integrationstests gegen echte Test-DB im Docker-Container, E2E über
+  `supertest`.
+- Angular: Unit-Tests für Services/Pipes/Guards, Component-Tests für
+  UI-Logik, wenige E2E-Tests für kritische User-Flows.
+- Neue Business-Logik kommt nicht ohne zugehörigen Test – bei Bugfixes:
+  erst ein Test, der den Bug reproduziert, dann der Fix.
+
+# Security by Default
+
+- Input-Validierung an der Systemgrenze (DTOs + `class-validator`), nie
+  ungeprüfte Daten aus Request-Bodies weiterverarbeiten.
+- Secrets ausschließlich über ENV-Variablen/Secret-Manager, nie im Code
+  oder in Config-Dateien, die eingecheckt werden.
+- Dependency-Scanning im Blick behalten (`npm audit`, Renovate/Dependabot).
+
+# Dokumentation
+
+- JSDoc/TSDoc für öffentliche APIs (Services, exportierte Funktionen,
+  DTOs), nicht für jede triviale private Hilfsfunktion.
+- Für größere/nicht offensichtliche Architekturentscheidungen kurze ADRs
+  (Architecture Decision Records) statt nur mündlicher/Slack-Absprache.
+- README pro Modul/Package, wenn dessen Zweck nicht selbsterklärend ist.
+
+# Observability
+
+- Strukturiertes Logging (JSON), kein `console.log` in Produktionscode.
+- Health-Checks für alle Services, zentrales Error-Tracking (z. B. Sentry)
+  von Anfang an einplanen statt erst bei Problemen nachzurüsten.
+
+# Framework-spezifische Ergänzungen
+
+- Angular: `OnPush`-Change-Detection als Standard, Signals statt
+  RxJS-Boilerplate für einfachen lokalen State.
+- NestJS: Guards/Pipes/Interceptors statt duplizierter Logik in
+  Controllern, zentrale Exception Filters statt verstreuter try/catch.
+- Beide: Barrel-Files (`index.ts`) sparsam einsetzen – erleichtern zwar
+  Imports, können aber Tree-Shaking und Kompilierzeiten verschlechtern,
+  wenn übertrieben verwendet.

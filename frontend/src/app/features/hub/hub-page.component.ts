@@ -1,25 +1,27 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, inject } from '@angular/core';
+import { TranslocoPipe, provideTranslocoScope } from '@jsverse/transloco';
 import { ConfigService } from '../../core/services/config.service';
+import { LocalePreferencesService } from '../../core/services/locale-preferences.service';
 import { AppCardComponent } from './app-card/app-card.component';
 
 @Component({
   selector: 'app-hub-page',
   standalone: true,
-  imports: [AppCardComponent],
+  imports: [AppCardComponent, TranslocoPipe],
+  providers: [provideTranslocoScope('hub')],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
+    @let lang = activeLanguage();
     @if (!configService.loaded()) {
-      <p class="loading">Lade Konfiguration…</p>
+      <p class="loading">{{ 'hub.loading' | transloco: {} : lang }}</p>
     } @else {
       <div class="hub-grid">
-        @for (app of configService.apps(); track app.id) {
-          <app-app-card
-            [app]="app"
-            [defaultIconName]="configService.defaultIcon()"
-          />
+        @for (app of configService.visibleApps(); track app.id) {
+          <app-app-card [app]="app" [defaultIconName]="configService.defaultIcon()" />
         }
       </div>
-      @if (configService.apps().length === 0) {
-        <p class="empty">Keine Apps konfiguriert. In den Einstellungen hinzufügen.</p>
+      @if (configService.visibleApps().length === 0) {
+        <p class="empty">{{ 'hub.empty' | transloco: {} : lang }}</p>
       }
     }
   `,
@@ -51,6 +53,7 @@ import { AppCardComponent } from './app-card/app-card.component';
 })
 export class HubPageComponent implements OnInit {
   readonly configService = inject(ConfigService);
+  readonly activeLanguage = inject(LocalePreferencesService).activeLanguage;
 
   ngOnInit(): void {
     void this.configService.load();

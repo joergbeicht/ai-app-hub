@@ -3,43 +3,377 @@
   "apps": [
     {
       "id": "ai-berichtgenerator",
-      "name": "AI Berichtgenerator",
-      "description": "KI-gestützte Berichterstellung aus Notizen",
+      "name": {
+        "de": "AI Dokumentenerstellung",
+        "en": "AI Document Creation",
+        "es": "Creación de documentos con IA",
+        "fr": "Création de documents IA",
+        "tr": "AI Belge Oluşturma",
+        "it": "Creazione documenti IA"
+      },
+      "description": {
+        "de": "Aus chronologischen Notizen professionelle Berichte erzeugen – KI-generiert, einheitlicher Stil, weniger manuelle Schreibtischarbeit.",
+        "en": "Turn chronological notes into professional reports – AI-generated, consistent style, less manual desk work.",
+        "es": "Convierte notas cronológicas en informes profesionales – generados por IA, estilo uniforme, menos trabajo manual.",
+        "fr": "Transformez des notes chronologiques en rapports professionnels – générés par IA, style cohérent, moins de travail manuel.",
+        "tr": "Kronolojik notları profesyonel raporlara dönüştürün – yapay zekâ ile üretilmiş, tutarlı stil, daha az manuel masa başı işi.",
+        "it": "Trasforma note cronologiche in report professionali – generati dall’IA, stile coerente, meno lavoro manuale da scrivania."
+      },
       "url": "http://localhost:4202/notes",
-      "iconType": "image",
-      "icon": "app-icons/ai-berichtgenerator.svg"
+      "iconType": "mat-icon",
+      "icon": "menu_book"
     },
     {
       "id": "ai-analytics",
-      "name": "AI Analytics",
-      "description": "Analytics Studio mit NL-zu-SQL und Visualisierungen",
+      "name": {
+        "de": "AI Analytics",
+        "en": "AI Analytics",
+        "es": "AI Analytics",
+        "fr": "AI Analytics",
+        "tr": "AI Analytics",
+        "it": "AI Analytics"
+      },
+      "description": {
+        "de": "Fachanwender formulieren ihre Fragen im Chat, das System erzeugt passende Visualisierungen (Charts, Tabellen, KPIs), Refinements und versionierte ResultSets – ohne Programmierung, SQL oder Report-Bau.",
+        "en": "Business users ask questions in chat; the system creates matching visualizations (charts, tables, KPIs), refinements and versioned result sets – without coding, SQL or report building.",
+        "es": "Los usuarios de negocio formulan preguntas en el chat; el sistema genera visualizaciones (gráficos, tablas, KPIs), refinamientos y ResultSets versionados – sin programación, SQL ni construcción de informes.",
+        "fr": "Les utilisateurs métier formulent leurs questions dans le chat ; le système génère visualisations (graphiques, tableaux, KPI), raffinements et ResultSets versionnés – sans programmation, SQL ni construction de rapports.",
+        "tr": "İş kullanıcıları sorularını sohbette sorar; sistem uygun görselleştirmeler (grafikler, tablolar, KPI’ler), iyileştirmeler ve sürümlü ResultSet’ler üretir – kodlama, SQL veya rapor oluşturma olmadan.",
+        "it": "Gli utenti business formulano le domande in chat; il sistema crea visualizzazioni (grafici, tabelle, KPI), raffinamenti e ResultSet versionati – senza programmazione, SQL o costruzione di report."
+      },
       "url": "http://localhost:6040/",
       "iconType": "mat-icon",
       "icon": "insights"
     },
     {
       "id": "formular-generator",
-      "name": "Formular-Generator",
-      "description": "Formulare erstellen und verwalten",
+      "name": {
+        "de": "AI Business Assets Generator",
+        "en": "AI Business Assets Generator",
+        "es": "AI Business Assets Generator",
+        "fr": "AI Business Assets Generator",
+        "tr": "AI Business Assets Generator",
+        "it": "AI Business Assets Generator"
+      },
+      "description": {
+        "de": "Verwandelt PDF-Dokumente, API-Daten oder Formulare in Sekunden in intelligente Business Apps und strukturierte Business Assets – inklusive Datenmodell, Analysen und nahtloser Integration in alle Axora AI Apps.",
+        "en": "Turns PDF documents, API data or forms into intelligent business apps and structured business assets in seconds – including data model, analytics and seamless integration into all Axora AI apps.",
+        "es": "Convierte PDFs, datos de API o formularios en segundos en apps de negocio inteligentes y business assets estructurados – con modelo de datos, análisis e integración en todas las apps Axora AI.",
+        "fr": "Transforme PDF, données d’API ou formulaires en apps métier intelligentes et business assets structurés en quelques secondes – modèle de données, analyses et intégration fluide dans toutes les apps Axora AI.",
+        "tr": "PDF belgelerini, API verilerini veya formları saniyeler içinde akıllı iş uygulamalarına ve yapılandırılmış business asset’lere dönüştürür – veri modeli, analizler ve tüm Axora AI uygulamalarına sorunsuz entegrasyon dahil.",
+        "it": "Trasforma documenti PDF, dati API o moduli in pochi secondi in app business intelligenti e business asset strutturati – incluso modello dati, analisi e integrazione continua in tutte le app Axora AI."
+      },
       "url": "http://localhost:4203/forms",
       "iconType": "mat-icon",
-      "icon": "description"
+      "icon": "widgets"
     },
     {
       "id": "pflege-dokumentation",
-      "name": "Pflege-Dokumentation",
-      "description": "Flows und QM-Dokumentation",
+      "name": {
+        "de": "AI Flow Engine",
+        "en": "AI Flow Engine",
+        "es": "AI Flow Engine",
+        "fr": "AI Flow Engine",
+        "tr": "AI Flow Engine",
+        "it": "AI Flow Engine"
+      },
+      "description": {
+        "de": "Prozess-Flows und Qualitätsmanagement-Dokumentation erstellen und verwalten",
+        "en": "Create and manage process flows and quality-management documentation",
+        "es": "Crear y gestionar flujos de proceso y documentación de gestión de calidad",
+        "fr": "Créer et gérer des flux de processus et la documentation de management de la qualité",
+        "tr": "Süreç akışlarını ve kalite yönetimi dokümantasyonunu oluşturun ve yönetin",
+        "it": "Creare e gestire flussi di processo e documentazione di quality management"
+      },
       "url": "http://localhost:4301/flows",
       "iconType": "mat-icon",
       "icon": "account_tree"
     },
     {
       "id": "ai-data-orchestration-hub",
-      "name": "AI Data Orchestration Hub",
-      "description": "Workflows und Datenorchestrierung",
+      "name": {
+        "de": "AI Datenorchestrator",
+        "en": "AI Data Orchestrator",
+        "es": "Orquestador de datos IA",
+        "fr": "Orchestrateur de données IA",
+        "tr": "AI Veri Orkestratörü",
+        "it": "Orchestratore dati IA"
+      },
+      "description": {
+        "de": "Daten aus verschiedenen Quellen per Workflows verbinden, mit KI anreichern und als DataSets bereitstellen – weniger Schnittstellen-Entwicklung, mehr Datenqualität.",
+        "en": "Connect data from different sources via workflows, enrich it with AI and expose it as datasets – less interface development, more data quality.",
+        "es": "Conecta datos de distintas fuentes mediante workflows, enriquécelos con IA y publícalos como DataSets – menos desarrollo de interfaces, más calidad de datos.",
+        "fr": "Connectez des données de sources diverses via des workflows, enrichissez-les par IA et exposez-les en DataSets – moins de développement d’interfaces, plus de qualité de données.",
+        "tr": "Farklı kaynaklardan verileri iş akışlarıyla bağlayın, yapay zekâ ile zenginleştirin ve DataSet olarak sunun – daha az arayüz geliştirme, daha fazla veri kalitesi.",
+        "it": "Collega dati da fonti diverse tramite workflow, arricchiscili con IA e forniscili come DataSet – meno sviluppo di interfacce, più qualità dei dati."
+      },
       "url": "http://localhost:6043/workflows",
       "iconType": "mat-icon",
       "icon": "hub"
+    },
+    {
+      "id": "ai-angebotsgenerator",
+      "name": {
+        "de": "AI Angebotsgenerator",
+        "en": "AI Quote Generator",
+        "es": "Generador de ofertas IA",
+        "fr": "Générateur d’offres IA",
+        "tr": "AI Teklif Oluşturucu",
+        "it": "Generatore di offerte IA"
+      },
+      "description": {
+        "de": "Standard-Kundenangebote per geführter Maschinenkonfiguration: Basis-Konfigurator mit Variantenlogik, Angebots-Generator mit Positionen und Entwürfen – Stammdaten aus dem AI Datenorchestrator, weniger manuelle Kalkulation.",
+        "en": "Standard customer quotes via guided machine configuration: base configurator with variant logic, quote generator with line items and drafts – master data from the AI Data Orchestrator, less manual calculation.",
+        "es": "Ofertas estándar mediante configuración guiada de máquinas: configurador base con lógica de variantes, generador de ofertas con posiciones y borradores – datos maestros del orquestador de datos IA, menos cálculo manual.",
+        "fr": "Offres clients standard via configuration guidée de machines : configurateur de base avec logique de variantes, générateur d’offres avec postes et brouillons – données de référence de l’orchestrateur de données IA, moins de calcul manuel.",
+        "tr": "Rehberli makine yapılandırmasıyla standart müşteri teklifleri: varyant mantıklı temel yapılandırıcı, kalemler ve taslaklarla teklif üretici – ana veriler AI Veri Orkestratöründen, daha az manuel hesaplama.",
+        "it": "Offerte cliente standard tramite configurazione macchina guidata: configuratore base con logica varianti, generatore offerte con posizioni e bozze – anagrafiche dall’orchestratore dati IA, meno calcolo manuale."
+      },
+      "url": "http://localhost:6061/",
+      "iconType": "mat-icon",
+      "icon": "request_quote"
+    },
+    {
+      "id": "ai-process-steering",
+      "name": {
+        "de": "AI Process Steering",
+        "en": "AI Process Steering",
+        "es": "AI Process Steering",
+        "fr": "AI Process Steering",
+        "tr": "AI Process Steering",
+        "it": "AI Process Steering"
+      },
+      "description": {
+        "de": "Prozessplanung aus Excel & Co. importieren, in Gruppen strukturieren und als Gantt-artige Timeline steuern – Plan, Ist und Abweichungen sichtbar, weniger Tabellen-Chaos.",
+        "en": "Import process planning from Excel & co., structure it in groups and steer it as a Gantt-like timeline – plan, actuals and deviations visible, less spreadsheet chaos.",
+        "es": "Importa la planificación de procesos desde Excel y similares, estrúcturala en grupos y contrólala como una timeline tipo Gantt – plan, real y desviaciones visibles, menos caos en hojas de cálculo.",
+        "fr": "Importez la planification de processus depuis Excel & co., structurez-la en groupes et pilotez-la comme une timeline type Gantt – plan, réalisé et écarts visibles, moins de chaos tableur.",
+        "tr": "Excel ve benzerinden süreç planlamasını içe aktarın, gruplar halinde yapılandırın ve Gantt benzeri bir zaman çizelgesi olarak yönetin – plan, gerçekleşen ve sapmalar görünür, daha az tablo karmaşası.",
+        "it": "Importa la pianificazione di processo da Excel & co., strutturarla in gruppi e governarla come timeline tipo Gantt – piano, consuntivo e scostamenti visibili, meno caos nei fogli di calcolo."
+      },
+      "url": "http://localhost:6056/plan",
+      "iconType": "mat-icon",
+      "icon": "timeline"
+    },
+    {
+      "id": "ai-firmenwissen",
+      "name": {
+        "de": "AI Firmenwissen",
+        "en": "AI Company Knowledge",
+        "es": "Conocimiento empresarial IA",
+        "fr": "Savoir entreprise IA",
+        "tr": "AI Şirket Bilgisi",
+        "it": "Conoscenza aziendale IA"
+      },
+      "description": {
+        "de": "Ihr intelligenter Wissens-Assistent: Richtlinien, Prozesse und Unternehmenswissen auf Abruf – Antworten mit Quellenangaben, Quick-Actions (z. B. Prozess starten) und ToDo-Übersicht aus laufenden Prozessen. Schnelle Antworten, weniger Suchzeit, mehr Compliance.",
+        "en": "Your intelligent knowledge assistant: policies, processes and company knowledge on demand – answers with sources, quick actions (e.g. start a process) and a to-do overview from running processes. Faster answers, less search time, more compliance.",
+        "es": "Tu asistente inteligente de conocimiento: políticas, procesos y saber empresarial bajo demanda – respuestas con fuentes, acciones rápidas (p. ej. iniciar un proceso) y vista de tareas de procesos en curso. Respuestas rápidas, menos tiempo de búsqueda, más cumplimiento.",
+        "fr": "Votre assistant de connaissances intelligent : politiques, processus et savoir d’entreprise à la demande – réponses avec sources, actions rapides (ex. démarrer un processus) et vue des tâches des processus en cours. Réponses rapides, moins de recherche, plus de conformité.",
+        "tr": "Akıllı bilgi asistanınız: politikalar, süreçler ve şirket bilgisi talep üzerine – kaynaklı yanıtlar, hızlı eylemler (ör. süreç başlat) ve devam eden süreçlerden yapılacaklar özeti. Daha hızlı yanıtlar, daha az arama süresi, daha fazla uyumluluk.",
+        "it": "Il tuo assistente di conoscenza intelligente: politiche, processi e sapere aziendale su richiesta – risposte con fonti, quick action (es. avvia processo) e panoramica to-do dai processi in corso. Risposte rapide, meno tempo di ricerca, più compliance."
+      },
+      "url": "http://localhost:4200/chat",
+      "iconType": "mat-icon",
+      "icon": "psychology"
+    },
+    {
+      "id": "ai-belege-buchen",
+      "name": {
+        "de": "AI Belege & Rechnungen",
+        "en": "AI Documents & Invoices",
+        "es": "Documentos y facturas IA",
+        "fr": "Documents et factures IA",
+        "tr": "AI Belgeler ve Faturalar",
+        "it": "Documenti e fatture IA"
+      },
+      "description": {
+        "de": "Rechnungen per KI automatisch erfassen, nach §14 UStG prüfen und als XRechnung oder ZUGFeRD-PDF ausgeben – per PDF oder Foto, auch vom Smartphone.",
+        "en": "Capture invoices automatically with AI, validate them against German VAT rules (§14 UStG) and export as XRechnung or ZUGFeRD PDF – from PDF or photo, including smartphone.",
+        "es": "Captura facturas automáticamente con IA, valídalas según la normativa alemana del IVA (§14 UStG) y expórtalas como XRechnung o PDF ZUGFeRD – desde PDF o foto, también desde el móvil.",
+        "fr": "Capturez automatiquement les factures par IA, vérifiez-les selon le droit allemand de la TVA (§14 UStG) et exportez-les en XRechnung ou PDF ZUGFeRD – depuis PDF ou photo, y compris smartphone.",
+        "tr": "Faturaları yapay zekâ ile otomatik yakalayın, Alman KDV kurallarına (§14 UStG) göre kontrol edin ve XRechnung veya ZUGFeRD PDF olarak dışa aktarın – PDF veya fotoğraftan, akıllı telefon dahil.",
+        "it": "Acquisisci automaticamente le fatture con IA, verificale secondo le norme IVA tedesche (§14 UStG) ed esportale come XRechnung o PDF ZUGFeRD – da PDF o foto, anche dallo smartphone."
+      },
+      "url": "https://localhost:6073/analyse",
+      "iconType": "mat-icon",
+      "icon": "receipt_long"
+    },
+    {
+      "id": "projekt-leistungsabrechnung",
+      "name": {
+        "de": "AI Projekt-Management und Leistungsabrechnung",
+        "en": "AI Project Management & Billing",
+        "es": "Gestión de proyectos y facturación IA",
+        "fr": "Gestion de projet et facturation IA",
+        "tr": "AI Proje Yönetimi ve Faturalama",
+        "it": "Project management e fatturazione IA"
+      },
+      "description": {
+        "de": "Projekte, Kunden und Leistungen zentral verwalten – Rechnungen und Leistungsnachweise erstellen, von der Erfassung bis zur Abrechnung.",
+        "en": "Manage projects, customers and services centrally – create invoices and timesheets/service records from capture through billing.",
+        "es": "Gestiona proyectos, clientes y servicios de forma centralizada – crea facturas y justificantes de servicios, desde el registro hasta la liquidación.",
+        "fr": "Gérez projets, clients et prestations de façon centralisée – créez factures et justifications de prestations, de la saisie à la facturation.",
+        "tr": "Projeleri, müşterileri ve hizmetleri merkezi yönetin – kayıttan faturalamaya kadar fatura ve hizmet kanıtları oluşturun.",
+        "it": "Gestisci centralmente progetti, clienti e prestazioni – crea fatture e giustificativi di servizio, dalla rilevazione alla fatturazione."
+      },
+      "url": "http://localhost:4211/home",
+      "iconType": "mat-icon",
+      "icon": "assignment"
+    },
+    {
+      "id": "liquiditaetsplanung-kommune",
+      "name": {
+        "de": "Liquiditätsmanagement",
+        "en": "Liquidity Management",
+        "es": "Gestión de liquidez",
+        "fr": "Gestion de liquidité",
+        "tr": "Likidite Yönetimi",
+        "it": "Gestione della liquidità"
+      },
+      "description": {
+        "de": "Kontostruktur, Plan-Ist-Planung und Forecast für Kommunen – Ampel-Steuerung, Berichte und Frühwarnung für sichere Liquidität.",
+        "en": "Account structure, plan-vs-actual planning and forecasting for municipalities – traffic-light steering, reports and early warning for reliable liquidity.",
+        "es": "Estructura de cuentas, planificación plan-real y previsión para municipios – control semafórico, informes y alerta temprana para una liquidez segura.",
+        "fr": "Structure de comptes, planification plan/réalisé et prévisions pour les collectivités – pilotage feux tricolores, rapports et alerte précoce pour une liquidité maîtrisée.",
+        "tr": "Belediyeler için hesap yapısı, plan-gerçek planlama ve tahmin – trafik ışığı kontrolü, raporlar ve güvenli likidite için erken uyarı.",
+        "it": "Struttura conti, pianificazione piano-consuntivo e forecast per i comuni – controllo semaforico, report e allerta precoce per una liquidità sicura."
+      },
+      "url": "https://liquiditaet-frontend-71279709000.europe-west1.run.app/kontostruktur/hierarchy",
+      "iconType": "mat-icon",
+      "icon": "account_balance"
+    },
+    {
+      "id": "service-intelligence",
+      "name": {
+        "de": "AI Service Intelligence",
+        "en": "AI Service Intelligence",
+        "es": "AI Service Intelligence",
+        "fr": "AI Service Intelligence",
+        "tr": "AI Service Intelligence",
+        "it": "AI Service Intelligence"
+      },
+      "description": {
+        "de": "Interaktive Explosionszeichnungen aus PDF & Daten: Hotspots auf den Seiten, Verknüpfung mit Stücklistenpositionen – schnelleres Auffinden von Teilen, weniger Blättern im Handbuch, Basis für Service- und Folgeprozesse.",
+        "en": "Interactive exploded views from PDF & data: hotspots on pages, linked to BOM positions – find parts faster, less flipping through manuals, foundation for service and follow-up processes.",
+        "es": "Vistas explosionadas interactivas desde PDF y datos: hotspots en las páginas, enlazados a posiciones de lista de materiales – encuentra piezas más rápido, menos hojear el manual, base para procesos de servicio.",
+        "fr": "Vues éclatées interactives à partir de PDF et de données : hotspots sur les pages, liés aux postes de nomenclature – trouver les pièces plus vite, moins de feuillets dans le manuel, base pour les processus service.",
+        "tr": "PDF ve veriden etkileşimli patlatılmış görünümler: sayfalarda hotspot’lar, parça listesi kalemleriyle bağlantı – parçaları daha hızlı bulun, el kitabında daha az sayfa çevirme, servis ve takip süreçleri için temel.",
+        "it": "Viste esplose interattive da PDF e dati: hotspot sulle pagine, collegati alle posizioni distinta base – trovare i pezzi più in fretta, meno sfogliare il manuale, base per processi di service e follow-up."
+      },
+      "url": "https://localhost:6180/admin",
+      "iconType": "mat-icon",
+      "icon": "precision_manufacturing"
+    },
+    {
+      "id": "ai-pdf-generator",
+      "name": {
+        "de": "AI PDF Generator",
+        "en": "AI PDF Generator",
+        "es": "AI PDF Generator",
+        "fr": "AI PDF Generator",
+        "tr": "AI PDF Generator",
+        "it": "AI PDF Generator"
+      },
+      "description": {
+        "de": "Axora-PDF-Service: Aus strukturiertem JSON (AxoraPdfDocument) professionelle PDFs erzeugen – Abschluss-, Clearing- und Serviceberichte per Vorlage, mit Editor und Live-Vorschau, ohne manuelles Satzwerk.",
+        "en": "Axora PDF service: generate professional PDFs from structured JSON (AxoraPdfDocument) – closing, clearing and service reports from templates, with editor and live preview, without manual typesetting.",
+        "es": "Servicio PDF de Axora: genera PDFs profesionales desde JSON estructurado (AxoraPdfDocument) – informes de cierre, clearing y servicio por plantilla, con editor y vista previa en vivo, sin maquetación manual.",
+        "fr": "Service PDF Axora : générez des PDF professionnels à partir de JSON structuré (AxoraPdfDocument) – rapports de clôture, clearing et service par modèle, avec éditeur et aperçu en direct, sans mise en page manuelle.",
+        "tr": "Axora PDF hizmeti: yapılandırılmış JSON’dan (AxoraPdfDocument) profesyonel PDF’ler üretin – şablonlarla kapanış, clearing ve servis raporları, editör ve canlı önizleme ile, elle dizgi olmadan.",
+        "it": "Servizio PDF Axora: genera PDF professionali da JSON strutturato (AxoraPdfDocument) – report di chiusura, clearing e service da modello, con editor e anteprima live, senza impaginazione manuale."
+      },
+      "url": "http://localhost:4206/pdf-generator-v2",
+      "iconType": "mat-icon",
+      "icon": "picture_as_pdf"
+    },
+    {
+      "id": "ai-kanzlei",
+      "name": {
+        "de": "AI Kanzlei",
+        "en": "AI Law Firm",
+        "es": "Despacho IA",
+        "fr": "Cabinet IA",
+        "tr": "AI Hukuk Bürosu",
+        "it": "Studio legale IA"
+      },
+      "description": {
+        "de": "Compliance- und Kanzleiverwaltung: GwG-Erhebung prüfbereit als PDF, Selbstauskunft und Kammer-Export – modularer Arbeitsplatz mit eingebetteten Fachmodulen (Belege, eRechnung, Verträge u. a.), flexibel konfigurierbare Navigation und Kanzleistammdaten.",
+        "en": "Compliance and law-firm administration: AML (GwG) collection audit-ready as PDF, self-disclosure and chamber export – modular workspace with embedded specialist modules (documents, e-invoicing, contracts, etc.), configurable navigation and firm master data.",
+        "es": "Cumplimiento y administración de despacho: recogida GwG lista para auditoría en PDF, autodeclaración y exportación a la cámara – puesto modular con módulos especializados (documentos, factura electrónica, contratos, etc.), navegación configurable y datos maestros.",
+        "fr": "Conformité et administration de cabinet : collecte GwG prête pour audit en PDF, auto-déclaration et export chambre – poste de travail modulaire avec modules métiers (pièces, e-facture, contrats, etc.), navigation configurable et données de référence.",
+        "tr": "Uyumluluk ve hukuk bürosu yönetimi: denetim hazır GwG toplama PDF’i, özbeyan ve oda dışa aktarımı – gömülü uzman modüllü (belgeler, e-fatura, sözleşmeler vb.) modüler çalışma alanı, yapılandırılabilir gezinme ve büro ana verileri.",
+        "it": "Compliance e amministrazione dello studio: raccolta GwG pronta per audit in PDF, autdichiarazione ed export camera – postazione modulare con moduli specialistici (documenti, e-fattura, contratti ecc.), navigazione configurabile e anagrafiche di studio."
+      },
+      "url": "http://localhost:6063/gwg-cases",
+      "iconType": "image",
+      "icon": "app-icons/ai-kanzlei.svg"
+    },
+    {
+      "id": "ai-juris",
+      "name": {
+        "de": "AI Juris",
+        "en": "AI Juris",
+        "es": "AI Juris",
+        "fr": "AI Juris",
+        "tr": "AI Juris",
+        "it": "AI Juris"
+      },
+      "description": {
+        "de": "AI-native 360°-Kanzleiplattform: Mandate, Sachverhalt und Fristen im Cockpit, juristisches GPS mit Zielsteuerung, Dokumentengenerierung und Mandanten-Portal – weniger Medienbrüche, mehr Transparenz im Verfahren.",
+        "en": "AI-native 360° law-firm platform: matters, facts and deadlines in the cockpit, legal GPS with goal steering, document generation and client portal – fewer media breaks, more transparency in the case.",
+        "es": "Plataforma de despacho 360° nativa de IA: asuntos, hechos y plazos en el cockpit, GPS jurídico con control de objetivos, generación de documentos y portal del cliente – menos rupturas mediáticas, más transparencia.",
+        "fr": "Plateforme de cabinet 360° native IA : dossiers, faits et délais dans le cockpit, GPS juridique avec pilotage d’objectifs, génération de documents et portail client – moins de ruptures de médias, plus de transparence.",
+        "tr": "Yapay zekâ yerli 360° hukuk bürosu platformu: kokpitte dosyalar, olaylar ve süreler, hedef yönlendirmeli hukuki GPS, belge üretimi ve müvekkil portalı – daha az medya kopukluğu, süreçte daha fazla şeffaflık.",
+        "it": "Piattaforma 360° per studi legali nativa IA: mandati, fatti e scadenze nel cockpit, GPS giuridico con guida agli obiettivi, generazione documenti e portale clienti – meno interruzioni mediatiche, più trasparenza nel procedimento."
+      },
+      "url": "https://localhost:6066/dashboard",
+      "iconType": "mat-icon",
+      "icon": "balance"
+    },
+    {
+      "id": "ai-hr",
+      "name": {
+        "de": "AI HR",
+        "en": "AI HR",
+        "es": "AI HR",
+        "fr": "AI RH",
+        "tr": "AI HR",
+        "it": "AI HR"
+      },
+      "description": {
+        "de": "HR-Cockpit und Personalverwaltung: 360°-Mitarbeiterakte, Abwesenheiten mit Kalender, Sammelbuchung und Genehmigungsworkflow, eAU-Übersicht und Auswertungen – Ereignisse erfassen, KI unterstützt die Prüfung, Übergabe ans Zielsystem statt blinder Buchung.",
+        "en": "HR cockpit and people admin: 360° employee file, absences with calendar, bulk booking and approval workflow, electronic sick-note overview and analytics – capture events, AI supports review, hand-off to the target system instead of blind booking.",
+        "es": "Cockpit de RR. HH. y administración de personal: expediente 360°, ausencias con calendario, reserva colectiva y flujo de aprobación, vista de bajas electrónicas y análisis – captura eventos, la IA apoya la revisión, entrega al sistema destino en lugar de asiento ciego.",
+        "fr": "Cockpit RH et administration du personnel : dossier collaborateur 360°, absences avec calendrier, saisie groupée et workflow d’approbation, vue eAU et analyses – capturez les événements, l’IA aide au contrôle, transfert vers le système cible plutôt qu’une écriture aveugle.",
+        "tr": "İK kokpiti ve personel yönetimi: 360° çalışan dosyası, takvimli izinler, toplu kayıt ve onay iş akışı, elektronik iş göremezlik özeti ve analizler – olayları kaydedin, yapay zekâ incelemeyi destekler, kör kayıt yerine hedef sisteme aktarım.",
+        "it": "Cockpit HR e amministrazione del personale: fascicolo collaboratore 360°, assenze con calendario, registrazione collettiva e workflow di approvazione, panoramica eAU e analisi – registra eventi, l’IA supporta il controllo, passaggio al sistema target invece di una registrazione cieca."
+      },
+      "url": "http://localhost:6074/cockpit",
+      "iconType": "mat-icon",
+      "icon": "groups"
+    },
+    {
+      "id": "event-time-machine",
+      "name": {
+        "de": "Event- und Time Machine",
+        "en": "Event & Time Machine",
+        "es": "Event & Time Machine",
+        "fr": "Event & Time Machine",
+        "tr": "Event ve Time Machine",
+        "it": "Event & Time Machine"
+      },
+      "description": {
+        "de": "Infrastrukturmodul der AI-Plattform: Event-Timeline (Plattform-Events chronologisch), Scheduled Jobs (einmalig, Intervall, Cron) und Fehleranalyse inkl. Retry – ereignis- und zeitgesteuerte Automatisierung über Systemgrenzen.",
+        "en": "AI platform infrastructure module: event timeline (platform events chronologically), scheduled jobs (one-off, interval, cron) and error analysis including retry – event- and time-driven automation across system boundaries.",
+        "es": "Módulo de infraestructura de la plataforma IA: timeline de eventos (eventos de plataforma en orden cronológico), jobs programados (único, intervalo, cron) y análisis de errores con reintento – automatización por eventos y tiempo entre sistemas.",
+        "fr": "Module d’infrastructure de la plateforme IA : timeline d’événements (événements plateforme chronologiques), jobs planifiés (ponctuel, intervalle, cron) et analyse d’erreurs avec retry – automatisation événementielle et temporelle au-delà des frontières système.",
+        "tr": "AI platformunun altyapı modülü: olay zaman çizelgesi (platform olayları kronolojik), zamanlanmış işler (tek seferlik, aralık, cron) ve yeniden denemeli hata analizi – sistem sınırları ötesinde olay ve zaman odaklı otomasyon.",
+        "it": "Modulo infrastrutturale della piattaforma IA: timeline eventi (eventi piattaforma in ordine cronologico), job pianificati (una tantum, intervallo, cron) e analisi errori con retry – automazione event- e time-driven oltre i confini di sistema."
+      },
+      "url": "http://localhost:6090/dashboard",
+      "iconType": "mat-icon",
+      "icon": "schedule"
     }
   ]
 }

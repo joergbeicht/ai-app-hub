@@ -1,0 +1,127 @@
+---
+description: "Plattform-Architektur: Bausteine vs. Fachapplikationen, SSO, API-Kapselung, iFrame-Embedding, API-Versionierung"
+alwaysApply: true
+---
+
+# Grundmodell
+
+- **Bausteine** = wiederverwendbare, in sich geschlossene Plattform-Module.
+  Jeder Baustein hat volle Architektur: eigenes Angular-Frontend, eigenes
+  NestJS-Backend, eigene PostgreSQL-DB. Ein Baustein ist wie ein
+  eigenständiges Produkt zu behandeln, nicht wie ein Teil einer App.
+- **Fachapplikationen** = fachliche Anwendungen (es gibt n davon), gebaut
+  auf Basis von Bausteinen, ebenfalls mit voller Architektur (eigenes
+  Frontend, eigenes Backend, eigene DB für fachspezifische Daten).
+- Eine Fachapplikation nutzt einen Baustein auf zwei möglichen Wegen:
+  1. **API-Komposition**: Fachapplikation-Backend/-Frontend ruft die
+     Backend-API des Bausteins auf.
+  2. **UI-Komposition**: Fachapplikation-Frontend embedded das
+     Baustein-Frontend, z. B. als iFrame.
+- Beide Kompositionsarten können im selben Projekt parallel vorkommen.
+- **`ai-app-hub` ist eine Fachapplikation** (kein reiner statischer
+  Launcher) – gilt ebenfalls mit voller Architektur (eigenes Backend,
+  eigene DB für fachspezifische Daten wie Nutzer-Präferenzen, Favoriten,
+  Berechtigungen je Fachapplikation), sofern nicht projektspezifisch
+  bewusst anders entschieden und dokumentiert.
+
+# Strikte Kapselung (Database per Service)
+
+- Eine Fachapplikation greift **ausschließlich über die Baustein-API** auf
+  Baustein-Daten zu – **niemals direkter DB-Zugriff** auf eine fremde
+  Baustein-Datenbank, auch nicht lesend, auch nicht "nur schnell für einen
+  Report". Das interne Datenmodell eines Bausteins ist Implementierungs-
+  detail und darf nicht nach außen durchsickern.
+- Umgekehrt greift auch ein Baustein nie direkt auf die DB einer
+  Fachapplikation oder eines anderen Bausteins zu.
+- Jede Kommunikation zwischen Baustein und Fachapplikation (oder zwischen
+  zwei Bausteinen) läuft über klar definierte, versionierte APIs – nie über
+  gemeinsame Tabellen, Views auf Infrastrukturebene oder Shared-Schema-
+  Tricks.
+- Ausnahmen (z. B. dedizierte Read-Only-Reporting-Views) sind nur zulässig,
+  wenn explizit im jeweiligen Projekt so entschieden und dokumentiert –
+  niemals als impliziter Standardweg vorschlagen.
+
+# Authentifizierung & Autorisierung (SSO)
+
+- Auth läuft über einen **zentralen Identity Provider (OIDC/SSO)** – nicht
+  über bausteinspezifische oder app-spezifische Auth-Mechanismen. Jeder
+  Baustein und jede Fachapplikation akzeptiert und validiert dasselbe
+  Access Token (JWT) unabhängig, statt einer anderen Komponente "blind" zu
+  vertrauen.
+- **Standard-IdP der Axora-Plattform ist Microsoft Azure:**
+  - Intern/Tests: **Microsoft Entra ID** (Firmen-Tenant).
+  - Echte Endkunden: **Microsoft Entra External ID** (CIAM), sobald der
+    erste externe Kunde ansteht.
+  - Angular-Frontends: Anbindung über **MSAL** (`@azure/msal-browser` /
+    `@azure/msal-angular`), nicht über selbst gebaute OIDC-Clients.
+  - Backends (NestJS): JWT selbst validieren (Issuer, Audience, Signatur,
+    Expiry; App Roles / Claims für Autorisierung) – kein „Trust“ nur weil
+    der Hub oder ein anderer Service das Token schon geprüft hat.
+- **Nicht als Standard vorschlagen oder einführen:** Keycloak, Auth0 oder
+  andere selbst betriebene / Drittanbieter-IdPs. Die Plattform läuft auf
+  Azure (AKS/ACR); ein zweiter Identity-Stack wäre zusätzlicher Betrieb
+  ohne Mehrwert gegenüber Entra ID.
+- **Ausnahme `authenticator`:** nur für Kunden mit strikter
+  Deutschland-only-Datenresidenz für Identitätsdaten und nur wenn im
+  jeweiligen Projekt explizit so entschieden und dokumentiert (ADR). Kein
+  Default für neue Fachapplikationen oder Bausteine.
+- Kein Nutzer soll sich beim Wechsel zwischen Fachapplikation und
+  eingebettetem Baustein-Frontend erneut einloggen müssen – Silent-SSO
+  (Session/Cookie mit dem IdP / MSAL silent acquire) ist der Zielzustand,
+  kein manuelles Weiterreichen von Credentials.
+- Bei iFrame-Embedding: **Token niemals als URL-Query-Parameter**
+  übergeben (landet in Logs/Browser-History/Referrer). Stattdessen
+  entweder der eingebettete Baustein holt sein Token selbst über den
+  Silent-SSO-Flow, oder die Übergabe erfolgt kontrolliert über
+  `postMessage` nach dem Laden des iFrames – nie über die iFrame-`src`-URL.
+- Jeder Baustein validiert eingehende Tokens selbst (Signatur, Audience,
+  Expiry) – Trust wird nicht implizit vom aufrufenden System übernommen.
+
+# iFrame-Embedding (UI-Komposition)
+
+- Eingebettete Baustein-Frontends laufen mit restriktiver `sandbox`-
+  Attributierung und, wo möglich, `Content-Security-Policy`
+  (`frame-ancestors`) auf Baustein-Seite, die nur bekannte
+  Fachapplikations-Origins erlaubt – kein offenes Embedding von beliebigen
+  Origins.
+- Kommunikation zwischen Fachapplikation und eingebettetem Baustein
+  (Höhe/Resize, Navigation, Locale-Wechsel, Theme) ausschließlich über
+  `postMessage` mit geprüftem `origin`, nie über globale
+  `window`-Objekte oder direkten DOM-Zugriff über Frame-Grenzen hinweg.
+- Das eingebettete Baustein-Frontend übernimmt Locale (siehe `i18n.mdc`)
+  und Theme (siehe `angular-material.mdc`, gemeinsame Theme-Tokens) von der
+  umgebenden Fachapplikation, damit es sich nicht wie ein Fremdkörper
+  anfühlt.
+
+# API-Versionierung (Bausteine)
+
+- Jede Baustein-API ist **semantisch versioniert** (SemVer) und über einen
+  klaren, maschinenlesbaren Contract beschrieben (OpenAPI/Swagger,
+  automatisch aus den NestJS-DTOs/Decorators generiert, nicht manuell
+  gepflegt).
+- Breaking Changes an einer Baustein-API erfordern eine neue Major-Version
+  bzw. einen parallel weiterlaufenden alten Endpunkt-Pfad
+  (`/v1/...`, `/v2/...`) für eine Übergangszeit – Fachapplikationen dürfen
+  nicht ungefragt brechen, wenn ein Baustein weiterentwickelt wird.
+- Neue, rückwärtskompatible Felder/Endpunkte sind Minor-Changes und ohne
+  Versionswechsel möglich; das Entfernen oder Ändern der Bedeutung
+  bestehender Felder ist immer ein Breaking Change.
+- Jeder Baustein pflegt ein Changelog seiner API (siehe Conventional
+  Commits in `clean-code.mdc`), damit Fachapplikations-Teams Änderungen
+  nachvollziehen können, ohne den Baustein-Code lesen zu müssen.
+
+# Repo- & Release-Struktur
+
+- Jeder Baustein lebt in einem **eigenen Repository** mit eigenem
+  Lifecycle, eigener Versionierung und eigener CI/CD-Pipeline (siehe
+  `deployment.mdc`) – ein Baustein ist ein eigenständiges Produkt, kein
+  Teil einer Fachapplikation.
+- Fachapplikationen können, je nach Teamzuschnitt, ebenfalls eigene Repos
+  haben oder – wenn ein Team mehrere Fachapplikationen gleichzeitig pflegt
+  – in einem gemeinsamen Monorepo liegen. In letzterem Fall gelten die
+  bereits generalisierten `apps/*/`-Konventionen aus `i18n.mdc` /
+  `angular-material.mdc` unverändert weiter.
+- Fachapplikationen binden Bausteine über eine explizite, gepinnte
+  Versionsangabe ein (z. B. API-Version im Config/Env, nicht "immer
+  neueste Version automatisch") – Upgrades sind ein bewusster Schritt, kein
+  impliziter Nebeneffekt eines Baustein-Deploys.

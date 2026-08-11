@@ -1,0 +1,55 @@
+{
+  "title": "Einstellungen",
+  "subtitle": "Hub-Einstellungen und Apps verwalten. Änderungen werden lokal gespeichert.",
+  "tabs": {
+    "general": "Allgemein",
+    "apps": "App hinzufügen",
+    "users": "Benutzerverwaltung"
+  },
+  "general": {
+    "subtitle": "Allgemeine Hub-Einstellungen.",
+    "defaultLanguage": "Standardsprache",
+    "defaultLanguageHint": "Wird beim nächsten Öffnen der App wiederverwendet."
+  },
+  "apps": {
+    "subtitle": "Apps bearbeiten, per Drag & Drop sortieren und für den Hub ein-/ausschalten. Alle Änderungen werden sofort lokal gespeichert. Name und Beschreibung gelten für die aktuell gewählte Sprache.",
+    "enabled": "Im Hub anzeigen",
+    "reorder": "Reihenfolge ändern"
+  },
+  "addApp": "App hinzufügen",
+  "resetToDefault": "Auf Standard zurücksetzen",
+  "field": {
+    "name": "Name",
+    "description": "Beschreibung",
+    "url": "URL",
+    "iconType": "Icon-Typ",
+    "iconTypeMatIcon": "Material Icon",
+    "iconTypeImage": "Bild (Pfad)",
+    "iconName": "Icon-Name",
+    "iconPath": "Bild-Pfad (z. B. app-icons/xyz.svg)"
+  },
+  "remove": "Entfernen",
+  "save": "Speichern",
+  "cancel": "Abbrechen",
+  "newAppName": "Neue App",
+  "toast": {
+    "saved": "Einstellungen gespeichert.",
+    "generalSaved": "Allgemeine Einstellungen gespeichert.",
+    "resetDone": "Auf Standard zurückgesetzt."
+  },
+  "users": {
+    "subtitle": "Weist Nutzern ihre Rolle zu (Benutzer, Administrator, Gast) – ohne Azure Portal.",
+    "loading": "Nutzer werden geladen …",
+    "retry": "Erneut versuchen",
+    "empty": "Keine Nutzer gefunden.",
+    "saved": "Rolle gespeichert.",
+    "saveError": "Rolle konnte nicht gespeichert werden.",
+    "loadError": "Nutzer konnten nicht geladen werden.",
+    "you": "Sie",
+    "role": {
+      "User": "Benutzer",
+      "Administrator": "Administrator",
+      "Guest": "Gast"
+    }
+  }
+}

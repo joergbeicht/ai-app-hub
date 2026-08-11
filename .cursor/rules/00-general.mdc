@@ -1,0 +1,49 @@
+---
+description: "Basis-Konventionen für das Projekt (Stack, Clean Code, Docker First)"
+alwaysApply: true
+---
+
+# Projekt-Stack
+
+- Frontend: Angular (Standalone Components, Angular Material)
+- Backend: NestJS
+- Datenbank: PostgreSQL
+- Entwicklungsumgebung: Docker Compose (Docker First)
+
+# Sprache
+
+- **Code, Kommentare, Commit-Messages, Variablen-/Funktions-/Klassennamen,
+  DTOs, Datenbank-Spalten/-Tabellen: immer Englisch.** Keine deutschen
+  Bezeichner im Code, auch nicht gemischt (kein `getBenutzerById`, sondern
+  `getUserById`).
+- Ausnahme sind ausschließlich benutzersichtbare Texte im Frontend
+  (UI-Labels, Fehlermeldungen, E-Mails an Nutzer) – diese laufen über i18n,
+  siehe `angular-material.mdc` / `i18n.mdc`. Der Übersetzungs-Key selbst ist
+  wieder Englisch (z. B. `user.form.email.label`), nur der Wert in der
+  jeweiligen Sprachdatei ist übersetzt.
+
+# Grundprinzipien
+
+- **Docker First**: Jede neue Abhängigkeit, jeder neue Service läuft containerisiert.
+  Kein "geht nur lokal auf meinem Rechner". Änderungen an Setup/Dependencies
+  immer in Dockerfile(s) und docker-compose.yml nachziehen.
+- **Hot Reload darf nie brechen**: Vorschläge, die Watch-Mode/Live-Reload
+  (Angular CLI, NestJS `--watch`, Volume-Mounts) aushebeln, sind zu vermeiden
+  oder explizit zu kennzeichnen.
+- **Clean Code**: kleine Funktionen mit einer Verantwortung, sprechende Namen,
+  keine Magic Numbers/Strings, keine toten Codepfade, frühe Returns statt
+  verschachtelter if/else-Kaskaden, Kommentare erklären "warum", nicht "was".
+  Ausführliche Standards (SOLID, Architektur, Testing, Security, Tooling)
+  siehe `clean-code.mdc`.
+- Keine Business-Logik in Controllern/Components – dünne Controller/Components,
+  Logik in Services.
+- Vor größeren Refactorings: bestehende Struktur kurz zusammenfassen und
+  Vorschlag machen, statt sofort querbeet umzubauen.
+
+# Weitere Regeln
+
+Detailregeln für Plattform-Architektur (Bausteine/Fachapplikationen,
+SSO über Azure Entra ID / MSAL, API-Kapselung), Test-Pipeline
+(4-Stufen-Gate-Modell), Clean Code/SOLID, Angular/Material, i18n, NestJS,
+PostgreSQL, Docker und Deployment (Azure/AKS/GitHub Actions) liegen als
+eigene, kontextabhängig geladene Dateien in `.cursor/rules/`.

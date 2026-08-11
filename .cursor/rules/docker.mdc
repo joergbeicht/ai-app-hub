@@ -1,0 +1,19 @@
+---
+description: "Docker-First-Konventionen für Dockerfile und docker-compose"
+globs: ["**/Dockerfile*", "**/docker-compose*.yml", "**/docker-compose*.yaml"]
+alwaysApply: false
+---
+
+# Docker First
+
+- Jede neue Dependency (System- oder Package-Ebene) wird in der passenden
+  Dockerfile ergänzt, nicht nur lokal installiert.
+- Dev-Setup nutzt Volume-Mounts für Live-Code (Hot Reload), Prod-Images sind
+  Multi-Stage-Builds ohne Dev-Dependencies und ohne Volume-Mounts.
+- Ports, ENV-Variablen und Service-Namen in `docker-compose.yml` konsistent
+  zu Frontend-/Backend-Konfiguration halten (keine hart codierten
+  `localhost`-Ports im Code, wenn ein Service-Name existiert).
+- Health-Checks für DB/Backend-Services ergänzen, wenn Startreihenfolge
+  relevant ist (Backend soll auf "DB ready" warten, nicht auf Zeit raten).
+- Änderungen an einer Dockerfile immer mit einem kurzen Hinweis versehen,
+  ob ein Rebuild des Containers nötig ist oder Hot Reload ausreicht.

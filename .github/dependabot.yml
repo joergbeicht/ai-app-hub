@@ -1,0 +1,42 @@
+version: 2
+updates:
+  # Angular, Material, MSAL, ESLint/Prettier, etc.
+  - package-ecosystem: 'npm'
+    directory: '/frontend'
+    schedule:
+      interval: 'weekly'
+    open-pull-requests-limit: 10
+    groups:
+      angular:
+        patterns:
+          - '@angular/*'
+          - '@angular-devkit/*'
+
+  # NestJS, Microsoft Graph SDK, jsonwebtoken/jwks-rsa, etc. (siehe ADR-6)
+  - package-ecosystem: 'npm'
+    directory: '/backend'
+    schedule:
+      interval: 'weekly'
+    open-pull-requests-limit: 10
+    groups:
+      nestjs:
+        patterns:
+          - '@nestjs/*'
+
+  # Actions selbst (z. B. actions/checkout, aquasecurity/trivy-action)
+  - package-ecosystem: 'github-actions'
+    directory: '/'
+    schedule:
+      interval: 'weekly'
+
+  # Basis-Images in frontend/Dockerfile (node:20-alpine, nginx:alpine)
+  - package-ecosystem: 'docker'
+    directory: '/frontend'
+    schedule:
+      interval: 'weekly'
+
+  # Basis-Images in backend/Dockerfile (node:20-alpine)
+  - package-ecosystem: 'docker'
+    directory: '/backend'
+    schedule:
+      interval: 'weekly'

@@ -1,5 +1,5 @@
-# App Hub – Frontend mit Hotreload (Port 6054)
-# Wichtig: Immer aus dem Projektroot starten (z. B. ./start-docker.sh), damit ./frontend/src korrekt gemountet wird.
+# App Hub – Frontend with hot reload (port 6054, HTTPS in Docker)
+# Always start from the project root (./start-docker.sh) so mounts are correct.
 
 services:
   frontend:
@@ -8,11 +8,58 @@ services:
       dockerfile: Dockerfile.dev
     container_name: app-hub-frontend
     ports:
-      - "6054:6054"
+      - '6054:6054'
     volumes:
-      # :cached = Host-Änderungen zuverlässig im Container sichtbar (Docker Desktop Mac/Windows)
-      - ./frontend/src:/app/src:cached
+      # Full frontend tree (public/, angular.json, ssl/) – not only src/
+      - ./frontend:/app:cached
+      - frontend_node_modules:/app/node_modules
     environment:
       - NODE_ENV=development
       - CHOKIDAR_USEPOLLING=true
-    command: npm run start -- --host 0.0.0.0 --port 6054 --poll 2000
+      - CHOKIDAR_INTERVAL=1000
+      # Required: no package.json fallback. Prefer ./start-docker.sh (reads git tag).
+      - APP_VERSION=${APP_VERSION:?Set APP_VERSION or run ./start-docker.sh}
+      # Written to runtime-config.json at container start (never baked into the JS bundle - see
+      # deployment.mdc), all optional locally: write-runtime-config.cjs falls back to the
+      # Confessio-Test-Tenant + a "Lokal" cluster label when unset.
+      - CLUSTER_NAME=${CLUSTER_NAME:-}
+      - AZURE_TENANT_ID=${AZURE_TENANT_ID:-}
+      - AZURE_CLIENT_ID=${AZURE_CLIENT_ID:-}
+      # Nur nötig, wenn der Backend-Host-Port lokal abweicht (siehe backend.ports unten,
+      # z. B. weil Port 6055 auf diesem Rechner von einem anderen Projekt belegt ist).
+      - BACKEND_API_URL=${BACKEND_API_URL:-}
+    command: sh -c "node scripts/ensure-node-modules.cjs && npm run start:docker"
+
+  # Nur für die Admin-Rollenverwaltung nötig (siehe ADR-6) - braucht ein echtes Azure-Client-Secret
+  # (AZURE_CLIENT_SECRET), das es noch nicht öffentlich/als Fallback geben kann (echtes Secret,
+  # kein "keine Geheimnisse"-Fall wie Tenant-/Client-ID). Ohne Secret beendet sich der Container
+  # beim Start mit klarer Fehlermeldung - das Frontend läuft davon unabhängig normal weiter.
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.dev
+    container_name: app-hub-backend
+    ports:
+      # Host-Port per BACKEND_HOST_PORT überschreibbar (.env), falls 6055 auf diesem Rechner
+      # bereits von einem anderen Projekt belegt ist. Container-intern bleibt es Port 6055.
+      - '${BACKEND_HOST_PORT:-6055}:6055'
+    volumes:
+      - ./backend:/app:cached
+      - backend_node_modules:/app/node_modules
+      # Gleiche mkcert-Zertifikate wie das Frontend (siehe scripts/setup-ssl.sh) - vermeidet
+      # Mixed-Content-Probleme, wenn das HTTPS-Frontend dieses HTTP(S)-Backend aufruft.
+      - ./frontend/ssl:/app/ssl:ro
+    environment:
+      - PORT=6055
+      - CORS_ORIGIN=https://localhost:6054
+      # Bewusst :- statt :? (im Gegensatz zu APP_VERSION oben): ein fehlendes Secret soll nur
+      # *diesen* Container beim Node-Start fail-fast abbrechen lassen (ConfigService.getOrThrow),
+      # nicht den kompletten "docker compose up"-Befehl für alle Services blockieren.
+      - AZURE_TENANT_ID=${AZURE_TENANT_ID:-}
+      - AZURE_CLIENT_ID=${AZURE_CLIENT_ID:-}
+      - AZURE_CLIENT_SECRET=${AZURE_CLIENT_SECRET:-}
+    command: sh -c "node scripts/ensure-node-modules.cjs && npm run start:docker"
+
+volumes:
+  frontend_node_modules:
+  backend_node_modules:

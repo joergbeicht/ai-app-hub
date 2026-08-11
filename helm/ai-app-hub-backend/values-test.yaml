@@ -1,0 +1,11 @@
+# Umgebungs-spezifische, NICHT-sensitive Overrides für confessio-test (siehe deployment.mdc:
+# values-<env>.yaml für Unterschiede, gemeinsame Defaults in values.yaml).
+replicaCount: 1
+
+# CORS_ORIGIN muss der Origin sein, den der Browser tatsächlich sieht (nicht die interne
+# Cluster-DNS-Adresse) - solange es noch keinen öffentlichen Ingress/DNS/TLS gibt (siehe
+# README), ist das für den ersten Test per `kubectl port-forward` die lokale, unverschlüsselte
+# Weiterleitungs-Adresse des Frontends (Azure AD erlaubt http://localhost als Ausnahme für
+# Redirect-URIs, siehe Microsoft-Docs).
+env:
+  corsOrigin: "http://localhost:8080"

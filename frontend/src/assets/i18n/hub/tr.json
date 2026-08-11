@@ -1,0 +1,7 @@
+{
+  "loading": "Yapılandırma yükleniyor…",
+  "empty": "Yapılandırılmış uygulama yok. Ayarlardan bir tane ekleyin.",
+  "card": {
+    "openHint": "Yeni sekmede aç"
+  }
+}

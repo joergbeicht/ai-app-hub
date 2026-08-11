@@ -102,6 +102,23 @@
   --mdc-select-dropdown-container-color: var(--bg-secondary);
   --mdc-select-label-text-color: var(--text-secondary);
   --mdc-select-option-text-color: var(--text-primary);
+
+  /* Angular Material select/menu panel tokens (M3) – without these the overlay is transparent */
+  --mat-select-panel-background-color: var(--bg-secondary);
+  --mat-option-label-text-color: var(--text-primary);
+  --mat-option-selected-state-label-text-color: var(--text-primary);
+  --mat-option-hover-state-layer-color: var(--bg-tertiary);
+  --mat-option-focus-state-layer-color: var(--bg-tertiary);
+  --mat-menu-container-color: var(--bg-secondary);
+  --mat-menu-item-label-text-color: var(--text-primary);
+  --mat-autocomplete-background-color: var(--bg-secondary);
+  --mat-datepicker-calendar-container-background-color: var(--bg-secondary);
+  --mat-form-field-outlined-input-text-color: var(--text-primary);
+  --mat-form-field-outlined-label-text-color: var(--text-secondary);
+  --mat-form-field-outlined-focus-label-text-color: var(--primary-400);
+  --mat-form-field-outlined-outline-color: var(--border-secondary);
+  --mat-form-field-outlined-focus-outline-color: var(--primary-500);
+  --mat-form-field-subscript-text-color: var(--text-muted);
   --mdc-checkbox-selected-icon-color: var(--primary-500);
   --mdc-radio-selected-icon-color: var(--primary-500);
   --mdc-slider-handle-color: var(--primary-500);
@@ -113,6 +130,17 @@
   --mdc-navigation-drawer-container-color: var(--bg-secondary);
   --mdc-top-app-bar-container-color: var(--bg-secondary);
   --mdc-top-app-bar-headline-color: var(--text-primary);
+
+  /* Avatar palette: deliberately vivid/distinguishable hues for user identification
+     (login cards, toolbar), separate from the neutral primary/secondary/accent scales. */
+  --avatar-color-1: #3b82f6;
+  --avatar-color-2: #8b5cf6;
+  --avatar-color-3: #ec4899;
+  --avatar-color-4: #f97316;
+  --avatar-color-5: #14b8a6;
+  --avatar-color-6: #22c55e;
+  --avatar-color-7: #eab308;
+  --avatar-color-8: #6366f1;
 }
 
 body {
@@ -133,6 +161,31 @@ body {
 .mat-mdc-toolbar {
   background-color: var(--bg-secondary) !important;
   color: var(--text-primary) !important;
+}
+
+/* CDK overlays (select/menu/autocomplete/datepicker) must be opaque on dark theme */
+.mat-mdc-select-panel,
+.mdc-menu-surface.mat-mdc-select-panel,
+.mat-mdc-autocomplete-panel,
+.mat-mdc-menu-panel,
+.mat-datepicker-content {
+  background-color: var(--bg-secondary) !important;
+  color: var(--text-primary) !important;
+  border: 1px solid var(--border-primary);
+  box-shadow: var(--shadow-lg);
+}
+
+.mat-mdc-option {
+  color: var(--text-primary) !important;
+}
+
+.mat-mdc-option:hover:not(.mdc-list-item--disabled),
+.mat-mdc-option.mat-mdc-option-active {
+  background-color: var(--bg-tertiary) !important;
+}
+
+.mat-mdc-option.mdc-list-item--selected:not(.mdc-list-item--disabled) {
+  background-color: color-mix(in srgb, var(--primary-500) 18%, var(--bg-secondary)) !important;
 }
 
 ::-webkit-scrollbar {

@@ -1,0 +1,16 @@
+{
+  "title": "AI App Hub",
+  "nav": {
+    "home": "Ana sayfa",
+    "settings": "Ayarlar",
+    "language": "Dil seç"
+  },
+  "user": {
+    "logout": "Çıkış yap",
+    "cluster": "Küme"
+  },
+  "pwa": {
+    "updating": "Yeni sürüm mevcut – uygulama güncelleniyor…",
+    "updateFailed": "Güncelleme başarısız – lütfen sayfayı elle yenileyin."
+  }
+}

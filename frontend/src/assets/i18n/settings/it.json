@@ -1,0 +1,55 @@
+{
+  "title": "Impostazioni",
+  "subtitle": "Gestisci impostazioni del hub e app. Le modifiche vengono salvate localmente.",
+  "tabs": {
+    "general": "Generale",
+    "apps": "Aggiungi app",
+    "users": "Gestione utenti"
+  },
+  "general": {
+    "subtitle": "Impostazioni generali del hub.",
+    "defaultLanguage": "Lingua predefinita",
+    "defaultLanguageHint": "Riutilizzata al prossimo avvio dell'app."
+  },
+  "apps": {
+    "subtitle": "Modifica le app, riordinalle con il drag & drop e attiva/disattiva la visualizzazione nel hub. Tutte le modifiche vengono salvate subito in locale. Nome e descrizione si applicano alla lingua selezionata.",
+    "enabled": "Mostra nel hub",
+    "reorder": "Cambia ordine"
+  },
+  "addApp": "Aggiungi app",
+  "resetToDefault": "Ripristina predefinito",
+  "field": {
+    "name": "Nome",
+    "description": "Descrizione",
+    "url": "URL",
+    "iconType": "Tipo di icona",
+    "iconTypeMatIcon": "Icona Material",
+    "iconTypeImage": "Immagine (percorso)",
+    "iconName": "Nome icona",
+    "iconPath": "Percorso immagine (es. app-icons/xyz.svg)"
+  },
+  "remove": "Rimuovi",
+  "save": "Salva",
+  "cancel": "Annulla",
+  "newAppName": "Nuova app",
+  "toast": {
+    "saved": "Impostazioni salvate.",
+    "generalSaved": "Impostazioni generali salvate.",
+    "resetDone": "Ripristinato ai valori predefiniti."
+  },
+  "users": {
+    "subtitle": "Assegna i ruoli agli utenti (Utente, Amministratore, Ospite) – senza il portale Azure.",
+    "loading": "Caricamento utenti …",
+    "retry": "Riprova",
+    "empty": "Nessun utente trovato.",
+    "saved": "Ruolo salvato.",
+    "saveError": "Impossibile salvare il ruolo.",
+    "loadError": "Impossibile caricare gli utenti.",
+    "you": "Tu",
+    "role": {
+      "User": "Utente",
+      "Administrator": "Amministratore",
+      "Guest": "Ospite"
+    }
+  }
+}

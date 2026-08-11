@@ -1,0 +1,7 @@
+{
+  "loading": "Cargando configuración…",
+  "empty": "No hay apps configuradas. Añádalas en Ajustes.",
+  "card": {
+    "openHint": "Abrir en una pestaña nueva"
+  }
+}

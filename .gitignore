@@ -6,6 +6,9 @@ frontend/dist/
 frontend/.angular/
 *.tsbuildinfo
 
+# Build / NestJS
+backend/dist/
+
 # Logs
 *.log
 npm-debug.log*
@@ -35,3 +38,11 @@ coverage/
 
 # Optional
 *.local
+
+# Local HTTPS (mkcert) – never commit private keys
+frontend/ssl/*.pem
+frontend/ssl/*.key
+
+# Generated at start (write-app-version.cjs / write-runtime-config.cjs) - NOT runtime-config.template.json
+frontend/src/app/core/app-version.ts
+frontend/public/runtime-config.json

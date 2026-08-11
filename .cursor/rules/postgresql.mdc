@@ -1,0 +1,31 @@
+---
+description: "PostgreSQL-Konventionen: Migrationen, Schema, Queries"
+globs: ["**/*.entity.ts", "**/migrations/**", "**/*.repository.ts"]
+alwaysApply: false
+---
+
+# Schema & Migrationen
+
+- Schemaänderungen immer über Migrationen (nicht `synchronize: true` in
+  Produktionsnähe), Migrationen sind atomar und benannt nach ihrer Wirkung
+  (`add_index_users_email`, nicht `update_1`).
+- Neue Spalten: sinnvolle Constraints (NOT NULL wo passend, Foreign Keys,
+  sinnvolle Default-Werte) direkt mitdenken statt später nachzuziehen.
+- Indizes für alle Foreign Keys und häufig gefilterte/sortierte Spalten
+  vorschlagen, wenn plausibel.
+
+# Queries
+
+- Bei Query Builder/ORM: N+1-Problem vermeiden, Relationen gezielt laden
+  (`relations`/`join`), nicht pauschal alles eager laden.
+- Für komplexere Auswertungen lieber eine klar lesbare Query mit Kommentar
+  als verschachtelte ORM-Methodenketten, die schwer nachvollziehbar sind.
+- Destruktive Operationen (DROP, TRUNCATE, DELETE ohne WHERE) nie ohne
+  ausdrücklichen Hinweis vorschlagen.
+
+# Docker First
+
+- Lokale DB läuft im Docker-Compose-Service; Verbindungsdaten kommen aus
+  ENV-Variablen, keine hart codierten Connection Strings.
+- Seed-/Migrationsbefehle so gestalten, dass sie im Container ausführbar
+  sind (z. B. via `docker compose exec`).

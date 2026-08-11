@@ -24,7 +24,11 @@
             "tsConfig": "tsconfig.app.json",
             "inlineStyleLanguage": "scss",
             "assets": [
-              "src/favicon.svg",
+              {
+                "glob": "**/*",
+                "input": "public",
+                "output": "/"
+              },
               "src/assets"
             ],
             "styles": ["src/styles.scss"],
@@ -33,10 +37,12 @@
           "configurations": {
             "production": {
               "budgets": [
-                { "type": "initial", "maximumWarning": "500kb", "maximumError": "1mb" },
-                { "type": "anyComponentStyle", "maximumWarning": "2kb", "maximumError": "4kb" }
+                { "type": "initial", "maximumWarning": "950kb", "maximumError": "1.2mb" },
+                { "type": "anyComponentStyle", "maximumWarning": "3kb", "maximumError": "4kb" }
               ],
-              "outputHashing": "all"
+              "outputHashing": "all",
+              "serviceWorker": true,
+              "ngswConfigPath": "ngsw-config.json"
             },
             "development": {
               "optimization": false,
@@ -50,11 +56,23 @@
           "builder": "@angular-devkit/build-angular:dev-server",
           "configurations": {
             "production": { "buildTarget": "app-hub-frontend:build:production" },
-            "development": { "buildTarget": "app-hub-frontend:build:development" }
+            "development": { "buildTarget": "app-hub-frontend:build:development" },
+            "docker": {
+              "buildTarget": "app-hub-frontend:build:development",
+              "poll": 2000,
+              "hmr": false,
+              "liveReload": true,
+              "ssl": true,
+              "sslKey": "ssl/local-key.pem",
+              "sslCert": "ssl/local.pem"
+            }
           },
           "defaultConfiguration": "development",
           "options": {
-            "port": 6054
+            "port": 6054,
+            "host": "0.0.0.0",
+            "disableHostCheck": true,
+            "liveReload": true
           }
         },
         "test": {
@@ -63,7 +81,14 @@
             "polyfills": ["zone.js", "zone.js/testing"],
             "tsConfig": "tsconfig.spec.json",
             "inlineStyleLanguage": "scss",
-            "assets": ["src/favicon.svg", "src/assets"]
+            "assets": [
+              {
+                "glob": "**/*",
+                "input": "public",
+                "output": "/"
+              },
+              "src/assets"
+            ]
           }
         }
       }

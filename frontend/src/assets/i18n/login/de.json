@@ -1,0 +1,12 @@
+{
+  "title": "Axora - AI App Hub",
+  "subline": "Bitte mit deinem Microsoft-Konto anmelden, um fortzufahren.",
+  "signIn": "Mit Microsoft anmelden",
+  "badgeLogin": {
+    "toggle": "Mit Ausweis anmelden",
+    "instructions": "Halte deinen Mitarbeiterausweis vor die Kamera.",
+    "notFound": "Zu diesem Ausweis wurde kein Konto gefunden. Bitte erneut scannen oder mit Microsoft anmelden.",
+    "cameraError": "Kamera konnte nicht gestartet werden. Bitte Kamerazugriff erlauben oder mit Microsoft anmelden.",
+    "cancel": "Abbrechen"
+  }
+}

@@ -1,0 +1,34 @@
+---
+description: "NestJS-Konventionen: Struktur, Clean Code, Hot Reload"
+globs: ["apps/*/src/**/*.ts", "**/*.controller.ts", "**/*.service.ts", "**/*.module.ts", "**/*.entity.ts"]
+alwaysApply: false
+---
+
+# Struktur
+
+- Feature-Module nach fachlicher Domäne (`user`, `order`, ...), jeweils mit
+  eigenem Controller, Service, Module, DTOs.
+- Controller bleiben dünn: Validierung via DTO + `class-validator`,
+  Business-Logik im Service.
+- Gemeinsame Cross-Cutting-Concerns (Auth, Logging, Error-Handling) als
+  Guards/Interceptors/Filters, nicht dupliziert in jedem Controller.
+- DTOs für Request und Response strikt trennen, keine Entities direkt nach
+  außen geben.
+
+# Clean Code (NestJS-spezifisch)
+
+- Dependency Injection konsequent nutzen, keine manuellen `new Service()`.
+- Aussagekräftige Fehlerbehandlung mit Nest-eigenen Exceptions
+  (`NotFoundException`, `BadRequestException`, ...) statt generischer Errors.
+- Keine Business-Logik in Entities, keine DB-Zugriffe in Controllern.
+- Konsistente Namensgebung: `xyz.controller.ts`, `xyz.service.ts`,
+  `xyz.module.ts`, `xyz.dto.ts`, `xyz.entity.ts`.
+
+# Hot Reload
+
+- Vorschläge müssen mit `--watch` (bzw. `ts-node-dev`/`nodemon` im Docker-
+  Container mit Volume-Mount) kompatibel sein.
+- Keine Änderungen, die einen vollständigen Container-Rebuild erzwingen
+  (z. B. neue native Dependencies), ohne das explizit zu benennen.
+- Bei neuen ENV-Variablen: `.env.example` aktualisieren und Docker-Compose-
+  Service entsprechend anpassen.

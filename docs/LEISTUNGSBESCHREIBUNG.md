@@ -15,7 +15,7 @@ Der App Hub ist die **zentrale Einstiegsseite** für alle Apps der Plattform: Ei
 
 ## Schritt 1: Wichtigster Einstieg – die Konfiguration
 
-Der App Hub hat kein eigenes Backend-API. Der zentrale Einstieg für die Geschäftslogik ist die **Konfigurationsdatei**, die das Frontend beim Start lädt:
+Der App Hub hat ein schlankes Backend-API (`app-hub-backend`), das ausschließlich die Benutzer-Rollenverwaltung übernimmt (siehe unten) – keine eigene Datenbank. Der zentrale Einstieg für die restliche Geschäftslogik bleibt die **Konfigurationsdatei**, die das Frontend beim Start lädt:
 
 **Datei:** `frontend/src/assets/konfiguration.json`
 
@@ -94,15 +94,17 @@ Der App Hub hat kein eigenes Backend-API. Der zentrale Einstieg für die Geschä
 | Bereich | Technologie |
 |---------|-------------|
 | **Frontend** | Angular (Standalone), Angular Material, Signals, TypeScript |
+| **Backend** | NestJS (`app-hub-backend`), nur Benutzer-Rollenverwaltung über Microsoft Graph |
+| **Anmeldung** | Microsoft Entra ID (Azure AD), MSAL |
 | **Theme** | Custom Material Dark Theme (Referenz: ai-berichtgenerator) |
 | **Konfiguration** | `konfiguration.json` (Assets), optional Persistenz in localStorage |
 | **Laufzeit/Deployment** | Docker, Docker Compose; Production-Build mit nginx |
-| **Port** | 6054 (Frontend) |
+| **Port** | 6054 (Frontend), 6055 (Backend) |
 
 ### Integration – wer nutzt den App Hub?
 
 - **Mitarbeitende und Fachbereiche:** Täglicher Einstieg, um die richtige App (Berichte, Analytics, Formulare, Flows, WissensKI, etc.) zu öffnen.
-- **Entscheider/Demos:** Zentrale Übersicht der Plattform-Komponenten; optional Pitch-Slide (z. B. `/pitch-audi`) für Präsentationen.
+- **Entscheider/Demos:** Zentrale Übersicht der Plattform-Komponenten für Präsentationen und Demos.
 - **Betrieb:** Konfiguration über Datei oder Einstellungen, ohne Code-Deployment neue Apps sichtbar machen oder URLs anpassen.
 
 ### Aktueller Stand
@@ -113,8 +115,9 @@ Der App Hub hat kein eigenes Backend-API. Der zentrale Einstieg für die Geschä
 | Konfiguration aus konfiguration.json, Config-Service (Signals) | ✅ produktiv |
 | Einstellungen: Apps bearbeiten, hinzufügen, entfernen; localStorage; Zurücksetzen | ✅ produktiv |
 | Icons: Material-Icon und Bild, Default bei Fehler | ✅ produktiv |
-| Route /pitch-audi (Vollbild-Slide für Präsentationen) | ✅ produktiv |
 | Docker First, Hotreload in der Entwicklung | ✅ produktiv |
+| Anmeldung über Microsoft Entra ID (MSAL) | ✅ produktiv |
+| Benutzerverwaltung (Rollen zuweisen ohne Azure Portal) | ✅ produktiv |
 
 ---
 
@@ -131,10 +134,6 @@ Der App Hub hat kein eigenes Backend-API. Der zentrale Einstieg für die Geschä
 - **Apps verwalten:** Bestehende Apps bearbeiten (Name, Beschreibung, URL, Icon), neue Apps anlegen, Apps entfernen.
 - **Speichern:** Änderungen in localStorage ablegen (oder nur in der Session nutzen).
 - **Auf Standard zurücksetzen:** Lädt wieder die ursprüngliche `konfiguration.json` und überschreibt die lokalen Anpassungen.
-
-### Weitere Routen
-
-- **/pitch-audi:** Vollbild-Slide für den AUDI-Pitch (Wissensdatenbasis, Plattform statt Ad-hoc-Agent) – für Präsentationen und Demos.
 
 ### Was der Anwender nicht tun muss
 

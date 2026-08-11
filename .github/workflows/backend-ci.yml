@@ -1,0 +1,94 @@
+name: Backend CI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'backend/**'
+      - '.github/workflows/backend-ci.yml'
+  pull_request:
+    paths:
+      - 'backend/**'
+      - '.github/workflows/backend-ci.yml'
+
+defaults:
+  run:
+    working-directory: backend
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: backend/package-lock.json
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run format:check
+
+  test:
+    runs-on: ubuntu-latest
+    needs: lint
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: backend/package-lock.json
+      - run: npm ci
+      - run: npm run test:ci
+
+  build:
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: backend/package-lock.json
+      - run: npm ci
+      - run: npm run build
+      # Validation only (no push/deploy - siehe ADR-3). Braucht kein echtes Azure-Client-Secret:
+      # der Container startet absichtlich nicht (fail-fast), das ist genau das erwartete Verhalten.
+      - name: Build production image (validation only, no push)
+        run: docker build -f backend/Dockerfile backend -t app-hub-backend:ci-validate
+        working-directory: .
+      # Pinned by commit SHA, not a mutable tag - siehe frontend-ci.yml für den Hintergrund
+      # (aquasecurity/trivy-action Supply-Chain-Vorfall, März 2026).
+      - name: Scan production image for critical/high CVEs (Trivy)
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          image-ref: app-hub-backend:ci-validate
+          severity: CRITICAL,HIGH
+          exit-code: '1'
+          ignore-unfixed: true
+      - name: Verify container fails fast without required Azure env vars
+        run: |
+          set -euo pipefail
+          if docker run --rm app-hub-backend:ci-validate; then
+            echo "ERROR: container started without AZURE_TENANT_ID/AZURE_CLIENT_ID/AZURE_CLIENT_SECRET - should have failed" >&2
+            exit 1
+          fi
+        working-directory: .
+      - name: Verify health endpoint responds when config is present (Graph calls mocked out via fake secret)
+        run: |
+          set -euo pipefail
+          docker run -d --name ci-validate -p 8081:6055 \
+            -e AZURE_TENANT_ID=ci-test-tenant \
+            -e AZURE_CLIENT_ID=ci-test-client \
+            -e AZURE_CLIENT_SECRET=ci-test-secret \
+            -e CORS_ORIGIN=https://ci-test-frontend.example.com \
+            app-hub-backend:ci-validate
+          for _ in $(seq 1 10); do
+            curl -sf http://localhost:8081/health && break
+            sleep 1
+          done
+          curl -sf http://localhost:8081/health | tee /dev/stderr | grep -q '"status":"ok"'
+          docker rm -f ci-validate
+        working-directory: .

@@ -1,0 +1,12 @@
+{
+  "title": "Axora - AI App Hub",
+  "subline": "Veuillez vous connecter avec votre compte Microsoft pour continuer.",
+  "signIn": "Se connecter avec Microsoft",
+  "badgeLogin": {
+    "toggle": "Se connecter avec le badge",
+    "instructions": "Présentez votre badge employé devant la caméra.",
+    "notFound": "Aucun compte trouvé pour ce badge. Veuillez rescanner ou vous connecter avec Microsoft.",
+    "cameraError": "Impossible de démarrer la caméra. Autorisez l'accès à la caméra ou connectez-vous avec Microsoft.",
+    "cancel": "Annuler"
+  }
+}

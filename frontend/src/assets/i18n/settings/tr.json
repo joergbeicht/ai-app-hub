@@ -1,0 +1,55 @@
+{
+  "title": "Ayarlar",
+  "subtitle": "Hub ayarlarını ve uygulamaları yönetin. Değişiklikler yerel olarak kaydedilir.",
+  "tabs": {
+    "general": "Genel",
+    "apps": "Uygulama ekle",
+    "users": "Kullanıcı yönetimi"
+  },
+  "general": {
+    "subtitle": "Genel hub ayarları.",
+    "defaultLanguage": "Varsayılan dil",
+    "defaultLanguageHint": "Uygulamayı bir sonraki açışınızda yeniden kullanılır."
+  },
+  "apps": {
+    "subtitle": "Uygulamaları düzenleyin, sürükleyerek sıralayın ve hub’da gösterilmelerini açıp kapatın. Tüm değişiklikler hemen yerel olarak kaydedilir. Ad ve açıklama seçili dil için geçerlidir.",
+    "enabled": "Hub’da göster",
+    "reorder": "Sırayı değiştir"
+  },
+  "addApp": "Uygulama ekle",
+  "resetToDefault": "Varsayılana sıfırla",
+  "field": {
+    "name": "Ad",
+    "description": "Açıklama",
+    "url": "URL",
+    "iconType": "Simge türü",
+    "iconTypeMatIcon": "Material simgesi",
+    "iconTypeImage": "Görsel (yol)",
+    "iconName": "Simge adı",
+    "iconPath": "Görsel yolu (örn. app-icons/xyz.svg)"
+  },
+  "remove": "Kaldır",
+  "save": "Kaydet",
+  "cancel": "İptal",
+  "newAppName": "Yeni uygulama",
+  "toast": {
+    "saved": "Ayarlar kaydedildi.",
+    "generalSaved": "Genel ayarlar kaydedildi.",
+    "resetDone": "Varsayılana sıfırlandı."
+  },
+  "users": {
+    "subtitle": "Kullanıcılara rol atayın (Kullanıcı, Yönetici, Misafir) – Azure Portal olmadan.",
+    "loading": "Kullanıcılar yükleniyor …",
+    "retry": "Yeniden dene",
+    "empty": "Kullanıcı bulunamadı.",
+    "saved": "Rol kaydedildi.",
+    "saveError": "Rol kaydedilemedi.",
+    "loadError": "Kullanıcılar yüklenemedi.",
+    "you": "Siz",
+    "role": {
+      "User": "Kullanıcı",
+      "Administrator": "Yönetici",
+      "Guest": "Misafir"
+    }
+  }
+}

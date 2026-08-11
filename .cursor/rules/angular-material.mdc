@@ -1,0 +1,144 @@
+---
+description: "Angular-Konventionen: Material First, Custom Theme, Overlay-Opazität, Hot Reload, Zielversion"
+globs: ["apps/*/src/**/*.ts", "apps/*/src/**/*.html", "apps/*/src/**/*.scss", "**/*.component.ts", "**/*.component.html", "**/*.component.scss", "**/theme/**/*.scss", "**/styles.scss", "**/custom-theme.scss"]
+alwaysApply: false
+---
+
+# Ziel-Angular-Version
+
+- Verbindliche Ziel-/Mindestversion für alle Frontend-Apps im Workspace:
+  **Angular 19** (aktueller Stand: `^19.2.0`). Neue Fachapplikationen und
+  Bausteine starten nie unterhalb dieser Version.
+- Wird ein Projekt inhaltlich angefasst (neues Feature, größerer Bugfix),
+  wird die Angular-Version dabei nach der Boy-Scout-Rule (`clean-code.mdc`)
+  auf die aktuelle Zielversion angehoben, statt den fachlichen Task isoliert
+  auf einer veralteten Version umzusetzen.
+- Bei einem neuen Angular-Major-Release: Migration auf die neue
+  Zielversion spätestens innerhalb von 6 Monaten nach Release, um erneute
+  Versionsstreuung zwischen den Projekten zu vermeiden.
+- Ausnahmen (Projekt bleibt bewusst auf einer älteren Version, z. B. wegen
+  einer inkompatiblen Drittabhängigkeit) sind nur zulässig, wenn explizit
+  im jeweiligen Projekt dokumentiert – niemals stillschweigend.
+- Die gemeinsamen Theme-Tokens (siehe unten) sind erst ab der Zielversion
+  technisch sauber nutzbar (Material-Theming-API hat sich zwischen
+  Angular-Major-Versionen wiederholt geändert) – das ist ein weiterer Grund,
+  Versionsdrift nicht zu akzeptieren.
+
+# Material First
+
+- Für jedes UI-Element zuerst prüfen, ob es eine passende Angular-Material-
+  Komponente gibt (Button, Table, Form Field, Dialog, Snackbar, Stepper,
+  Datepicker, etc.) – kein Custom-HTML/CSS "von Hand", solange Material das
+  abdeckt.
+- Formulare: `MatFormField` + Reactive Forms, keine Template-Driven-Forms,
+  keine ungestylten `<input>`-Felder außerhalb von Material.
+- Layout: Angular CDK Layout/Flex-Utilities statt eigenem Grid-System, wenn
+  möglich.
+- Neue Bibliotheken für UI-Zwecke (z. B. weitere Component-Libraries) nur
+  vorschlagen, wenn Material die Anforderung nachweislich nicht abdeckt.
+
+# Custom Material Theme
+
+- Farben, Typografie und Spacing kommen ausschließlich aus dem projekt-
+  eigenen Material-Theme (SCSS-Theme-Datei), niemals Inline-Styles mit
+  Hex-Werten oder Standard-Material-Palette hart codieren.
+- Gibt es mehrere Frontend-Apps: gemeinsame Theme-Tokens (Farben,
+  Typografie-Skala, Spacing) in einer geteilten SCSS-Basis pflegen: Apps
+  können davon abweichende Akzentfarben haben, aber nicht komplett
+  unabhängige, doppelt gepflegte Theme-Dateien ohne gemeinsame Basis.
+- Neue Komponenten nutzen bestehende Theme-Tokens/Mixins; wird ein neuer
+  Farbwert/Abstand benötigt, zuerst im Theme ergänzen, dann referenzieren.
+- Dark-/Light-Mode-Fähigkeit des Themes beachten, falls im Projekt vorhanden
+  – keine fest verdrahteten hellen/dunklen Farben.
+
+# Material Overlays – niemals transparent (Pflicht)
+
+Wiederkehrendes Bug-Muster (Dark Theme + Angular Material MDC/M3): Dropdowns,
+Menus, Autocomplete, Datepicker und ähnliche **CDK-Overlay-Panels** rendern
+mit `background: transparent` / `rgba(0,0,0,0)`. Text und UI darunter scheinen
+durch – Lesbarkeit kollabiert. Das ist **kein** Einzelfall und muss bei jeder
+Material-UI-Arbeit aktiv verhindert bzw. sofort behoben werden.
+
+## Pflicht bei Theme-Setup / Theme-Änderungen
+
+In `custom-theme.scss` (bzw. der gemeinsamen Theme-Basis) **immer** sowohl
+Material-Tokens **als auch** explizite Klassen-Overrides setzen. Tokens allein
+reichen in der Praxis oft nicht (Panel hängt im Overlay außerhalb der
+Komponente, Token-Namen wechseln zwischen Material-Versionen).
+
+Mindest-Set (an Theme-Tokens des Projekts anbinden, z. B. `--bg-secondary`,
+`--text-primary`, `--bg-tertiary`, `--border-primary`):
+
+```scss
+:root {
+  --mat-select-panel-background-color: var(--bg-secondary);
+  --mat-option-label-text-color: var(--text-primary);
+  --mat-option-selected-state-label-text-color: var(--text-primary);
+  --mat-option-hover-state-layer-color: var(--bg-tertiary);
+  --mat-option-focus-state-layer-color: var(--bg-tertiary);
+  --mat-menu-container-color: var(--bg-secondary);
+  --mat-menu-item-label-text-color: var(--text-primary);
+  --mat-autocomplete-background-color: var(--bg-secondary);
+  --mat-datepicker-calendar-container-background-color: var(--bg-secondary);
+  --mdc-dialog-container-color: var(--bg-secondary);
+  --mdc-snackbar-container-color: var(--bg-secondary);
+}
+
+.mat-mdc-select-panel,
+.mdc-menu-surface.mat-mdc-select-panel,
+.mat-mdc-autocomplete-panel,
+.mat-mdc-menu-panel,
+.mat-datepicker-content {
+  background-color: var(--bg-secondary) !important;
+  color: var(--text-primary) !important;
+  border: 1px solid var(--border-primary);
+  box-shadow: var(--shadow-lg);
+}
+
+.mat-mdc-option {
+  color: var(--text-primary) !important;
+}
+
+.mat-mdc-option:hover:not(.mdc-list-item--disabled),
+.mat-mdc-option.mat-mdc-option-active {
+  background-color: var(--bg-tertiary) !important;
+}
+```
+
+## Pflicht bei Features mit Overlay-Komponenten
+
+Immer wenn `mat-select`, `mat-menu`, `mat-autocomplete`, `mat-datepicker`,
+`mat-dialog`, Context-Menus oder vergleichbare Overlays neu eingeführt oder
+angepasst werden:
+
+1. **Vor Abschluss im Browser prüfen:** Overlay öffnen, Screenshot/Computed
+   Style – `background-color` darf **nicht** `rgba(0, 0, 0, 0)` / `transparent`
+   sein; Text muss ohne Durchscheinen lesbar sein.
+2. Fehlt die Opazität: Fix **im zentralen Theme**, nicht in der einzelnen
+   Component (sonst wiederholt sich der Bug in der nächsten App/Seite).
+3. Keine „Lösung“ durch höhere Textkontraste allein oder `opacity` am
+   Backdrop – das Panel selbst braucht einen **deckenden** Hintergrund.
+
+## Definition of Done (Overlay)
+
+- [ ] Panel-Hintergrund ist opak (`--bg-secondary` oder gleichwertig)
+- [ ] Option-/Item-Text nutzt `--text-primary` (bzw. Theme-Äquivalent)
+- [ ] Hover/Selected-State ist sichtbar und bleibt lesbar
+- [ ] Visuell gegen dunklen App-Hintergrund geprüft (Browser-Tools)
+
+# Hot Reload
+
+- Änderungen so vorschlagen, dass `ng serve` (bzw. der Docker-Service mit
+  Volume-Mount) den Zustand ohne manuellen Neustart neu lädt.
+- Keine Vorschläge, die einen vollständigen Rebuild des Angular-Containers
+  erzwingen (z. B. unnötige Änderungen an `angular.json`/Build-Konfiguration),
+  wenn es auch anders geht.
+
+# Clean Code (Angular-spezifisch)
+
+- Standalone Components bevorzugen, schlanke Components, Logik in Services
+  bzw. Signals/RxJS-Streams auslagern.
+- Konsistente Benennung: `feature-name.component.ts`,
+  `feature-name.service.ts`, `feature-name.model.ts`.
+- Kein `any`, strikte Typisierung, DTO-/Interface-Definitionen für alle
+  API-Antworten.

@@ -1,0 +1,79 @@
+---
+description: "Deployment-Konventionen: Azure Kubernetes Service (AKS), Helm, GitHub Actions CI/CD"
+globs: [".github/workflows/**", "**/helm/**", "**/charts/**", "**/*.helm.yaml", "**/values*.yaml", "**/Dockerfile*"]
+alwaysApply: false
+---
+
+# Zielinfrastruktur
+
+- Ziel ist **Azure Kubernetes Service (AKS)**, Images liegen in
+  **Azure Container Registry (ACR)**, Deploy läuft über **GitHub Actions**.
+- Kein manuelles `kubectl apply`/`az` gegen Produktionscluster – jede
+  Änderung geht über Pipeline + Git-Historie (kein Configuration Drift).
+- Die genaue Gate-Logik zwischen Lokal/CI/Staging/Prod (inkl. automatischem
+  Rollback bei fehlgeschlagenen Prod-Smoke-Tests) ist in
+  `testing-pipeline.mdc` verbindlich beschrieben und hier nicht dupliziert.
+
+# GitHub Actions – Pipeline-Aufbau
+
+- Klar getrennte Stages/Jobs: `lint` → `test` → `build & push image` →
+  `deploy`. Deploy-Job hängt von grünem Test-Job ab, kein Überspringen.
+- **Image-Tag = Git-SHA** (bzw. zusätzlich SemVer-Tag bei Releases), niemals
+  `latest` in einem Deployment referenzieren – Tags müssen unveränderlich
+  und nachvollziehbar sein.
+- Getrennte Environments in GitHub Actions (`dev`, `staging`, `production`)
+  mit **Environment Protection Rules** – Deploy nach `production` erfordert
+  manuelle Freigabe/Review, nicht automatisch bei jedem Merge auf `main`.
+- Node-/npm-Caching in der Pipeline nutzen, um Build-Zeiten kurz zu halten.
+- Docker-Images vor dem Push scannen (z. B. Trivy-Action) – bekannte
+  kritische CVEs blockieren den Deploy-Job.
+- Auth gegenüber Azure bevorzugt über **OIDC/Workload Identity Federation**
+  (`azure/login` mit `client-id`/`tenant-id`/`subscription-id`, kein
+  langlebiges Service-Principal-Secret), falls im Projekt noch nicht
+  eingerichtet, das als Verbesserungsvorschlag benennen statt stillschweigend
+  Secrets anzulegen.
+
+# Kubernetes-Manifeste (Helm)
+
+- Kubernetes-Ressourcen werden ausschließlich als **Helm Chart** gepflegt
+  (ein Chart pro Service oder ein Umbrella-Chart, je nach Projektgröße),
+  keine losen YAML-Dateien parallel dazu.
+- Environment-Unterschiede über `values-<env>.yaml` (z. B.
+  `values-dev.yaml`, `values-staging.yaml`, `values-production.yaml`),
+  gemeinsame Defaults in `values.yaml`. Kein Duplizieren ganzer Templates
+  pro Umgebung.
+- Für jedes Deployment sind **Resource Requests/Limits** (CPU/Memory)
+  Pflicht – kein Pod ohne definierte Grenzen.
+- **Liveness-/Readiness-Probes** verpflichtend, angebunden an den
+  Health-Check-Endpoint des NestJS-Backends (siehe `nestjs.mdc` /
+  Observability in `clean-code.mdc`).
+- Sinnvolle `helm lint` / `helm template --debug`-Prüfung als Teil der
+  Pipeline, bevor ein Chart deployed wird.
+- Bei zustandslosen Services (Backend-API) `HorizontalPodAutoscaler` als
+  Chart-Template vorsehen, wenn Lastschwankungen zu erwarten sind.
+
+# Secrets & Konfiguration
+
+- Secrets werden als **Kubernetes Secrets** verwaltet, die in der
+  GitHub-Actions-Pipeline aus **GitHub Encrypted Secrets** (bzw.
+  Environment Secrets pro Stage) befüllt und beim Deploy injiziert werden
+  (z. B. via `kubectl create secret` im Workflow oder als Helm
+  `--set-string`/`--set-file` aus Pipeline-Variablen – nie Klartext-Werte
+  im Chart oder in `values.yaml` einchecken).
+- Nicht-sensitive Konfiguration läuft über `ConfigMap`/Helm-Values, nur
+  echte Secrets (DB-Passwörter, API-Keys, JWT-Signing-Keys) über
+  `Secret`-Ressourcen.
+- Keine Secrets in Logs ausgeben (auch nicht versehentlich über
+  `console.log`/Debug-Ausgaben eines ENV-Dumps).
+- ENV-Variablennamen zwischen Helm-Chart, Docker-Image und Anwendungscode
+  konsistent halten (siehe `docker.mdc`), damit nichts an Stellen
+  auseinanderläuft.
+
+# Docker-Images für Produktion
+
+- Multi-Stage-Build (siehe `docker.mdc`): schlankes, produktionsfertiges
+  Image ohne Dev-Dependencies, ohne Build-Tools im finalen Layer.
+- Container laufen nicht als `root` im Produktions-Image, wenn vermeidbar.
+- Health-Check-Endpoint (`/health` o. ä.) ist Teil des Backend-Images und
+  wird sowohl von Kubernetes-Probes als auch potenziell von Azure Monitor
+  genutzt.

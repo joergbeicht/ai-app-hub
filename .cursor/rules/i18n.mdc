@@ -1,0 +1,108 @@
+---
+description: "Internationalisierung: UI via Transloco, Fach-/Katalogtexte als LocalizedText, Deutsch als Default"
+globs: ["apps/*/src/**/*.ts", "apps/*/src/**/*.html", "**/*.component.ts", "**/*.component.html", "**/i18n/**", "**/assets/i18n/**", "**/assets/konfiguration.json", "**/localized-text*", "**/locale.model.ts", "**/locale-preferences*"]
+alwaysApply: false
+---
+
+# Internationalisierung (i18n)
+
+- **Jede** Frontend-App im Monorepo startet mit **Deutsch als
+  Default-Locale**, ist aber von Anfang an für den internationalen Einsatz
+  auszulegen – unabhängig davon, wie viele Frontend-Apps es aktuell oder
+  künftig gibt. Es darf **kein UI-Text hart codiert** im Template oder in
+  der Komponente stehen (kein `<button>Speichern</button>`, kein
+  `errorMessage = 'Fehler beim Speichern'`).
+- Jede Frontend-App bekommt ihren eigenen Transloco-Scope/eigene
+  `assets/i18n/`-Struktur – Übersetzungs-Keys werden nicht app-übergreifend
+  geteilt, außer es gibt bewusst eine gemeinsame Shared-Library für
+  wiederkehrende UI-Bausteine (dann liegen deren Keys auch in deren
+  eigenen Scope).
+- Standard-Library für UI-i18n ist **`@jsverse/transloco`** (Runtime-i18n,
+  aktiv gepflegt, ICU-Pluralisierung & Locale-Formatierung via Plugins,
+  Sprachwechsel ohne Rebuild/Reload). Kein `@angular/localize` (compile-
+  time, ein Build pro Sprache) und kein `ngx-translate` (Vorgänger,
+  praktisch unmaintained) neu einführen.
+- Texte im Template über `TranslocoPipe`/`TranslocoDirective`
+  (`{{ 'user.form.email.label' | transloco }}` bzw. `*transloco="let t"`),
+  in TS-Code über `TranslocoService.translate()` bzw. `translateObject()`
+  für mehrere Keys, nicht String-Konkatenation.
+- Translation-Files liegen **pro Feature-Modul** unter
+  `assets/i18n/<feature>/<lang>.json` und werden lazy geladen (Transloco
+  Scopes), keine einzelne globale Riesen-JSON-Datei.
+- **Übersetzungs-Keys sind englisch und sprechend**, hierarchisch nach
+  Feature/Komponente aufgebaut, z. B.:
+  `user.form.email.label`, `user.form.email.errorRequired`,
+  `order.list.emptyState`.
+- Für jeden neuen Key wird der deutsche Wert in der `de`-Sprachdatei ergänzt.
+  Fehlt eine andere Sprachdatei (z. B. `en`) noch nicht produktiv, den Key
+  trotzdem dort mit anlegen (z. B. als TODO/Platzhalter), damit keine Locale
+  hinterherhinkt und fehlende Übersetzungen früh auffallen.
+- Keine Verkettung von Übersetzungsfragmenten zu Sätzen im Code (schlecht:
+  `t('Der Nutzer') + name + t('wurde gelöscht')`) – stattdessen Platzhalter
+  im Übersetzungstext selbst nutzen (`user.deleted: "{{name}} wurde
+  gelöscht"`), da Satzbau/Reihenfolge je Sprache unterschiedlich ist.
+- Zahlen-, Datums- und Währungsformatierung über Angulars i18n-Pipes
+  (`DatePipe`, `CurrencyPipe`, `DecimalPipe`) bzw. das Transloco-Locale-
+  Plugin, mit der aktiven Locale – nicht manuell per String-Formatierung.
+- Pluralformen über das Transloco-MessageFormat-Plugin (ICU-Syntax) lösen,
+  nicht über eigene if/else-Verzweigungen im Template oder TS-Code.
+- Layout/CSS so gestalten, dass längere Übersetzungen (z. B. Englisch →
+  Finnisch/Deutsch oft deutlich länger) nicht umbrechen oder abgeschnitten
+  werden – keine fest gepixelten Breiten für Text-Container, wo vermeidbar.
+- Bei neuen Komponenten mit Nutzertext: kurz prüfen/erwähnen, ob RTL-
+  Sprachen relevant werden könnten, auch wenn aktuell nicht umgesetzt
+  (keine Struktur bauen, die RTL faktisch unmöglich macht).
+
+## UI-Texte vs. Fach-/Kataloginhalte
+
+Sprachwechsel muss **app-weit** wirken – Labels **und** sichtbare
+fachliche Texte. Dafür strikt trennen:
+
+1. **UI-Chrome** (Buttons, Tabs, Hints, Toasts, Aria-Labels, leere Zustände)
+   → Transloco Keys in `assets/i18n/<feature>/<lang>.json`.
+2. **Fach-/Kataloginhalte**, die zur Domäne gehören und oft editierbar/
+   persistiert werden (z. B. App-Name und -Beschreibung im Hub-Katalog,
+   konfigurierbare Entitäts-Titel) → **nicht** in Transloco-Dateien,
+   sondern als **`LocalizedText`** (`Record<AppLocale, string>`) im
+   Datenmodell / in der Config (z. B. `konfiguration.json`).
+   Unterstützte Locales liegen zentral in `APP_LOCALES` /
+   `locale.model.ts` (aktuell: `de`, `en`, `es`, `fr`, `tr`, `it`) –
+   neue Sprachen dort, in Transloco `availableLangs`, in allen
+   `assets/i18n/<feature>/<lang>.json` und in jeder `LocalizedText`-Map
+   der Config ergänzen.
+
+### LocalizedText – verbindliche Regeln
+
+- Einsprachige Plain-Strings für nutzersichtbare Fachtexte sind **verboten**,
+  sobald die App mehr als eine Locale unterstützt. Statt
+  `description: "…deutsch…"` immer eine vollständige Map über **alle**
+  `APP_LOCALES`-Codes (z. B. `de`/`en`/`es`/`fr`/`tr`/`it`).
+- Anzeige über Resolver an der **aktiven Locale**
+  (`resolveLocalizedText` / `appDisplayName` / `appDisplayDescription`),
+  mit Fallback auf Deutsch, dann erste nicht-leere Locale – nie fest
+  `app.description` als String aus dem Template lesen.
+- Editoren (z. B. Settings) bearbeiten Name/Beschreibung für die
+  **aktuell gewählte Sprache**; andere Locales bleiben erhalten.
+  Speichern schreibt die volle `LocalizedText`-Map, nicht nur den
+  sichtbaren Slice.
+- Beim Laden aus Persistenz (z. B. `localStorage`) Legacy-Plain-Strings
+  als nur-`de` normalisieren und **leere Locale-Slots aus dem gebündelten
+  Asset nachziehen** (Merge nach ID) – sonst bleiben alte Speichereinträge
+  nach einem Sprachwechsel deutsch.
+- Neue Katalog-Einträge in allen unterstützten Locales anlegen; eine Locale
+  darf nicht dauerhaft fehlen (Platzhalter/TODO analog zu UI-Keys).
+- Locale-Liste nicht an mehreren Stellen hardcoden: `APP_LOCALE_CODES` für
+  Transloco, `emptyLocalizedText()` für Maps – eine neue Sprache = eine
+  Änderung in `locale.model.ts` plus Übersetzungsdateien/Config-Inhalte.
+
+### OnPush und Sprachwechsel
+
+- `TranslocoService.setActiveLang` allein reicht bei **OnPush** und
+  inaktiven Material-Tabs oft nicht für ein Re-Render. Templates müssen
+  die aktive Locale als Signal binden (z. B.
+  `LocalePreferencesService.activeLanguage` /
+  `@let lang = activeLanguage()` und
+  `{{ 'key' | transloco: {} : lang }}`), damit Shell, Tabs und Listen
+  zuverlässig mitwechseln.
+- Fachtexte ebenfalls an `activeLanguage()` koppeln, nicht nur einmalig
+  beim Laden der Config auflösen und cachen.

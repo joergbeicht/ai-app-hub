@@ -1,0 +1,16 @@
+{
+  "title": "AI App Hub",
+  "nav": {
+    "home": "Home",
+    "settings": "Settings",
+    "language": "Choose language"
+  },
+  "user": {
+    "logout": "Log out",
+    "cluster": "Cluster"
+  },
+  "pwa": {
+    "updating": "New version available – updating the app…",
+    "updateFailed": "Update failed – please reload the page manually."
+  }
+}

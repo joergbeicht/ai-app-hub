@@ -1,0 +1,55 @@
+{
+  "title": "Settings",
+  "subtitle": "Manage hub settings and apps. Changes are saved locally.",
+  "tabs": {
+    "general": "General",
+    "apps": "Add app",
+    "users": "User management"
+  },
+  "general": {
+    "subtitle": "General hub settings.",
+    "defaultLanguage": "Default language",
+    "defaultLanguageHint": "Reused the next time you open the app."
+  },
+  "apps": {
+    "subtitle": "Edit apps, drag to reorder, and show/hide them on the hub. All changes are saved locally immediately. Name and description apply to the currently selected language.",
+    "enabled": "Show on hub",
+    "reorder": "Change order"
+  },
+  "addApp": "Add app",
+  "resetToDefault": "Reset to default",
+  "field": {
+    "name": "Name",
+    "description": "Description",
+    "url": "URL",
+    "iconType": "Icon type",
+    "iconTypeMatIcon": "Material icon",
+    "iconTypeImage": "Image (path)",
+    "iconName": "Icon name",
+    "iconPath": "Image path (e.g. app-icons/xyz.svg)"
+  },
+  "remove": "Remove",
+  "save": "Save",
+  "cancel": "Cancel",
+  "newAppName": "New app",
+  "toast": {
+    "saved": "Settings saved.",
+    "generalSaved": "General settings saved.",
+    "resetDone": "Reset to default."
+  },
+  "users": {
+    "subtitle": "Assign roles to users (User, Administrator, Guest) – no Azure Portal needed.",
+    "loading": "Loading users …",
+    "retry": "Retry",
+    "empty": "No users found.",
+    "saved": "Role saved.",
+    "saveError": "Could not save role.",
+    "loadError": "Could not load users.",
+    "you": "You",
+    "role": {
+      "User": "User",
+      "Administrator": "Administrator",
+      "Guest": "Guest"
+    }
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "title": "Axora - AI App Hub",
+  "subline": "Devam etmek için lütfen Microsoft hesabınızla giriş yapın.",
+  "signIn": "Microsoft ile giriş yap",
+  "badgeLogin": {
+    "toggle": "Kartla giriş yap",
+    "instructions": "Çalışan kartını kameranın önüne tut.",
+    "notFound": "Bu kart için bir hesap bulunamadı. Lütfen tekrar tarayın veya Microsoft ile giriş yapın.",
+    "cameraError": "Kamera başlatılamadı. Lütfen kamera erişimine izin verin veya Microsoft ile giriş yapın.",
+    "cancel": "İptal"
+  }
+}
