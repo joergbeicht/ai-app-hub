@@ -34,13 +34,13 @@ jobs:
 
       - name: Build & push backend image
         run: |
-          az acr build --registry acraxoraplatform \
+          az acr build --registry acraxoraplatform --resource-group rg-axora-platform \
             --image ai-app-hub-backend:${{ steps.image.outputs.tag }} \
             --file backend/Dockerfile backend
 
       - name: Build & push frontend image
         run: |
-          az acr build --registry acraxoraplatform \
+          az acr build --registry acraxoraplatform --resource-group rg-axora-platform \
             --image ai-app-hub-frontend:${{ steps.image.outputs.tag }} \
             --file frontend/Dockerfile \
             --build-arg APP_VERSION=${{ steps.image.outputs.tag }} \
