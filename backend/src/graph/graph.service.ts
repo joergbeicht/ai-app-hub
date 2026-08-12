@@ -77,6 +77,19 @@ export class GraphService {
     return response.value[0] ?? null;
   }
 
+  /**
+   * Prüft, ob ein Benutzer Mitglied einer bestimmten Sicherheitsgruppe ist (siehe ADR-12: nur
+   * Mitglieder von `AI-App-Hub-Tablet-Users` dürfen sich über den ROPC-basierten Tablet-Login
+   * anmelden). Nutzt Graphs `checkMemberGroups`-Action statt eines vollständigen `memberOf`-Dumps
+   * - genau eine Ja/Nein-Antwort für die eine relevante Gruppe, keine unnötigen Daten.
+   */
+  async isMemberOfGroup(userId: string, groupId: string): Promise<boolean> {
+    const response = (await this.client.api(`/users/${userId}/checkMemberGroups`).post({
+      groupIds: [groupId],
+    })) as { value: string[] };
+    return response.value.includes(groupId);
+  }
+
   async listAppRoleAssignments(): Promise<AppRoleAssignment[]> {
     const servicePrincipal = await this.getServicePrincipal();
     const response = (await this.client

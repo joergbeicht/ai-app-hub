@@ -58,6 +58,11 @@ services:
       - AZURE_TENANT_ID=${AZURE_TENANT_ID:-}
       - AZURE_CLIENT_ID=${AZURE_CLIENT_ID:-}
       - AZURE_CLIENT_SECRET=${AZURE_CLIENT_SECRET:-}
+      # Nur für den Tablet-PIN-Login nötig (siehe ADR-12) - fehlen sie, lehnt NUR
+      # `POST /tablet-auth/*` mit einer klaren 503 ab, alle anderen Endpunkte laufen unverändert.
+      - AZURE_KEY_VAULT_URL=${AZURE_KEY_VAULT_URL:-}
+      - TABLET_USERS_GROUP_ID=${TABLET_USERS_GROUP_ID:-}
+      - TABLET_SESSION_JWT_SECRET=${TABLET_SESSION_JWT_SECRET:-}
     command: sh -c "node scripts/ensure-node-modules.cjs && npm run start:docker"
 
 volumes:

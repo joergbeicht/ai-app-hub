@@ -1,17 +1,26 @@
 /**
  * Legt einen einzelnen Testbenutzer in einem bestehenden Tenant an - reines Hilfsskript für
- * manuelle Tests (z. B. Passkey-Registrierung, siehe ARCHITEKTUR-ENTSCHEIDUNGEN.md ADR-7),
- * **kein** Teil der Kunden-Onboarding-Automatisierung (dafür gibt es die
- * Self-Service-Sign-up-User-Flows aus ADR-7 - Mitarbeiter legen sich dort selbst an).
+ * manuelle Tests (z. B. Passkey-Registrierung oder Ausweis-Barcode-Login, siehe
+ * ARCHITEKTUR-ENTSCHEIDUNGEN.md ADR-7), **kein** Teil der Kunden-Onboarding-Automatisierung
+ * (dafür gibt es die Self-Service-Sign-up-User-Flows aus ADR-7 - Mitarbeiter legen sich dort
+ * selbst an).
  *
  * Nutzung:
  *   npm run create-test-user -- --tenant <tenant-id-oder-domain> --upn-prefix passkey-test \
- *     [--display-name "Passkey Testuser"] [--domain <verified-domain>]
+ *     [--display-name "Passkey Testuser"] [--domain <verified-domain>] \
+ *     [--employee-id <badge-code>] [--fixed-password]
  *
  * Fragt interaktiv per Device-Code-Flow nach Anmeldung - die anmeldende Person braucht im
- * Ziel-Tenant mindestens die Rolle "User Administrator". Das initiale Kennwort wird zufällig
- * erzeugt, einmalig auf der Konsole ausgegeben (Microsoft Graph gibt es danach nicht mehr heraus)
- * und muss vom Testbenutzer beim ersten Login sofort geändert werden.
+ * Ziel-Tenant mindestens die Rolle "User Administrator".
+ *
+ * --fixed-password: Ohne diese Option muss der Testbenutzer das zufällig erzeugte Passwort beim
+ * ersten Login sofort ändern (Standard-Entra-Verhalten). Für den Ausweis-Barcode-Login (ADR-7,
+ * "Weg A": festes, Entra-konformes Passwort statt einmaligem Temp-Passwort) diese Option setzen -
+ * das Passwort bleibt dann dauerhaft gültig, genau wie bei einem echten Werkstatt-Mitarbeiter.
+ *
+ * --employee-id: Setzt das `employeeId`-Attribut direkt bei der Erstellung (Barcode-Wert für den
+ * Ausweis-Scan-Login, siehe backend/src/badge-login/) statt per separatem
+ * set-employee-badge-id.ts-Aufruf.
  */
 import { randomBytes } from 'node:crypto';
 import { Client } from '@microsoft/microsoft-graph-client';
@@ -23,6 +32,8 @@ interface CreateTestUserOptions {
   displayName: string;
   upnPrefix: string;
   domain?: string;
+  employeeId?: string;
+  fixedPassword: boolean;
 }
 
 interface VerifiedDomain {
@@ -69,29 +80,38 @@ async function createTestUser(options: CreateTestUserOptions): Promise<void> {
     displayName: options.displayName,
     mailNickname: options.upnPrefix,
     userPrincipalName,
+    ...(options.employeeId ? { employeeId: options.employeeId } : {}),
     passwordProfile: {
       password: temporaryPassword,
-      forceChangePasswordNextSignIn: true,
+      forceChangePasswordNextSignIn: !options.fixedPassword,
     },
   })) as CreatedUser;
 
   console.log(`\nCreated test user ${user.userPrincipalName} (id ${user.id}).`);
-  console.log('Store this temporary password securely - Microsoft Graph will not show it again:\n');
+  console.log(
+    options.fixedPassword
+      ? 'Store this password securely - Microsoft Graph will not show it again. It stays valid ' +
+          '(no forced change on first sign-in, see ADR-7 "Weg A"):\n'
+      : 'Store this temporary password securely - Microsoft Graph will not show it again:\n',
+  );
   console.log(
     JSON.stringify(
       {
         userPrincipalName: user.userPrincipalName,
-        temporaryPassword,
+        ...(options.fixedPassword ? { password: temporaryPassword } : { temporaryPassword }),
+        ...(options.employeeId ? { employeeId: options.employeeId } : {}),
         signInUrl: 'https://mysignins.microsoft.com/security-info',
       },
       null,
       2,
     ),
   );
-  console.log(
-    '\nNext step: sign in once with the temporary password to set a real one, then use ' +
-      '"Add sign-in method" -> "Passkey" on the security-info page above.',
-  );
+  if (!options.fixedPassword) {
+    console.log(
+      '\nNext step: sign in once with the temporary password to set a real one, then use ' +
+        '"Add sign-in method" -> "Passkey" on the security-info page above.',
+    );
+  }
 }
 
 async function main(): Promise<void> {
@@ -101,6 +121,8 @@ async function main(): Promise<void> {
     displayName: args.get('display-name') ?? 'AI App Hub Test User',
     upnPrefix: requireArg(args, 'upn-prefix'),
     domain: args.get('domain'),
+    employeeId: args.get('employee-id'),
+    fixedPassword: args.has('fixed-password'),
   });
 }
 

@@ -18,6 +18,11 @@ resources:
 
 env:
   corsOrigin: ""
+  # Nur für den Tablet-PIN-Login nötig (siehe ADR-12) - leer lassen, solange für den Kunden-
+  # Cluster noch kein Key Vault/keine Tablet-Gruppe existiert; `POST /tablet-auth/*` antwortet
+  # dann mit 503, alle anderen Endpunkte bleiben unberührt (siehe `TabletAuthService`).
+  azureKeyVaultUrl: ""
+  tabletUsersGroupId: ""
 
 # Secrets werden NIE hier oder in values-<env>.yaml eingecheckt (siehe deployment.mdc) -
 # sondern beim `helm install`/`upgrade` per `--set-string secrets.xyz=...` aus der Pipeline
@@ -26,3 +31,6 @@ secrets:
   azureTenantId: ""
   azureClientId: ""
   azureClientSecret: ""
+  # HS256-Signierschlüssel für die eigenen Tablet-Session-/Device-Tokens (siehe ADR-12) - z. B.
+  # per `openssl rand -base64 32` erzeugen, pro Cluster unterschiedlich.
+  tabletSessionJwtSecret: ""

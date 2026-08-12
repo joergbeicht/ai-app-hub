@@ -40,6 +40,15 @@ spec:
                 secretKeyRef:
                   name: {{ .Chart.Name }}-secrets
                   key: azure-client-secret
+            - name: AZURE_KEY_VAULT_URL
+              value: "{{ .Values.env.azureKeyVaultUrl }}"
+            - name: TABLET_USERS_GROUP_ID
+              value: "{{ .Values.env.tabletUsersGroupId }}"
+            - name: TABLET_SESSION_JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Chart.Name }}-secrets
+                  key: tablet-session-jwt-secret
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
           livenessProbe:

@@ -29,6 +29,7 @@ import {
   msalInstanceFactory,
   msalInterceptorConfigFactory,
 } from './core/auth/msal-config';
+import { TabletSessionInterceptor } from './core/auth/tablet-session.interceptor';
 
 function initializeLocale(): () => void {
   const localePreferences = inject(LocalePreferencesService);
@@ -90,6 +91,9 @@ export const appConfig: ApplicationConfig = {
     // (e.g. AuthService), which would otherwise miss the LOGIN_SUCCESS event.
     { provide: MSAL_BROADCAST_CONFIG, useValue: { eventsToReplay: 5 } },
     { provide: HTTP_INTERCEPTORS, useClass: MsalInterceptor, multi: true },
+    // Für Tablet-Sitzungen (siehe ADR-12) - läuft neben `MsalInterceptor`, greift aber nur, wenn
+    // tatsächlich eine Tablet-Sitzung aktiv ist (siehe `TabletSessionInterceptor`).
+    { provide: HTTP_INTERCEPTORS, useClass: TabletSessionInterceptor, multi: true },
     MsalService,
     MsalBroadcastService,
   ],

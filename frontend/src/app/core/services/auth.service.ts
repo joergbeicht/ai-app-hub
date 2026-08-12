@@ -7,6 +7,7 @@ import { filter } from 'rxjs/operators';
 import { resolvePrimaryRole, type HubUser } from '../models/user.model';
 import { RUNTIME_CONFIG } from '../runtime-config';
 import { backendApiScope } from '../auth/msal-config';
+import { TabletAuthService, type TabletSession } from './tablet-auth.service';
 
 /** Custom claim added by the `ai-app-hub` App Roles (see ADR-2) – not part of MSAL's base types. */
 interface AppRoleClaims {
@@ -18,18 +19,27 @@ interface AppRoleClaims {
  * already used for the login fake, so `authGuard`, `app.component.ts` and the login page don't need
  * to know about MSAL directly (Dependency Inversion). Sign-in/out use the redirect flow – actual
  * redirect handling happens once at bootstrap, see `initializeMsal` in `app.config.ts`.
+ *
+ * Zusätzlich zur MSAL-Sitzung gibt es seit ADR-12 eine zweite, unabhängige Sitzungsquelle für
+ * Tablet-Benutzer (`TabletAuthService`, PIN+ROPC statt MSAL-Redirect) - `currentUser`/`isLoggedIn`
+ * fassen beide hinter derselben Fassade zusammen, damit `authGuard`/Router/restliche Komponenten
+ * den Unterschied nicht kennen müssen (siehe ADR-12, "PC-Login bleibt komplett unberührt").
  */
 @Injectable({ providedIn: 'root' })
 export class AuthService {
   private readonly msalService = inject(MsalService);
   private readonly msalBroadcastService = inject(MsalBroadcastService);
+  private readonly tabletAuthService = inject(TabletAuthService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly azureClientId = inject(RUNTIME_CONFIG).azureClientId;
 
-  private readonly _currentUser = signal<HubUser | null>(this.mapAccount(this.getAccount()));
+  private readonly _msalUser = signal<HubUser | null>(this.mapAccount(this.getAccount()));
+  private readonly _tabletUser = computed(() =>
+    this.mapTabletSession(this.tabletAuthService.session()),
+  );
 
-  readonly currentUser = this._currentUser.asReadonly();
-  readonly isLoggedIn = computed(() => this._currentUser() !== null);
+  readonly currentUser = computed(() => this._tabletUser() ?? this._msalUser());
+  readonly isLoggedIn = computed(() => this.currentUser() !== null);
 
   constructor() {
     this.msalBroadcastService.msalSubject$
@@ -50,7 +60,7 @@ export class AuthService {
         filter((status) => status === InteractionStatus.None),
         takeUntilDestroyed(this.destroyRef),
       )
-      .subscribe(() => this._currentUser.set(this.mapAccount(this.getAccount())));
+      .subscribe(() => this._msalUser.set(this.mapAccount(this.getAccount())));
   }
 
   /**
@@ -59,9 +69,10 @@ export class AuthService {
    * angefordert werden, sonst gibt es beim ersten Backend-Aufruf einen zusätzlichen,
    * überraschenden Redirect zum Nachfordern der Einwilligung.
    *
-   * `loginHint` (siehe ADR-7, "Weg A" - Ausweis-Scan auf geteilten Tablets): überspringt auf der
-   * Microsoft-gehosteten Login-Seite die Benutzername-Eingabe und zeigt direkt das Passwortfeld
-   * für genau diese Person an.
+   * `loginHint`: überspringt auf der Microsoft-gehosteten Login-Seite die Benutzername-Eingabe
+   * und zeigt direkt das Passwortfeld für genau diese Person an. Für Tablet-Benutzer wird dieser
+   * MSAL-Redirect-Pfad seit ADR-12 nicht mehr über den Ausweis-Scan ausgelöst (siehe
+   * `TabletAuthService`) - `loginHint` bleibt für andere Fälle nutzbar.
    */
   login(loginHint?: string): void {
     this.msalService.loginRedirect({
@@ -71,11 +82,21 @@ export class AuthService {
   }
 
   logout(): void {
+    // Tablet-Sitzung hat keinen MSAL-Account, den `logoutRedirect()` beenden könnte (siehe
+    // ADR-12) - eigener, lokaler Logout statt Redirect zu Entra.
+    if (this._tabletUser()) {
+      this.tabletAuthService.logout();
+      return;
+    }
     this.msalService.logoutRedirect();
   }
 
   private getAccount(): AccountInfo | null {
-    return this.msalService.instance.getActiveAccount() ?? this.msalService.instance.getAllAccounts()[0] ?? null;
+    return (
+      this.msalService.instance.getActiveAccount() ??
+      this.msalService.instance.getAllAccounts()[0] ??
+      null
+    );
   }
 
   private mapAccount(account: AccountInfo | null): HubUser | null {
@@ -88,6 +109,18 @@ export class AuthService {
       displayName: account.name ?? account.username,
       email: account.username,
       role: resolvePrimaryRole(claims?.roles),
+    };
+  }
+
+  private mapTabletSession(session: TabletSession | null): HubUser | null {
+    if (!session) {
+      return null;
+    }
+    return {
+      id: session.userPrincipalName,
+      displayName: session.displayName,
+      email: session.userPrincipalName,
+      role: resolvePrimaryRole(session.roles),
     };
   }
 }

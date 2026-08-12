@@ -5,8 +5,9 @@ metadata:
   annotations:
     cert-manager.io/cluster-issuer: {{ .Values.clusterIssuer }}
     nginx.ingress.kubernetes.io/use-regex: "true"
-    # /api/... wird an das Backend weitergereicht, aber OHNE das /api-Präfix (Backend-Routen
-    # liegen auf Root-Ebene, z. B. /users, /health, /badge-login - siehe backend/src/*.controller.ts).
+          # /api/... wird an das Backend weitergereicht, aber OHNE das /api-Präfix (Backend-Routen
+          # liegen auf Root-Ebene, z. B. /users, /health, /badge-login, /tablet-auth - siehe
+          # backend/src/*.controller.ts).
     nginx.ingress.kubernetes.io/rewrite-target: /$2
 spec:
   ingressClassName: nginx

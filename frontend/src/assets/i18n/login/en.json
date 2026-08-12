@@ -8,5 +8,16 @@
     "notFound": "No account was found for this badge. Please scan again or sign in with Microsoft.",
     "cameraError": "Could not start the camera. Please allow camera access or sign in with Microsoft.",
     "cancel": "Cancel"
+  },
+  "tabletLogin": {
+    "pinPrompt": "Please enter your 4-digit PIN.",
+    "pinLabel": "PIN",
+    "submit": "Sign in",
+    "wrongPin": "Incorrect PIN. Please try again.",
+    "notFound": "No account was found for this badge. Please scan again or sign in with Microsoft.",
+    "notAllowed": "This account is not enabled for tablet login or is currently locked. Please sign in with Microsoft or try again later.",
+    "rateLimited": "Too many attempts. Please wait a moment and try again.",
+    "unknownError": "Sign-in failed. Please try again.",
+    "cancel": "Cancel"
   }
 }

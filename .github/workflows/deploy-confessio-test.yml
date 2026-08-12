@@ -64,6 +64,7 @@ jobs:
             --set-string secrets.azureTenantId=${{ vars.AZURE_TENANT_ID }} \
             --set-string secrets.azureClientId=${{ vars.APP_AZURE_CLIENT_ID }} \
             --set-string secrets.azureClientSecret=${{ secrets.APP_AZURE_CLIENT_SECRET }} \
+            --set-string secrets.tabletSessionJwtSecret=${{ secrets.TABLET_SESSION_JWT_SECRET }} \
             -n ai-app-hub --wait
 
       - name: Helm upgrade frontend

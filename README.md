@@ -156,24 +156,46 @@ sich jederzeit separat zuweisen: `npm run provision:assign-admin -- --tenant <id
 --user person@kunde.com`.
 
 **Nicht** Teil dieses Skripts (siehe ADR-7/ADR-8 „Bekannte Grenzen“): Tenant-Erstellung selbst,
-Self-Service-Sign-up-Konfiguration, Passkey-Richtlinie, einmalige Befüllung des `employeeId`-
-Attributs je Mitarbeiter für den Ausweis-Barcode-Login auf geteilten Tablets (siehe ADR-7, "Weg A").
+Self-Service-Sign-up-Konfiguration, Passkey-Richtlinie, Key-Vault-Provisionierung sowie die
+einmalige Einrichtung einzelner Tablet-Benutzer (`employeeId`, PIN, Gruppenmitgliedschaft - siehe
+`npm run provision-tablet-credential` weiter unten, ADR-12).
 
 Für einmalige manuelle Tests (z. B. Passkey-Registrierung ausprobieren, siehe ADR-7) legt
 `npm run create-test-user -- --tenant <tenant-id> --upn-prefix passkey-test` in `backend/` einen
 einzelnen Testbenutzer per Microsoft Graph an (Device-Code-Login, braucht die Rolle
 „User Administrator“) – kein Teil der eigentlichen Onboarding-Automatisierung.
 
-## Ausweis-Barcode-Login für geteilte Tablets (ADR-7, "Weg A")
+## Ausweis-Barcode + PIN-Login für Tablet-Benutzer (ADR-12)
 
 Auf der Login-Seite gibt es neben dem normalen Microsoft-Login einen Umschalter „Mit Ausweis
 anmelden“: Die Tablet-Kamera scannt den vorhandenen Mitarbeiterausweis-Barcode
-(`@zxing/browser`/`@zxing/library`, `frontend/src/app/features/login/`), `app-hub-backend` löst
-den Barcode über den **nicht authentifizierten** Endpunkt `GET /badge-login/:badgeCode`
-(`backend/src/badge-login/`) gegen das `employeeId`-Attribut in Microsoft Graph zum passenden
-Benutzernamen auf, und der Login startet mit vorausgefülltem Benutzernamen (`loginHint`) direkt
-beim Passwortfeld. Voraussetzung pro Mitarbeiter: `employeeId` muss einmalig mit dem Wert seines
-Ausweis-Barcodes befüllt sein.
+(`@zxing/browser`/`@zxing/library`, `frontend/src/app/features/login/`). Statt danach (wie in der
+ursprünglichen ADR-7-Fassung, "Weg A") zu Microsofts Login-Seite mit echtem Passwort
+weiterzuleiten, übernimmt `app-hub-backend` seit ADR-12 den kompletten Login selbst:
+
+1. `POST /tablet-auth/login` (`backend/src/tablet-auth/`) prüft Badge-Code → `employeeId` (Graph),
+   Mitgliedschaft in der Sicherheitsgruppe `TABLET_USERS_GROUP_ID` und den vom Mitarbeiter
+   gewählten 4-stelligen PIN (Hash liegt in Azure Key Vault, siehe `AZURE_KEY_VAULT_URL`).
+2. Bei Erfolg tauscht das Backend per **ROPC** das in Key Vault gespeicherte echte, feste
+   Entra-Passwort gegen Tokens - das Frontend bekommt dieses Passwort nie zu sehen, nur ein vom
+   Backend selbst signiertes, kurzlebiges Session-Token (`TABLET_SESSION_JWT_SECRET`).
+3. Zusätzlich stellt das Backend ein 1 Jahr gültiges Device-Token aus, das das Frontend lokal
+   (pro Badge-Code) ablegt - beim nächsten Scan an diesem Tablet (`POST /tablet-auth/renew`)
+   entfällt die PIN-Eingabe dadurch meist komplett.
+
+Einzelnen Tablet-Benutzer einrichten (setzt festes Entra-Passwort, Gruppenmitgliedschaft und
+Key-Vault-Secret in einem Schritt):
+
+```bash
+cd backend
+npm run provision-tablet-credential -- \
+  --tenant <tenant-id-oder-domain> --key-vault-url https://<vault>.vault.azure.net \
+  --upn tablet-user@kunde.com --badge-code TABLET-001 --group-id <object-id-der-Tablet-Gruppe>
+```
+
+Details/Trade-offs (ROPC + Conditional Access, Key-Vault-Speicherkonzept, Widerrufsliste): siehe
+ADR-12 in `docs/ARCHITEKTUR-ENTSCHEIDUNGEN.md`. Der normale PC-Login (MSAL-Redirect mit echtem
+Passwort/MFA, ADR-6/ADR-7) ist davon unberührt.
 
 ## Struktur
 

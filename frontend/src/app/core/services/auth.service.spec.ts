@@ -1,9 +1,12 @@
 import { TestBed } from '@angular/core/testing';
+import { provideHttpClient } from '@angular/common/http';
+import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { MsalBroadcastService, MsalService } from '@azure/msal-angular';
 import type { AccountInfo, EventMessage, IPublicClientApplication } from '@azure/msal-browser';
 import { EventType, InteractionStatus } from '@azure/msal-browser';
 import { Subject } from 'rxjs';
 import { AuthService } from './auth.service';
+import { TabletAuthService } from './tablet-auth.service';
 import { RUNTIME_CONFIG } from '../runtime-config';
 
 const testRuntimeConfig = {
@@ -25,7 +28,10 @@ describe('AuthService', () => {
   let msalSubject$: Subject<EventMessage>;
   let inProgress$: Subject<InteractionStatus>;
 
-  function configure(activeAccount: AccountInfo | null, allAccounts: AccountInfo[] = []): AuthService {
+  function configure(
+    activeAccount: AccountInfo | null,
+    allAccounts: AccountInfo[] = [],
+  ): AuthService {
     msalSubject$ = new Subject();
     inProgress$ = new Subject();
     let activeAccountRef = activeAccount;
@@ -36,13 +42,17 @@ describe('AuthService', () => {
     msalServiceSpy.instance = {
       getActiveAccount: () => activeAccountRef,
       getAllAccounts: () => allAccounts,
-      setActiveAccount: jasmine.createSpy('setActiveAccount').and.callFake((account: AccountInfo) => {
-        activeAccountRef = account;
-      }),
+      setActiveAccount: jasmine
+        .createSpy('setActiveAccount')
+        .and.callFake((account: AccountInfo) => {
+          activeAccountRef = account;
+        }),
     } as unknown as IPublicClientApplication;
 
     TestBed.configureTestingModule({
       providers: [
+        provideHttpClient(),
+        provideHttpClientTesting(),
         { provide: MsalService, useValue: msalServiceSpy },
         { provide: MsalBroadcastService, useValue: { msalSubject$, inProgress$ } },
         { provide: RUNTIME_CONFIG, useValue: testRuntimeConfig },
@@ -114,5 +124,54 @@ describe('AuthService', () => {
     inProgress$.next(InteractionStatus.None);
 
     expect(service.currentUser()?.displayName).toBe('Sam Nutzer');
+  });
+
+  it('prefers an active tablet session over an MSAL account (see ADR-12)', () => {
+    const service = configure(testAccount);
+    const tabletAuthService = TestBed.inject(TabletAuthService);
+    const httpMock = TestBed.inject(HttpTestingController);
+
+    tabletAuthService.loginWithPin('TABLET-001', '1234').subscribe();
+    httpMock.expectOne(`${testRuntimeConfig.backendApiUrl}/tablet-auth/login`).flush({
+      sessionToken: 'session-token',
+      deviceToken: 'device-token',
+      expiresIn: 3600,
+      displayName: 'Tablet User',
+      userPrincipalName: 'tablet-user@axora.local',
+      roles: ['User'],
+    });
+
+    expect(service.currentUser()).toEqual({
+      id: 'tablet-user@axora.local',
+      displayName: 'Tablet User',
+      email: 'tablet-user@axora.local',
+      role: 'User',
+    });
+    httpMock.verify();
+    localStorage.removeItem('tabletDeviceToken:TABLET-001');
+  });
+
+  it('logs a tablet session out locally instead of redirecting to Entra', () => {
+    const service = configure(null);
+    const tabletAuthService = TestBed.inject(TabletAuthService);
+    const httpMock = TestBed.inject(HttpTestingController);
+
+    tabletAuthService.loginWithPin('TABLET-001', '1234').subscribe();
+    httpMock.expectOne(`${testRuntimeConfig.backendApiUrl}/tablet-auth/login`).flush({
+      sessionToken: 'session-token',
+      deviceToken: 'device-token',
+      expiresIn: 3600,
+      displayName: 'Tablet User',
+      userPrincipalName: 'tablet-user@axora.local',
+      roles: ['User'],
+    });
+    expect(service.isLoggedIn()).toBe(true);
+
+    service.logout();
+
+    expect(service.isLoggedIn()).toBe(false);
+    expect(msalServiceSpy.logoutRedirect).not.toHaveBeenCalled();
+    httpMock.verify();
+    localStorage.removeItem('tabletDeviceToken:TABLET-001');
   });
 });

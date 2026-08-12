@@ -8,5 +8,16 @@
     "notFound": "Nessun account trovato per questo badge. Scansiona di nuovo oppure accedi con Microsoft.",
     "cameraError": "Impossibile avviare la fotocamera. Consenti l'accesso alla fotocamera oppure accedi con Microsoft.",
     "cancel": "Annulla"
+  },
+  "tabletLogin": {
+    "pinPrompt": "Inserisci il tuo PIN a 4 cifre.",
+    "pinLabel": "PIN",
+    "submit": "Accedi",
+    "wrongPin": "PIN errato. Riprova.",
+    "notFound": "Nessun account trovato per questo badge. Scansiona di nuovo oppure accedi con Microsoft.",
+    "notAllowed": "Questo account non è abilitato per l'accesso da tablet o è attualmente bloccato. Accedi con Microsoft oppure riprova più tardi.",
+    "rateLimited": "Troppi tentativi. Attendi un momento e riprova.",
+    "unknownError": "Accesso non riuscito. Riprova.",
+    "cancel": "Annulla"
   }
 }

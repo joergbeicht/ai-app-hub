@@ -8,5 +8,16 @@
     "notFound": "Zu diesem Ausweis wurde kein Konto gefunden. Bitte erneut scannen oder mit Microsoft anmelden.",
     "cameraError": "Kamera konnte nicht gestartet werden. Bitte Kamerazugriff erlauben oder mit Microsoft anmelden.",
     "cancel": "Abbrechen"
+  },
+  "tabletLogin": {
+    "pinPrompt": "Bitte gib deinen 4-stelligen PIN ein.",
+    "pinLabel": "PIN",
+    "submit": "Anmelden",
+    "wrongPin": "Falscher PIN. Bitte erneut versuchen.",
+    "notFound": "Zu diesem Ausweis wurde kein Konto gefunden. Bitte erneut scannen oder mit Microsoft anmelden.",
+    "notAllowed": "Dieses Konto ist nicht für den Tablet-Login freigeschaltet oder aktuell gesperrt. Bitte mit Microsoft anmelden oder später erneut versuchen.",
+    "rateLimited": "Zu viele Versuche. Bitte kurz warten und erneut versuchen.",
+    "unknownError": "Anmeldung fehlgeschlagen. Bitte erneut versuchen.",
+    "cancel": "Abbrechen"
   }
 }

@@ -8,5 +8,16 @@
     "notFound": "No se encontró ninguna cuenta para esta tarjeta. Vuelve a escanear o inicia sesión con Microsoft.",
     "cameraError": "No se pudo iniciar la cámara. Permite el acceso a la cámara o inicia sesión con Microsoft.",
     "cancel": "Cancelar"
+  },
+  "tabletLogin": {
+    "pinPrompt": "Introduce tu PIN de 4 dígitos.",
+    "pinLabel": "PIN",
+    "submit": "Iniciar sesión",
+    "wrongPin": "PIN incorrecto. Vuelve a intentarlo.",
+    "notFound": "No se encontró ninguna cuenta para esta tarjeta. Vuelve a escanear o inicia sesión con Microsoft.",
+    "notAllowed": "Esta cuenta no está habilitada para el inicio de sesión en tablet o está bloqueada actualmente. Inicia sesión con Microsoft o vuelve a intentarlo más tarde.",
+    "rateLimited": "Demasiados intentos. Espera un momento y vuelve a intentarlo.",
+    "unknownError": "No se pudo iniciar sesión. Vuelve a intentarlo.",
+    "cancel": "Cancelar"
   }
 }

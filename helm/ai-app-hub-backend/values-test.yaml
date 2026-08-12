@@ -8,3 +8,7 @@ replicaCount: 1
 # zusätzliche Absicherung, nicht weil es technisch eine andere Origin wäre.
 env:
   corsOrigin: "https://confessio-test.westeurope.cloudapp.azure.com"
+  # Tablet-PIN-Login (ADR-12): Key Vault + Sicherheitsgruppe existieren für confessio-test seit
+  # 2026-08-12. Beides sind keine Secrets (URL bzw. Objekt-ID), daher hier committed.
+  azureKeyVaultUrl: "https://kv-confessio-test.vault.azure.net/"
+  tabletUsersGroupId: "4b312459-ca53-4b02-8429-95124ced7731"

@@ -8,5 +8,16 @@
     "notFound": "Aucun compte trouvé pour ce badge. Veuillez rescanner ou vous connecter avec Microsoft.",
     "cameraError": "Impossible de démarrer la caméra. Autorisez l'accès à la caméra ou connectez-vous avec Microsoft.",
     "cancel": "Annuler"
+  },
+  "tabletLogin": {
+    "pinPrompt": "Veuillez saisir votre code PIN à 4 chiffres.",
+    "pinLabel": "Code PIN",
+    "submit": "Se connecter",
+    "wrongPin": "Code PIN incorrect. Veuillez réessayer.",
+    "notFound": "Aucun compte trouvé pour ce badge. Veuillez rescanner ou vous connecter avec Microsoft.",
+    "notAllowed": "Ce compte n'est pas autorisé pour la connexion tablette ou est actuellement verrouillé. Connectez-vous avec Microsoft ou réessayez plus tard.",
+    "rateLimited": "Trop de tentatives. Veuillez patienter puis réessayer.",
+    "unknownError": "La connexion a échoué. Veuillez réessayer.",
+    "cancel": "Annuler"
   }
 }

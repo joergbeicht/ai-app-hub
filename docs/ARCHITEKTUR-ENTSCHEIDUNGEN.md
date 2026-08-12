@@ -394,6 +394,21 @@ Passwort (informell "PIN" genannt, mind. 8 Zeichen, keine Ablaufpflicht)
    pro Mitarbeiter erhalten, nur die *Eingabe* des Benutzernamens wird durch
    den Barcode-Scan abgekürzt).
 
+**Bewusst kein Silent-SSO zwischen zwei Logins auf demselben Tablet (Nachfrage
+vom 11.08. nach dem `tablet-user`-Test):** Der Mitarbeiter muss **bei jedem**
+Login erneut sein Passwort eingeben, auch wenn kurz zuvor schon jemand (er
+selbst oder ein Kollege) am selben Tablet eingeloggt war - der Barcode-Scan
+liefert nur den Benutzernamen (`loginHint`), nie eine Authentifizierung.
+Würde die App/MSAL sich eine Sitzung über den Gerätewechsel zwischen
+Mitarbeitern hinweg "merken", könnte ein Mitarbeiter versehentlich unter der
+zuvor aktiven Identität eines Kollegen weiterarbeiten, nur weil dessen
+Ausweis zuletzt gescannt wurde - auf einem **geteilten** Gerät nicht
+akzeptabel. `platform-architecture.mdc`s allgemeine Silent-SSO-Forderung
+bezieht sich auf den Wechsel zwischen Fachapplikation und eingebettetem
+Baustein-Frontend (UI-Komposition), nicht auf aufeinanderfolgende Logins
+verschiedener Personen am selben physischen Gerät - beide Fälle bewusst
+unterschiedlich behandelt.
+
 **Umsetzung (11.08.):**
 - `app-hub-backend`: neues, bewusst **nicht authentifiziertes** Modul
   `backend/src/badge-login/` (`GET /badge-login/:badgeCode` →
@@ -448,6 +463,20 @@ gesetzt. Danach verifiziert:
 (`employeeId`) bei `lisabeicht@confessio-management.de` bleibt bewusst
 bestehen - dient als dokumentierte Demo-Fixture für künftige
 Vorführungen/Tests des Barcode-Logins, kein Aufräum-Punkt mehr.
+
+**Zusätzliche Demo-Fixture (11.08., nach dem öffentlichen Ingress aus
+ADR-11):** Für den Login-Test über die öffentliche URL wurde ein
+dedizierter Testbenutzer `tablet-user@ConfessioManagement.onmicrosoft.com`
+angelegt (`employeeId: TABLET-001`), statt das echte Konto einer echten
+Person zu verwenden - Grund: reale Konten (wie Lisas) haben ein echtes,
+dem Nutzer bekanntes Passwort, das der Agent nicht kennt/eingeben kann;
+`tablet-user` hat stattdessen ein **festes** (nicht bei erstem Login zu
+änderndes) Passwort erhalten, passend zu "Weg A" (siehe oben) - genau das
+Verhalten, das ein realer Werkstatt-Mitarbeiter-Account später auch hat.
+`create-test-user.ts` wurde dafür um `--employee-id` und `--fixed-password`
+erweitert (statt eines Extra-Skripts, da es dieselbe Grundaufgabe ist).
+Barcode-Bilder für beide Fixtures liegen lokal (nicht committet) unter
+`docs/test-fixtures/*.png` (Code-128, generiert mit `python-barcode`).
 
 **Bekannte offene Punkte (separate, spätere Entscheidungen):**
 - Klären, welche Barcode-Symbologie GERIMAs Ausweise nutzen (Bild deutet auf
@@ -788,3 +817,128 @@ dieser ADR):**
   ("1-Klick-Kauf") vermutlich irrelevant (Kunde braucht keine eigene Marke
   auf der URL), für beratungsintensive Fall-2-Kunden ggf. gewünscht – dann
   CNAME auf den bestehenden Hostnamen, keine Änderung am Ingress nötig.
+
+## ADR-12: PIN+ROPC-Login **nur für Tablet-Benutzer** statt Entra-Passwort bei jedem Login
+
+**Kontext:** ADR-7 "Weg A" verlangt bei jedem Login ein echtes, Entra-
+konformes Passwort (mind. 8 Zeichen, 3 von 4 Komplexitätsklassen) – das
+wurde beim `tablet-user`-Test (11.08.) explizit als **nicht akzeptabel**
+für Werkstatt-Mitarbeiter zurückgewiesen: gewünscht ist Barcode + entweder
+ein kurzer 4-stelliger PIN oder gar keine erneute Eingabe für bis zu einem
+Jahr (auf demselben Gerät). **Ausdrücklich nur für Tablet-Benutzer** – PC-
+Benutzer/Büro-Mitarbeiter bleiben unverändert beim normalen MSAL-Redirect
+zu Microsofts gehosteter Login-Seite mit echtem Passwort/MFA (unverändert
+gegenüber ADR-6/ADR-7, entspricht weiterhin der SSO-Vorgabe aus
+`platform-architecture.mdc`).
+
+**Warum Entras eigene Login-Seite dafür nicht genutzt werden kann:** Die
+Passwortrichtlinie ist eine feste Plattform-Vorgabe (ADR-7), nicht
+konfigurierbar. Ein 4-stelliger PIN oder "kein Login für 1 Jahr" ist auf
+`login.microsoftonline.com` technisch nicht abbildbar. Es gibt nur einen
+Ausweg: Tablet-Benutzer werden **nie mehr auf Microsofts Login-Seite
+geschickt** – `app-hub-backend` übernimmt die eigentliche Entra-
+Authentifizierung im Hintergrund per **Resource Owner Password Credentials
+(ROPC)**-Flow, mit einem echten, komplexen Passwort, das ausschließlich
+das Backend kennt.
+
+**Entscheidung – Architektur:**
+
+1. **Nur explizit markierte Tablet-Benutzer** sind dazu berechtigt: eine
+   dedizierte Entra-Sicherheitsgruppe (`AI-App-Hub-Tablet-Users`, ID über
+   `TABLET_USERS_GROUP_ID` konfiguriert). `GraphService` prüft vor jedem
+   PIN-Login die Gruppenmitgliedschaft – ohne Mitgliedschaft funktioniert
+   der neue Endpunkt für den jeweiligen Account nicht, unabhängig vom PIN.
+   Damit bleibt das Risiko (gespeicherte Klartext-fähige Passwörter, ROPC
+   ohne MFA) strikt auf diese Gruppe begrenzt, PC-Konten sind nie
+   betroffen.
+2. **Pro Tablet-Benutzer ein Secret in Azure Key Vault**
+   (`tablet-cred-<badgeCode>`, Key-Vault-Secret-Namen erlauben dieselbe
+   Zeichenmenge wie `BADGE_CODE_PATTERN`), JSON-Inhalt:
+   `userPrincipalName`, das echte (zufällig erzeugte, Entra-konforme)
+   `entraPassword`, ein `pinHash` (bcrypt) für den vom Mitarbeiter
+   gewählten 4-stelligen PIN, plus `failedAttempts`/`lockedUntil` für
+   Lockout nach 5 Fehlversuchen (15 Minuten Sperre) – der kleine PIN-Raum
+   (10.000 Kombinationen) braucht zwingend Lockout, sonst wäre er in
+   Minuten per Brute-Force zu erraten. Bewusst **kein** eigenes Postgres
+   für diese Daten (YAGNI/Scope-Disziplin, siehe ADR-2 "schmales Backend")
+   – Key Vault reicht für die zu erwartende Anzahl Tablet-Benutzer pro
+   Kunden-Cluster, hat eigenes Access-Logging/Verschlüsselung und macht
+   ein zweites Speichersystem neben Graph unnötig. Bei nachweislichem
+   Bedarf (hohe Nebenläufigkeit, viele gleichzeitige Fehlversuche) ist ein
+   Wechsel auf eine echte DB später ein reiner Implementierungsdetail-
+   Wechsel hinter `TabletAuthService`.
+3. **Login-Ablauf** (`POST /tablet-auth/login`, unauthentifiziert wie
+   `badge-login`, aber mit strengerem Rate-Limiting):
+   Badge-Code → `employeeId`-Lookup (Graph, wie ADR-7) → Gruppen-Check →
+   PIN-Hash-Vergleich (bcrypt) → bei Erfolg: ROPC-Aufruf gegen
+   `https://login.microsoftonline.com/<tenant>/oauth2/v2.0/token` mit
+   `grant_type=password`, App-Client-ID/-Secret (dieselbe Registrierung
+   wie für Graph, ADR-6) + dem in Key Vault gespeicherten echten Passwort.
+   Backend validiert das resultierende Entra-ID-Token (gleiche
+   JWKS-Prüfung wie `AzureJwtGuard`) und stellt daraus ein **eigenes,
+   kurzlebiges Session-JWT** (8h, ein Arbeitsschicht-Zeitraum) für das
+   Frontend aus – das Frontend bekommt das echte Entra-Passwort nie zu
+   Gesicht, nur unser eigenes Token.
+4. **1-Jahres-Option**: Bei jedem erfolgreichen PIN-Login stellt das
+   Backend zusätzlich ein **Device-Token** aus (eigenes JWT, 365 Tage,
+   `tokenUse: "tablet-device"`), das das Frontend lokal (pro Badge-Code)
+   speichert. `POST /tablet-auth/renew` nimmt dieses Device-Token statt
+   PIN entgegen, führt denselben ROPC-Austausch aus (Passwort kommt
+   weiterhin aus Key Vault) und stellt ein frisches Session- **und**
+   Device-Token aus (sleitendes Fenster, ähnlich einem Refresh-Token) –
+   dadurch muss ein Mitarbeiter auf einem ihm vertrauten Tablet i. d. R.
+   nie wieder den PIN eingeben, nur beim allerersten Login auf einem neuen
+   Gerät oder nach Ablauf.
+5. **PC-Login bleibt komplett unberührt**: `AuthService` im Frontend
+   unterscheidet zwei parallele Sitzungs-Quellen (MSAL-Account vs.
+   eigenes Tablet-Session-Token) hinter derselben, bestehenden Fassade
+   (`currentUser`/`isLoggedIn`) – `authGuard`, Router, restliche
+   Komponenten merken den Unterschied nicht.
+
+**Bewusste Trade-offs/Risiken (dokumentiert, nicht versteckt):**
+- **ROPC ist von Microsoft als "Legacy" eingestuft** und schlägt fehl,
+  sobald irgendeine Conditional-Access-Regel für diese Konten MFA
+  verlangt. Betriebsanforderung: Die `AI-App-Hub-Tablet-Users`-Gruppe
+  **muss** von jeder MFA-Pflicht-Regel ausgenommen sein/bleiben – gilt nur
+  für diese Gruppe, nicht für PC-Konten.
+- **Das Backend wird zur Passwort-Verwalterin** für Tablet-Konten (Bruch
+  mit "wir speichern nie Passwörter") – bewusst akzeptiert, weil diese
+  Passwörter nie ein Mensch kennt/eingibt und ausschließlich in Key Vault
+  liegen (Zugriff nur über die App-eigene Managed Identity/Client-Secret,
+  gleiche Berechtigungsstufe wie der bestehende Graph-Zugriff).
+- **1-Jahres-Device-Token auf einem geteilten Gerät**: Ist der Token für
+  Mitarbeiter A auf Tablet X noch gültig, kommt jeder mit physischem
+  Zugriff auf Tablet X (nicht nur A) ohne jede Eingabe hinein, solange
+  As Badge nicht erneut gescannt werden muss, um den Token zu laden.
+  Restrisiko ist bekannt und akzeptiert (Tablet gilt als betreutes
+  Werkstattgerät, kein privates Gerät); Widerruf einzelner Device-Tokens
+  ist aktuell nicht möglich (stateless JWT) – bei Bedarf später über eine
+  Sperrliste in Key Vault nachrüstbar.
+- 4-stelliger PIN ist bewusst pro Person, nicht pro Gerät – jeder
+  Mitarbeiter bleibt eine eigene Entra-Identität mit korrektem
+  Audit-Trail (unverändert gegenüber ADR-7).
+
+**Umsetzung (11.08.):** Backend-Modul `backend/src/tablet-auth/` (`TabletAuthController`,
+`TabletAuthService`, `KeyVaultService`, `RopcTokenService`, `TabletSessionTokenService`, jeweils
+mit Unit-Tests) sowie `backend/scripts/provision-tablet-credential.ts` (Einzel-Provisionierung:
+Entra-Passwort setzen, Gruppenmitgliedschaft, Key-Vault-Secret). Frontend:
+`TabletAuthService`/`TabletSessionInterceptor` (parallele Sitzungsquelle neben MSAL, siehe
+`AuthService`), `LoginPageComponent` um PIN-Eingabe erweitert (ersetzt den bisherigen
+`loginHint`-Redirect für den Ausweis-Scan). Neue ENV-Variablen `AZURE_KEY_VAULT_URL`,
+`TABLET_USERS_GROUP_ID`, `TABLET_SESSION_JWT_SECRET` (Helm-Values/`.env`/`docker-compose.yml`
+ergänzt).
+
+**Bekannte offene Punkte (separate, spätere Entscheidungen):**
+- Key-Vault-Ressource, Entra-Sicherheitsgruppe `AI-App-Hub-Tablet-Users`
+  und die zugehörige Zugriffsberechtigung für die App-Registrierung sind
+  **noch nicht angelegt** (weder per Bicep/CLI noch manuell) – Code ist
+  bewusst so gebaut, dass er ohne diese Konfiguration nur den neuen
+  Tablet-Login-Endpunkt mit einer klaren 503-Fehlermeldung ablehnt, alle
+  anderen Endpunkte (`/users`, `/badge-login`, `/health`) bleiben
+  unverändert funktionsfähig (siehe `TabletAuthService`). Anlegen dieser
+  Ressourcen (inkl. `confessio-test`) ist der nächste, separate Schritt
+  nach diesem Code-Merge.
+- Kein Self-Service für Mitarbeiter, ihren eigenen PIN zu setzen/ändern –
+  vorgesehen per Skript (analog `set-employee-badge-id.ts`), noch zu
+  schreiben.
+- Keine Widerrufsliste für Device-Tokens (siehe oben).

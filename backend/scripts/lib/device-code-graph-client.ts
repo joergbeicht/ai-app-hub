@@ -13,14 +13,23 @@ const DEVICE_CODE_CLIENT_ID =
  * privilegierten Konto im Ziel-Tenant an - dafür ist KEINE eigene Bootstrap-App-Registrierung nötig,
  * da Microsofts eigener, multi-tenant-fähiger Client verwendet wird (kein Henne-Ei-Problem).
  */
-export function createDeviceCodeGraphClient(tenantId: string, scopes: string[]): Client {
-  const credential = new DeviceCodeCredential({
+/** Wie oben beschrieben, aber ohne Graph-spezifischen Client-Wrapper - z. B. für Key Vault (siehe ADR-12). */
+export function createDeviceCodeCredential(tenantId: string): DeviceCodeCredential {
+  return new DeviceCodeCredential({
     tenantId,
     clientId: DEVICE_CODE_CLIENT_ID,
     userPromptCallback: (info) => {
       console.log(`\n${info.message}\n`);
     },
   });
-  const authProvider = new TokenCredentialAuthenticationProvider(credential, { scopes });
+}
+
+export function createDeviceCodeGraphClient(tenantId: string, scopes: string[]): Client {
+  const authProvider = new TokenCredentialAuthenticationProvider(
+    createDeviceCodeCredential(tenantId),
+    {
+      scopes,
+    },
+  );
   return Client.initWithMiddleware({ authProvider });
 }

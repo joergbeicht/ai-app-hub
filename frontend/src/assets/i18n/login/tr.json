@@ -8,5 +8,16 @@
     "notFound": "Bu kart için bir hesap bulunamadı. Lütfen tekrar tarayın veya Microsoft ile giriş yapın.",
     "cameraError": "Kamera başlatılamadı. Lütfen kamera erişimine izin verin veya Microsoft ile giriş yapın.",
     "cancel": "İptal"
+  },
+  "tabletLogin": {
+    "pinPrompt": "Lütfen 4 haneli PIN kodunuzu girin.",
+    "pinLabel": "PIN",
+    "submit": "Giriş yap",
+    "wrongPin": "PIN hatalı. Lütfen tekrar deneyin.",
+    "notFound": "Bu kart için bir hesap bulunamadı. Lütfen tekrar tarayın veya Microsoft ile giriş yapın.",
+    "notAllowed": "Bu hesap tablet ile giriş için yetkili değil veya şu anda kilitli. Lütfen Microsoft ile giriş yapın veya daha sonra tekrar deneyin.",
+    "rateLimited": "Çok fazla deneme yapıldı. Lütfen bir süre bekleyip tekrar deneyin.",
+    "unknownError": "Giriş başarısız oldu. Lütfen tekrar deneyin.",
+    "cancel": "İptal"
   }
 }
