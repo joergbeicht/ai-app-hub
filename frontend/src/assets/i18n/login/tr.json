@@ -12,6 +12,7 @@
   "tabletLogin": {
     "pinPrompt": "Lütfen 4 haneli PIN kodunuzu girin.",
     "pinLabel": "PIN",
+    "backspace": "Sil",
     "submit": "Giriş yap",
     "wrongPin": "PIN hatalı. Lütfen tekrar deneyin.",
     "notFound": "Bu kart için bir hesap bulunamadı. Lütfen tekrar tarayın veya Microsoft ile giriş yapın.",

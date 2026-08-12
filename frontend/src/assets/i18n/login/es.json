@@ -12,6 +12,7 @@
   "tabletLogin": {
     "pinPrompt": "Introduce tu PIN de 4 dígitos.",
     "pinLabel": "PIN",
+    "backspace": "Borrar",
     "submit": "Iniciar sesión",
     "wrongPin": "PIN incorrecto. Vuelve a intentarlo.",
     "notFound": "No se encontró ninguna cuenta para esta tarjeta. Vuelve a escanear o inicia sesión con Microsoft.",

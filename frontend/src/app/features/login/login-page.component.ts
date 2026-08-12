@@ -12,11 +12,8 @@ import {
 } from '@angular/core';
 import { Router } from '@angular/router';
 import type { HttpErrorResponse } from '@angular/common/http';
-import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
 import { TranslocoPipe, provideTranslocoScope } from '@jsverse/transloco';
 import type { Subscription } from 'rxjs';
 import { AuthService } from '../../core/services/auth.service';
@@ -31,14 +28,7 @@ type PinError = 'wrongPin' | 'notAllowed' | 'rateLimited' | 'notFound' | 'unknow
 @Component({
   selector: 'app-login-page',
   standalone: true,
-  imports: [
-    FormsModule,
-    MatButtonModule,
-    MatIconModule,
-    MatFormFieldModule,
-    MatInputModule,
-    TranslocoPipe,
-  ],
+  imports: [MatButtonModule, MatIconModule, TranslocoPipe],
   providers: [provideTranslocoScope('login')],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -79,21 +69,14 @@ type PinError = 'wrongPin' | 'notAllowed' | 'rateLimited' | 'notFound' | 'unknow
           </button>
         </div>
       } @else {
-        <form class="pin-entry" (ngSubmit)="submitPin()">
+        <div class="pin-entry">
           <p class="pin-entry-prompt">{{ 'login.tabletLogin.pinPrompt' | transloco: {} : lang }}</p>
 
-          <mat-form-field>
-            <mat-label>{{ 'login.tabletLogin.pinLabel' | transloco: {} : lang }}</mat-label>
-            <input
-              matInput
-              type="password"
-              inputmode="numeric"
-              maxlength="4"
-              autocomplete="off"
-              [(ngModel)]="pin"
-              name="pin"
-            />
-          </mat-form-field>
+          <div class="pin-dots" aria-hidden="true">
+            @for (slot of pinSlots; track slot) {
+              <span class="pin-dot" [class.pin-dot--filled]="slot < pin.length"></span>
+            }
+          </div>
 
           @if (pinError(); as errorKey) {
             <p class="pin-entry-error">
@@ -101,18 +84,52 @@ type PinError = 'wrongPin' | 'notAllowed' | 'rateLimited' | 'notFound' | 'unknow
             </p>
           }
 
-          <button
-            mat-flat-button
-            color="primary"
-            type="submit"
-            [disabled]="pin.length !== 4 || submitting()"
+          <!-- Fester Zahlenblock statt Systemtastatur (siehe ADR-12) - auf geteilten Tablets ist
+               ein grosses, immer gleich aussehendes Tippfeld verlaesslicher als die je nach
+               Geraet/Browser unterschiedliche virtuelle Tastatur. Sendet automatisch ab, sobald
+               4 Ziffern eingegeben sind. -->
+          <div
+            class="pin-keypad"
+            role="group"
+            [attr.aria-label]="'login.tabletLogin.pinLabel' | transloco: {} : lang"
           >
-            {{ 'login.tabletLogin.submit' | transloco: {} : lang }}
-          </button>
+            @for (digit of keypadDigits; track digit) {
+              <button
+                mat-flat-button
+                type="button"
+                class="pin-key"
+                [disabled]="submitting()"
+                (click)="pressDigit(digit)"
+              >
+                {{ digit }}
+              </button>
+            }
+            <span class="pin-key pin-key--spacer" aria-hidden="true"></span>
+            <button
+              mat-flat-button
+              type="button"
+              class="pin-key"
+              [disabled]="submitting()"
+              (click)="pressDigit('0')"
+            >
+              0
+            </button>
+            <button
+              mat-icon-button
+              type="button"
+              class="pin-key pin-key--backspace"
+              [disabled]="submitting() || pin.length === 0"
+              [attr.aria-label]="'login.tabletLogin.backspace' | transloco: {} : lang"
+              (click)="pressBackspace()"
+            >
+              <mat-icon>backspace</mat-icon>
+            </button>
+          </div>
+
           <button mat-button type="button" (click)="cancelBadgeScan()">
             {{ 'login.tabletLogin.cancel' | transloco: {} : lang }}
           </button>
-        </form>
+        </div>
       }
     </div>
   `,
@@ -189,19 +206,52 @@ type PinError = 'wrongPin' | 'notAllowed' | 'rateLimited' | 'notFound' | 'unknow
         flex-direction: column;
         align-items: center;
         width: 100%;
-        gap: 0.5rem;
+        gap: 1rem;
       }
       .pin-entry-prompt {
         margin: 0;
         color: var(--text-secondary);
       }
-      .pin-entry mat-form-field {
-        width: 160px;
+      .pin-dots {
+        display: flex;
+        gap: 1rem;
       }
-      .pin-entry input {
-        text-align: center;
-        letter-spacing: 0.5rem;
-        font-size: 1.25rem;
+      .pin-dot {
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        border: 2px solid var(--border-primary);
+        background: transparent;
+        transition: background-color 0.15s ease;
+      }
+      .pin-dot--filled {
+        background: var(--primary-400);
+        border-color: var(--primary-400);
+      }
+      .pin-keypad {
+        display: grid;
+        grid-template-columns: repeat(3, 72px);
+        gap: 0.75rem;
+        justify-content: center;
+      }
+      .pin-key {
+        width: 72px;
+        height: 72px;
+        min-width: 0;
+        border-radius: 50%;
+        font-size: 1.5rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0;
+      }
+      .pin-key--spacer {
+        pointer-events: none;
+      }
+      .pin-key--backspace {
+        width: 72px;
+        height: 72px;
+        font-size: 1.5rem;
       }
     `,
   ],
@@ -223,7 +273,11 @@ export class LoginPageComponent implements OnInit, OnDestroy {
   readonly pinError = signal<PinError | null>(null);
   readonly submitting = signal(false);
 
-  /** Plain (kein Signal): `[(ngModel)]` unterstützt kein direktes Zwei-Wege-Binding auf Signals. */
+  /** Für `@for` über die 4 Punkte/Tasten - keine Signals nötig, ändert sich nie zur Laufzeit. */
+  readonly pinSlots = [0, 1, 2, 3];
+  readonly keypadDigits = ['1', '2', '3', '4', '5', '6', '7', '8', '9'];
+
+  /** Plain (kein Signal): wird per Tastendruck aus dem Zahlenblock direkt gesetzt/gelesen. */
   pin = '';
 
   ngOnInit(): void {
@@ -258,13 +312,33 @@ export class LoginPageComponent implements OnInit, OnDestroy {
     this.scanError.set(null);
   }
 
+  /** Ziffern-Taste des Zahlenblocks - sendet automatisch ab, sobald der 4. PIN eingegeben ist. */
+  pressDigit(digit: string): void {
+    if (this.submitting() || this.pin.length >= 4) {
+      return;
+    }
+    this.pin += digit;
+    this.pinError.set(null);
+    if (this.pin.length === 4) {
+      this.submitPin();
+    }
+  }
+
+  pressBackspace(): void {
+    if (this.submitting() || this.pin.length === 0) {
+      return;
+    }
+    this.pin = this.pin.slice(0, -1);
+    this.pinError.set(null);
+  }
+
   /**
    * Sendet den eingegebenen PIN an `TabletAuthService` (siehe ADR-12) - bei Erfolg direkt zur
    * App, ohne MSAL-Redirect. Der Backend-Status-Code entscheidet über die angezeigte
    * Fehlermeldung (401 = falscher PIN, 403 = nicht freigeschaltet/gesperrt, 429 = zu viele
    * Versuche pro IP, alles andere = generischer Fehler).
    */
-  submitPin(): void {
+  private submitPin(): void {
     const badgeCode = this.pendingBadgeCode;
     if (!badgeCode || this.pin.length !== 4) {
       return;

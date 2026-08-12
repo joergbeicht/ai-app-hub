@@ -12,6 +12,7 @@
   "tabletLogin": {
     "pinPrompt": "Veuillez saisir votre code PIN à 4 chiffres.",
     "pinLabel": "Code PIN",
+    "backspace": "Effacer",
     "submit": "Se connecter",
     "wrongPin": "Code PIN incorrect. Veuillez réessayer.",
     "notFound": "Aucun compte trouvé pour ce badge. Veuillez rescanner ou vous connecter avec Microsoft.",

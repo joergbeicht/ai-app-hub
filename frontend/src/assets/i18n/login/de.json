@@ -12,6 +12,7 @@
   "tabletLogin": {
     "pinPrompt": "Bitte gib deinen 4-stelligen PIN ein.",
     "pinLabel": "PIN",
+    "backspace": "Löschen",
     "submit": "Anmelden",
     "wrongPin": "Falscher PIN. Bitte erneut versuchen.",
     "notFound": "Zu diesem Ausweis wurde kein Konto gefunden. Bitte erneut scannen oder mit Microsoft anmelden.",
