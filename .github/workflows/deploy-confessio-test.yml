@@ -17,6 +17,10 @@ jobs:
     environment: confessio-test
     steps:
       - uses: actions/checkout@v4
+        with:
+          # `git describe` (siehe unten) braucht die volle Tag-Historie - der Default
+          # (fetch-depth: 1) liefert nur den letzten Commit ohne erreichbare Tags.
+          fetch-depth: 0
 
       - uses: azure/setup-helm@v4
       - uses: azure/setup-kubectl@v4
@@ -28,9 +32,15 @@ jobs:
           tenant-id: ${{ vars.AZURE_TENANT_ID }}
           subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
 
-      - name: Determine image tag
+      - name: Determine image tag and app version
         id: image
-        run: echo "tag=${GITHUB_SHA::8}" >> "$GITHUB_OUTPUT"
+        run: |
+          echo "tag=${GITHUB_SHA::8}" >> "$GITHUB_OUTPUT"
+          # Image-Tag (oben) bleibt die Commit-SHA - eindeutig pro Build, für Rollback/Traceability.
+          # APP_VERSION (hier) ist die für Menschen sichtbare Versionsnummer im Toolbar-Header
+          # (siehe frontend/scripts/write-app-version.cjs) - der nächste erreichbare Git-Tag, wie
+          # lokal auch. Fällt auf die SHA zurück, falls es (noch) keinen Tag gibt.
+          echo "app_version=$(git describe --tags --abbrev=0 2>/dev/null || echo "${GITHUB_SHA::8}")" >> "$GITHUB_OUTPUT"
 
       - name: Build & push backend image
         run: |
@@ -43,7 +53,7 @@ jobs:
           az acr build --registry acraxoraplatform --resource-group rg-axora-platform \
             --image ai-app-hub-frontend:${{ steps.image.outputs.tag }} \
             --file frontend/Dockerfile \
-            --build-arg APP_VERSION=${{ steps.image.outputs.tag }} \
+            --build-arg APP_VERSION=${{ steps.image.outputs.app_version }} \
             frontend
 
       - name: Get AKS credentials
