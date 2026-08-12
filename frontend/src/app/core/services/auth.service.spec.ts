@@ -1,6 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
+import { Router } from '@angular/router';
 import { MsalBroadcastService, MsalService } from '@azure/msal-angular';
 import type { AccountInfo, EventMessage, IPublicClientApplication } from '@azure/msal-browser';
 import { EventType, InteractionStatus } from '@azure/msal-browser';
@@ -25,6 +26,7 @@ const testAccount = {
 
 describe('AuthService', () => {
   let msalServiceSpy: jasmine.SpyObj<MsalService>;
+  let routerSpy: jasmine.SpyObj<Router>;
   let msalSubject$: Subject<EventMessage>;
   let inProgress$: Subject<InteractionStatus>;
 
@@ -48,6 +50,7 @@ describe('AuthService', () => {
           activeAccountRef = account;
         }),
     } as unknown as IPublicClientApplication;
+    routerSpy = jasmine.createSpyObj<Router>('Router', ['navigateByUrl']);
 
     TestBed.configureTestingModule({
       providers: [
@@ -55,6 +58,7 @@ describe('AuthService', () => {
         provideHttpClientTesting(),
         { provide: MsalService, useValue: msalServiceSpy },
         { provide: MsalBroadcastService, useValue: { msalSubject$, inProgress$ } },
+        { provide: Router, useValue: routerSpy },
         { provide: RUNTIME_CONFIG, useValue: testRuntimeConfig },
       ],
     });
@@ -151,7 +155,7 @@ describe('AuthService', () => {
     localStorage.removeItem('tabletDeviceToken:TABLET-001');
   });
 
-  it('logs a tablet session out locally instead of redirecting to Entra', () => {
+  it('logs a tablet session out locally and navigates to /login instead of redirecting to Entra', () => {
     const service = configure(null);
     const tabletAuthService = TestBed.inject(TabletAuthService);
     const httpMock = TestBed.inject(HttpTestingController);
@@ -171,6 +175,9 @@ describe('AuthService', () => {
 
     expect(service.isLoggedIn()).toBe(false);
     expect(msalServiceSpy.logoutRedirect).not.toHaveBeenCalled();
+    // Ohne diese Navigation bliebe die zuvor geschützte Seite ohne Toolbar stehen, weil der
+    // `authGuard` nur bei Navigation prüft, nicht reaktiv bei Signal-Änderungen (siehe Bugfix).
+    expect(routerSpy.navigateByUrl).toHaveBeenCalledWith('/login');
     httpMock.verify();
     localStorage.removeItem('tabletDeviceToken:TABLET-001');
   });

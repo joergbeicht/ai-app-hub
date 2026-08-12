@@ -1,5 +1,6 @@
 import { DestroyRef, Injectable, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { Router } from '@angular/router';
 import { MsalBroadcastService, MsalService } from '@azure/msal-angular';
 import type { AccountInfo } from '@azure/msal-browser';
 import { EventType, InteractionStatus } from '@azure/msal-browser';
@@ -30,6 +31,7 @@ export class AuthService {
   private readonly msalService = inject(MsalService);
   private readonly msalBroadcastService = inject(MsalBroadcastService);
   private readonly tabletAuthService = inject(TabletAuthService);
+  private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
   private readonly azureClientId = inject(RUNTIME_CONFIG).azureClientId;
 
@@ -83,9 +85,13 @@ export class AuthService {
 
   logout(): void {
     // Tablet-Sitzung hat keinen MSAL-Account, den `logoutRedirect()` beenden könnte (siehe
-    // ADR-12) - eigener, lokaler Logout statt Redirect zu Entra.
+    // ADR-12) - eigener, lokaler Logout statt Redirect zu Entra. Anders als bei MSAL (Redirect
+    // zu Entra und zurück) muss hier explizit zu `/login` navigiert werden - der `authGuard`
+    // läuft nur bei Navigation, nicht reaktiv bei Signal-Änderungen, sonst bliebe die zuvor
+    // geschützte Seite (ohne Toolbar) einfach stehen ("eingefrorener Bildschirm").
     if (this._tabletUser()) {
       this.tabletAuthService.logout();
+      void this.router.navigateByUrl('/login');
       return;
     }
     this.msalService.logoutRedirect();
