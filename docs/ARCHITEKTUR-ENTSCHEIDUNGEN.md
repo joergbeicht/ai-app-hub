@@ -685,22 +685,36 @@ enthält korrekt die `confessio-test`-spezifischen Werte (Cluster-Name,
 Tenant-/Client-ID, Backend-URL) – derselbe Image-Build läuft unverändert in
 jedem weiteren Kunden-Cluster, nur mit anderen Helm-Values.
 
-**Umsetzung (11.08.):** `.github/workflows/deploy-confessio-test.yml` –
-bewusst nur `workflow_dispatch` (kein Automatismus bei jedem Push, siehe
-`testing-pipeline.mdc`: fehlende Prod-Smoke-Tests/Rollback-Logik). Auth
-gegenüber Azure per **OIDC/Workload Identity Federation** (`azure/login`,
-kein Client-Secret für die Pipeline selbst, siehe `deployment.mdc`):
-eigene App-Registrierung `gh-actions-ai-app-hub-deploy`, Federated Credential
-mit `subject: repo:joergbeicht/ai-app-hub:environment:confessio-test` (nur
+**Umsetzung (11.08., Trigger korrigiert am 13.08.):**
+`.github/workflows/deploy-confessio-test.yml`. Auth gegenüber Azure per
+**OIDC/Workload Identity Federation** (`azure/login`, kein Client-Secret
+für die Pipeline selbst, siehe `deployment.mdc`): eigene
+App-Registrierung `gh-actions-ai-app-hub-deploy`, Federated Credential mit
+`subject: repo:joergbeicht/ai-app-hub:environment:confessio-test` (nur
 gültig aus diesem GitHub-Environment heraus), Rollen `AcrPush` auf die
 zentrale ACR und `Azure Kubernetes Service Cluster Admin Role` auf
-`aks-confessio-test`. GitHub-Environment `confessio-test` mit **Required
-Reviewer** (manuelle Freigabe vor jedem Lauf) angelegt. Nicht-sensitive
-Werte (Client-/Tenant-/Subscription-ID) als Environment-**Variablen**, der
-App-eigene Graph-Client-Secret (ADR-6) als Environment-**Secret**
+`aks-confessio-test`. Nicht-sensitive Werte (Client-/Tenant-/
+Subscription-ID) als Environment-**Variablen**, der App-eigene
+Graph-Client-Secret (ADR-6) als Environment-**Secret**
 (`APP_AZURE_CLIENT_SECRET`) – bewusst unter anderem Namen als die
 Deploy-Identity, um beide Identitäten (Pipeline-Login vs. App selbst) nicht
 zu verwechseln.
+
+**Trigger-Korrektur (13.08.):** Ursprünglich bewusst nur
+`workflow_dispatch` plus **Required Reviewer** auf dem
+`confessio-test`-GitHub-Environment (manuelle Freigabe vor jedem Lauf) –
+mit der Begründung "kein Automatismus bei jedem Push, siehe
+`testing-pipeline.mdc`: fehlende Prod-Smoke-Tests/Rollback-Logik". Diese
+Begründung war falsch auf den Test-Cluster angewendet: Sie gilt für einen
+späteren **Prod**-Workflow (Übergang Test→Prod braucht Kontrolle), nicht
+für Test selbst – ein Test-Cluster soll im Gegenteil **immer** den
+aktuellen `main`-Stand zeigen, ohne dass jemand manuell auf "Deploy"
+klicken muss. Required Reviewer wurde bereits vorher entfernt (leeres
+`protection_rules`), der Trigger ist jetzt zusätzlich `on: push:
+branches: [main]` (plus weiterhin `workflow_dispatch` für manuelle
+Re-Deploys, z. B. nach einem fehlgeschlagenen Lauf). Die
+Smoke-Test/Rollback-Vorsicht bleibt als offener Punkt für den künftigen
+`confessio-prod`-Workflow bestehen (siehe unten).
 
 **Bekannte, bewusste Vereinfachung (Test-Cluster, nicht Prod):** Die
 Deploy-Identity hat `Cluster Admin Role` auf den ganzen AKS-Cluster statt

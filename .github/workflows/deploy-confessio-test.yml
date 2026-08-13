@@ -1,10 +1,14 @@
 name: Deploy to confessio-test
 
-# Bewusst nur manuell startbar (siehe ADR-10/ADR-9): kein Automatismus bei jedem Push, solange es
-# noch keine Prod-Smoke-Tests/Rollback-Logik gibt (siehe testing-pipeline.mdc). Das
-# "confessio-test"-GitHub-Environment erfordert zusätzlich eine manuelle Freigabe (Required
-# Reviewer), bevor der Job tatsächlich läuft.
+# confessio-test ist ein Test-Cluster, kein Prod (siehe ADR-9) - hier soll jeder Push nach main
+# sofort automatisch deployen, damit man beim Öffnen der App immer den aktuellen main-Stand sieht.
+# Die "fehlende Prod-Smoke-Tests/Rollback-Logik"-Vorsicht aus testing-pipeline.mdc gilt für einen
+# späteren confessio-prod-Workflow (siehe ADR-10 offene Punkte), nicht für dieses Test-Environment.
+# workflow_dispatch bleibt zusätzlich für manuelle Re-Deploys (z. B. nach einem fehlgeschlagenen
+# Lauf, ohne dafür einen leeren Commit zu brauchen).
 on:
+  push:
+    branches: [main]
   workflow_dispatch: {}
 
 permissions:
