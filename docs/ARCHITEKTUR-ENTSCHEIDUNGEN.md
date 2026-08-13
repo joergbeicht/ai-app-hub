@@ -942,3 +942,56 @@ ergänzt).
   vorgesehen per Skript (analog `set-employee-badge-id.ts`), noch zu
   schreiben.
 - Keine Widerrufsliste für Device-Tokens (siehe oben).
+
+## ADR-13: Explizite `version.json`-Prüfung + proaktives `activateUpdate()` für zuverlässige PWA-Updates auf Tablets
+
+**Kontext:** Nach dem produktiven Rollout des Tablet-PWA-Logins (ADR-12)
+kam eine neue Version nicht auf einem bereits laufenden Tablet an, obwohl
+der Deploy erfolgreich war (`ADR-5`-Mechanismus: `VERSION_READY` →
+`activateUpdate()` + Reload, per periodischem `SwUpdate.checkForUpdate()`).
+Tablets werden – anders als ein normaler Browser-Tab – kaum je komplett
+geschlossen; ein einzelner verpasster/verzögerter `VERSION_READY`-Zyklus
+(bekannte Service-Worker-Unzuverlässigkeiten auf iOS/Windows, siehe
+Analyse einer älteren, vergleichbaren PWA unter
+`/Users/joergbeicht/Entwicklung/legacy`) lässt eine veraltete Version dann
+tagelang laufen.
+
+**Entscheidung:** Zwei unabhängige Erkennungswege statt nur einem, beide
+münden in denselben Reload (`PwaUpdateService`):
+1. **Bestehender Weg (ADR-5):** `SwUpdate.versionUpdates` (`VERSION_READY`)
+   sowie periodisches `checkForUpdate()` alle 60 s / bei
+   `visibilitychange`.
+2. **Neuer Weg:** Explizites `fetch('/version.json', { cache: 'no-store' })`
+   bei jedem Check-Zyklus, Vergleich gegen die einkompilierte
+   `APP_VERSION`-Konstante. Bei Abweichung: `forceUpdateNow()` – erzwingt
+   `checkForUpdate()` + `activateUpdate()` und, falls das nicht binnen
+   8 Sekunden zum Reload führt (Fallback-Timer), einen harten
+   `document.location.reload()` unabhängig vom Service-Worker-Zustand.
+   Zusätzlich wird bei jedem regulären Check-Zyklus **proaktiv**
+   `activateUpdate()` aufgerufen (nicht nur nach `VERSION_READY`) – holt
+   eine bereits fertig heruntergeladene, aber nie aktivierte Version nach.
+
+`version.json` wird bewusst **erst nach** `ng build` in den Dist-Ordner
+geschrieben (`scripts/write-build-version-json.cjs`, `postbuild`-Hook in
+`package.json`) – zum Zeitpunkt der `ngsw-config.json`-Verarbeitung
+existiert die Datei noch nicht, landet also nie im Service-Worker-Manifest
+und wird nie aus dessen Cache bedient (exakt dasselbe Prinzip wie bei
+`runtime-config.json`, das erst beim Container-Start entsteht – siehe
+ADR-2/`deployment.mdc`). `nginx.conf` setzt zusätzlich explizite
+`no-cache`-Header für `/version.json` als zweite Absicherung auf
+HTTP-Ebene.
+
+**Konsequenz:** Ein neu deploytes Build wird auf einem dauerhaft
+geöffneten Tablet spätestens beim nächsten 60-Sekunden-Check oder beim
+nächsten Aufwecken des Bildschirms (`visibilitychange`) zuverlässig
+erkannt und lädt – nötigenfalls per Holzhammer-Fallback – neu, statt auf
+einen einzelnen, möglicherweise nie eintreffenden `VERSION_READY`-Event zu
+warten. Kein Backend-`/api/version`-Endpunkt nötig (ADR-5 bleibt insofern
+gültig) – `version.json` ist eine reine Build-Artefakt-Datei.
+
+**Umsetzung (12.08.):** `scripts/lib/resolve-app-version.cjs` (gemeinsame
+Versions-Resolution für `write-app-version.cjs` und neues
+`write-build-version-json.cjs`), `package.json` (`postbuild`-Script),
+`nginx.conf` (`location = /version.json`), `PwaUpdateService` (Fetch-Check
++ `forceUpdateNow()` + proaktives `activateUpdate()` bei jedem Zyklus) inkl.
+Unit-Tests (`pwa-update.service.spec.ts`).

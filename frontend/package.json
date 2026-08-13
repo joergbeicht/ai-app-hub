@@ -11,6 +11,7 @@
     "start:docker": "ng serve --configuration docker --port 6054 --host 0.0.0.0",
     "prebuild": "npm run write-version",
     "build": "ng build",
+    "postbuild": "node scripts/write-build-version-json.cjs",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
     "test:ci": "ng test --watch=false --browsers=ChromeHeadless",

@@ -7,42 +7,14 @@
  * No silent fallback to package.json – a missing version is a hard error.
  * Called via prestart / prebuild (see package.json).
  */
-const { spawnSync } = require('node:child_process');
 const fs = require('node:fs');
 const path = require('node:path');
+const { resolveAppVersion } = require('./lib/resolve-app-version.cjs');
 
 const frontendRoot = path.resolve(__dirname, '..');
 const outPath = path.join(frontendRoot, 'src/app/core/app-version.ts');
 
-function normalizeVersion(raw) {
-  const v = String(raw ?? '')
-    .trim()
-    .replace(/^v/i, '');
-  return v || null;
-}
-
-function fromEnv() {
-  return normalizeVersion(process.env.APP_VERSION);
-}
-
-function fromGit() {
-  try {
-    const gitDir = process.env.GIT_DIR || process.env.APP_VERSION_GIT_DIR;
-    const args = gitDir
-      ? ['--git-dir', gitDir, 'describe', '--tags', '--abbrev=0']
-      : ['describe', '--tags', '--abbrev=0'];
-    const result = spawnSync('git', args, {
-      encoding: 'utf8',
-      cwd: frontendRoot,
-    });
-    if (result.status !== 0) return null;
-    return normalizeVersion(result.stdout);
-  } catch {
-    return null;
-  }
-}
-
-const version = fromEnv() || fromGit();
+const version = resolveAppVersion();
 
 if (!version) {
   console.error(`
