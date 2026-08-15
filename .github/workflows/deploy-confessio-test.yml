@@ -20,7 +20,7 @@ jobs:
     runs-on: ubuntu-latest
     environment: confessio-test
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           # `git describe` (siehe unten) braucht die volle Tag-Historie - der Default
           # (fetch-depth: 1) liefert nur den letzten Commit ohne erreichbare Tags.
