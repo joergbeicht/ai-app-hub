@@ -727,8 +727,13 @@ dieser ADR):**
 - ~~Kein Ingress-Controller/TLS/DNS~~ – gelöst, siehe ADR-11.
 - Deploy-Identity-Rechte auf AKS von Cluster-weit auf den `ai-app-hub`-
   Namespace verengen (Azure RBAC for Kubernetes Authorization).
-- Analoger Workflow für `confessio-prod`, sobald der Cluster existiert,
-  inkl. Test→Prod-Transport-Entscheidung.
+- Analoger Workflow für `confessio-prod` existiert als
+  `deploy-confessio-prod.yml` (`workflow_dispatch` only, kopiert die
+  laufenden Test-Images, kein Rebuild). GitHub-Environment
+  `confessio-prod` plus Federated Credential
+  `environment:confessio-prod` und AKS-Rechte auf `aks-confessio-prod`
+  müssen in Azure/GitHub noch angelegt werden. Auslöser ist das
+  Operations Center, nicht ein Push auf `main`.
 
 ## ADR-11: Öffentlicher Ingress (NGINX + cert-manager + Azure-DNS-Label) statt `kubectl port-forward`
 

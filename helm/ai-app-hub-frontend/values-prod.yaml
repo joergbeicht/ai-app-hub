@@ -1,0 +1,8 @@
+# Overrides for confessio-prod. Same Entra app as test; host and cluster name differ.
+replicaCount: 1
+
+env:
+  clusterName: "confessio-prod"
+  azureTenantId: "e72e80bb-76d0-4f0c-8dfe-55259ab5c6e8"
+  azureClientId: "c52e2ae0-a32d-46d7-9e1b-a0fdb06ff094"
+  backendApiUrl: "https://confessio-prod.westeurope.cloudapp.azure.com/api"

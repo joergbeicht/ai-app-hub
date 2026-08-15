@@ -1,0 +1,7 @@
+# Overrides for confessio-prod. Secrets stay in the GitHub environment / copied from test.
+replicaCount: 1
+
+env:
+  corsOrigin: "https://confessio-prod.westeurope.cloudapp.azure.com"
+  azureKeyVaultUrl: "https://kv-confessio-test.vault.azure.net/"
+  tabletUsersGroupId: "4b312459-ca53-4b02-8429-95124ced7731"

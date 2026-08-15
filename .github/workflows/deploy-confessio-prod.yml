@@ -1,0 +1,110 @@
+name: Deploy to confessio-prod
+
+# Production: same images that already run on confessio-test (freeze, no rebuild).
+# Triggered by the Operations Center via workflow_dispatch, or manually in GitHub.
+# Push to main must not deploy here (deployment.mdc / testing-pipeline.mdc).
+on:
+  workflow_dispatch:
+    inputs:
+      customer_slug:
+        description: Customer slug whose test cluster is the source of images
+        required: true
+        default: confessio
+        type: string
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  deploy:
+    if: ${{ inputs.customer_slug == 'confessio' }}
+    runs-on: ubuntu-latest
+    environment: confessio-prod
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: azure/setup-helm@v4
+      - uses: azure/setup-kubectl@v4
+
+      - name: Azure login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Copy Test Hub onto Prod
+        env:
+          SLUG: ${{ inputs.customer_slug }}
+        run: |
+          set -euo pipefail
+          NS=ai-app-hub
+          HOST="${SLUG}-prod.westeurope.cloudapp.azure.com"
+          TEST_KUBE="$RUNNER_TEMP/kube-test"
+          PROD_KUBE="$RUNNER_TEMP/kube-prod"
+
+          az aks get-credentials \
+            --resource-group "rg-${SLUG}-test" \
+            --name "aks-${SLUG}-test" \
+            --file "$TEST_KUBE" \
+            --overwrite-existing
+          az aks get-credentials \
+            --resource-group "rg-${SLUG}-prod" \
+            --name "aks-${SLUG}-prod" \
+            --file "$PROD_KUBE" \
+            --overwrite-existing
+
+          FE_IMAGE=$(kubectl --kubeconfig="$TEST_KUBE" -n "$NS" get deploy ai-app-hub-frontend -o jsonpath='{.spec.template.spec.containers[0].image}')
+          BE_IMAGE=$(kubectl --kubeconfig="$TEST_KUBE" -n "$NS" get deploy ai-app-hub-backend -o jsonpath='{.spec.template.spec.containers[0].image}')
+          APP_VERSION=$(kubectl --kubeconfig="$TEST_KUBE" -n "$NS" get deploy ai-app-hub-frontend -o jsonpath='{.spec.template.metadata.labels.axora-version}')
+          FE_TAG=${FE_IMAGE##*:}
+          BE_TAG=${BE_IMAGE##*:}
+          APP_VERSION=${APP_VERSION:-unknown}
+
+          TENANT=$(kubectl --kubeconfig="$TEST_KUBE" -n "$NS" get secret ai-app-hub-backend-secrets -o jsonpath='{.data.azure-tenant-id}' | base64 -d)
+          CLIENT_ID=$(kubectl --kubeconfig="$TEST_KUBE" -n "$NS" get secret ai-app-hub-backend-secrets -o jsonpath='{.data.azure-client-id}' | base64 -d)
+          CLIENT_SECRET=$(kubectl --kubeconfig="$TEST_KUBE" -n "$NS" get secret ai-app-hub-backend-secrets -o jsonpath='{.data.azure-client-secret}' | base64 -d)
+          TABLET_SECRET=$(kubectl --kubeconfig="$TEST_KUBE" -n "$NS" get secret ai-app-hub-backend-secrets -o jsonpath='{.data.tablet-session-jwt-secret}' | base64 -d)
+          echo "::add-mask::$TENANT"
+          echo "::add-mask::$CLIENT_ID"
+          echo "::add-mask::$CLIENT_SECRET"
+          echo "::add-mask::$TABLET_SECRET"
+
+          echo "Rolling Hub ${APP_VERSION} to ${HOST} (frontend ${FE_TAG}, backend ${BE_TAG})"
+
+          kubectl --kubeconfig="$PROD_KUBE" create namespace "$NS" --dry-run=client -o yaml \
+            | kubectl --kubeconfig="$PROD_KUBE" apply -f -
+
+          helm upgrade --install ai-app-hub-backend ./helm/ai-app-hub-backend \
+            --kubeconfig "$PROD_KUBE" \
+            -n "$NS" \
+            -f ./helm/ai-app-hub-backend/values-prod.yaml \
+            --set image.tag="$BE_TAG" \
+            --set appVersion="$APP_VERSION" \
+            --set-string secrets.azureTenantId="$TENANT" \
+            --set-string secrets.azureClientId="$CLIENT_ID" \
+            --set-string secrets.azureClientSecret="$CLIENT_SECRET" \
+            --set-string secrets.tabletSessionJwtSecret="$TABLET_SECRET" \
+            --wait --timeout 5m
+
+          helm upgrade --install ai-app-hub-frontend ./helm/ai-app-hub-frontend \
+            --kubeconfig "$PROD_KUBE" \
+            -n "$NS" \
+            -f ./helm/ai-app-hub-frontend/values-prod.yaml \
+            --set image.tag="$FE_TAG" \
+            --set appVersion="$APP_VERSION" \
+            --set env.azureClientId="$CLIENT_ID" \
+            --wait --timeout 5m
+
+          helm upgrade --install ai-app-hub-ingress ./helm/ai-app-hub-ingress \
+            --kubeconfig "$PROD_KUBE" \
+            -n "$NS" \
+            -f ./helm/ai-app-hub-ingress/values-prod.yaml \
+            --wait --timeout 3m
+
+          kubectl --kubeconfig="$PROD_KUBE" -n "$NS" rollout status deployment/ai-app-hub-backend --timeout=180s
+          kubectl --kubeconfig="$PROD_KUBE" -n "$NS" rollout status deployment/ai-app-hub-frontend --timeout=180s
+
+          echo "HUB_VERSION=${APP_VERSION}"
+          echo "HUB_HOST=${HOST}"
