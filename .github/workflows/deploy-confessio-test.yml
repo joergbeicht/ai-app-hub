@@ -75,6 +75,7 @@ jobs:
           helm upgrade --install ai-app-hub-backend ./helm/ai-app-hub-backend \
             -f ./helm/ai-app-hub-backend/values-test.yaml \
             --set image.tag=${{ steps.image.outputs.tag }} \
+            --set appVersion=${{ steps.image.outputs.app_version }} \
             --set-string secrets.azureTenantId=${{ vars.AZURE_TENANT_ID }} \
             --set-string secrets.azureClientId=${{ vars.APP_AZURE_CLIENT_ID }} \
             --set-string secrets.azureClientSecret=${{ secrets.APP_AZURE_CLIENT_SECRET }} \
@@ -86,6 +87,7 @@ jobs:
           helm upgrade --install ai-app-hub-frontend ./helm/ai-app-hub-frontend \
             -f ./helm/ai-app-hub-frontend/values-test.yaml \
             --set image.tag=${{ steps.image.outputs.tag }} \
+            --set appVersion=${{ steps.image.outputs.app_version }} \
             --set env.azureClientId=${{ vars.APP_AZURE_CLIENT_ID }} \
             -n ai-app-hub --wait
 

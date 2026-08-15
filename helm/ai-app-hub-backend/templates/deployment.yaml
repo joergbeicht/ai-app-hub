@@ -4,6 +4,8 @@ metadata:
   name: {{ .Chart.Name }}
   labels:
     app: {{ .Chart.Name }}
+    axora-app: ai-app-hub
+    axora-version: {{ .Values.appVersion | default .Values.image.tag | quote }}
 spec:
   replicas: {{ .Values.replicaCount }}
   selector:
@@ -13,6 +15,8 @@ spec:
     metadata:
       labels:
         app: {{ .Chart.Name }}
+        axora-app: ai-app-hub
+        axora-version: {{ .Values.appVersion | default .Values.image.tag | quote }}
     spec:
       containers:
         - name: {{ .Chart.Name }}

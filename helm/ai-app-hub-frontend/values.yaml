@@ -1,5 +1,7 @@
 replicaCount: 1
 
+appVersion: "1.1.0"
+
 image:
   repository: acraxoraplatform.azurecr.io/ai-app-hub-frontend
   tag: "v1.0.1"
