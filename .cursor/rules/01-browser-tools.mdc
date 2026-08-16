@@ -13,9 +13,9 @@ alwaysApply: true
 ## Workflow (cursor-ide-browser)
 1. Zuerst `browser_tabs` mit `action: "list"` aufrufen.
 2. Wenn ein Tab existiert: `browser_lock` → Interaktionen → `browser_unlock`.
-3. Wenn nicht: `browser_navigate` mit der URL (z. B. `http://localhost:6040`) → dann `browser_lock` → Interaktionen → `browser_unlock`.
+3. Wenn nicht: `browser_navigate` mit der URL des laufenden Frontends → dann `browser_lock` → Interaktionen → `browser_unlock`.
 4. Vor Klicks/Typen: `browser_snapshot` für Element-Refs und Struktur.
 
 ## Wenn die Tools nicht verfügbar sind
 - Fehlermeldung „Tool … not found“ oder „available tools: “ leer bedeutet: Browser-MCP ist in dieser Session nicht verbunden.
-- Nutzer bitten, **Browser-Tools zu aktivieren** (siehe `docs/BROWSER_TOOLS_AKTIVIEREN.md`), dann Cursor/Composer neu starten oder einen neuen Agent-Lauf starten.
+- Nutzer bitten, **Browser-Tools zu aktivieren** (Cursor-Einstellungen → MCP, Server verbunden lassen), dann Cursor/Composer neu starten oder einen neuen Agent-Lauf starten.

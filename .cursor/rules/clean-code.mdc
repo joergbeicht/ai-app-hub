@@ -28,7 +28,8 @@ alwaysApply: true
   koppeln, sondern über Repository-Interfaces entkoppeln.
 - Leichte DDD-Konzepte dort nutzen, wo sie Klarheit bringen (Value Objects,
   klar benannte Aggregates, einheitliche fachliche Sprache in Code und
-  Doku) – volles DDD mit Bounded Contexts erst bei entsprechender Größe.
+  Doku). Bounded Contexts dort, wo die Domäne es verlangt – nicht als
+  Selbstzweck.
 - CQRS nur einführen, wenn Lese- und Schreibpfade nachweislich
   unterschiedliche Anforderungen haben, sonst unnötige Komplexität (YAGNI).
 
