@@ -126,6 +126,58 @@ angepasst werden:
 - [ ] Hover/Selected-State ist sichtbar und bleibt lesbar
 - [ ] Visuell gegen dunklen App-Hintergrund geprüft (Browser-Tools)
 
+# Standard-App-Header (Shell-Toolbar)
+
+Referenzimplementierung: `frontend/src/app/app.component.ts` (`ai-app-hub`).
+Jede neue Fachapplikation/jedes Baustein-Frontend übernimmt dieselbe
+Grundstruktur, damit sich der Wechsel zwischen Apps (UI-Komposition, siehe
+`platform-architecture.mdc`) nicht wie ein Bruch anfühlt.
+
+Reihenfolge von links nach rechts (feststehend, keine App weicht ohne
+dokumentierten Grund ab):
+
+0. *(nur wenn die App eine Sidenav-Navigation hat)* Sidenav-Toggle
+   (Hamburger, Mat-Icon `menu`) – ganz links vor dem Logo, öffnet/schließt
+   die linke Navigation. Standard für Apps mit mehreren Bereichen/eigener
+   Sidenav (z. B. `ai-daten-orchestrator`, `ai-berichtgenerator`, Axora
+   Operations Center). **Ausnahme:** `ai-app-hub` selbst hat aktuell keine
+   Sidenav-Navigation und damit keinen Toggle – die Referenzimplementierung
+   startet direkt mit Punkt 1.
+1. App-/Plattform-Logo (Bild)
+2. Trennstrich (Divider)
+3. App-Icon (Mat-Icon)
+4. App-Titel (Text, i18n-Key)
+5. Versions-Badge (`v<APP_VERSION>`, siehe `deployment.mdc`)
+6. Spacer (`flex: 1 1 auto`) – trennt den Branding-Block links von den
+   Aktionen rechts
+7. *(nur eingeloggt)* Settings-Icon-Button
+8. *(nur eingeloggt)* Sprachauswahl (Globus-Icon + aktueller Sprachcode,
+   Menü mit allen unterstützten Sprachen – siehe unten)
+9. *(nur eingeloggt)* Benutzermenü (Avatar + Anzeigename)
+
+Auf reinen Login-/Auth-Seiten (kein eingeloggter Nutzer) wird die **gesamte**
+Toolbar ausgeblendet, nicht nur die Punkte 7–9 – Login-Seiten haben keinen
+Navigationsbedarf.
+
+## Sprachauswahl im Header – Pflichtsprachen
+
+Der Sprachumschalter im Header (Punkt 8) muss **alle** aktuell unterstützten
+Locales aus `locale.model.ts` (`APP_LOCALES`, siehe `i18n.mdc`) anbieten.
+Stand heute (Momentaufnahme zur Orientierung, **verbindliche Quelle bleibt
+`locale.model.ts`** – siehe `i18n.mdc`, "Locale-Liste nicht an mehreren
+Stellen hardcoden"):
+
+- Deutsch (`de`, Default)
+- English (`en`)
+- Español (`es`)
+- Français (`fr`)
+- Türkçe (`tr`)
+- Italiano (`it`)
+
+Kommt eine neue Sprache zu `APP_LOCALES` hinzu, erscheint sie automatisch im
+Header-Menü – die Liste in der Header-Komponente selbst darf kein
+hartcodiertes Duplikat sein, sondern iteriert über `APP_LOCALES`.
+
 # Hot Reload
 
 - Änderungen so vorschlagen, dass `ng serve` (bzw. der Docker-Service mit
