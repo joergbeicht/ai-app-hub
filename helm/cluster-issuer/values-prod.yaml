@@ -1,0 +1,4 @@
+# Platzhalter-Adresse für Let's-Encrypt-Ablaufhinweise - bei Bedarf durch eine echte,
+# überwachte Postfach-Adresse ersetzen (keine funktionale Auswirkung auf die Zertifikate selbst).
+acmeEmail: "platform@axora.app"
+environment: prod
