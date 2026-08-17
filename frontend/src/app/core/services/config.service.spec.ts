@@ -6,8 +6,10 @@ import {
   type AppEntry,
   type RawAppConfig,
 } from '../models/app-config.model';
+import { RUNTIME_CONFIG } from '../runtime-config';
 
 const STORAGE_KEY = 'app-hub-config';
+const BACKEND_API_URL = 'https://backend.example.com';
 
 const assetConfig: RawAppConfig = {
   defaultIcon: 'apps',
@@ -40,13 +42,31 @@ const assetConfig: RawAppConfig = {
 describe('ConfigService', () => {
   let service: ConfigService;
   let fetchSpy: jasmine.Spy;
+  let liveUrls: Record<string, string>;
 
   beforeEach(() => {
     localStorage.removeItem(STORAGE_KEY);
-    fetchSpy = spyOn(window, 'fetch').and.callFake(() =>
-      Promise.resolve(new Response(JSON.stringify(assetConfig), { status: 200 })),
-    );
-    TestBed.configureTestingModule({});
+    liveUrls = {};
+    fetchSpy = spyOn(window, 'fetch').and.callFake((input: unknown) => {
+      const href = typeof input === 'string' ? input : (input as Request).url;
+      if (href.includes('hub-catalog-urls')) {
+        return Promise.resolve(new Response(JSON.stringify(liveUrls), { status: 200 }));
+      }
+      return Promise.resolve(new Response(JSON.stringify(assetConfig), { status: 200 }));
+    });
+    TestBed.configureTestingModule({
+      providers: [
+        {
+          provide: RUNTIME_CONFIG,
+          useValue: {
+            clusterName: 'test',
+            azureTenantId: 't',
+            azureClientId: 'c',
+            backendApiUrl: BACKEND_API_URL,
+          },
+        },
+      ],
+    });
     service = TestBed.inject(ConfigService);
   });
 
@@ -61,6 +81,25 @@ describe('ConfigService', () => {
     expect(service.loaded()).toBe(true);
     expect(service.apps()).toEqual(normalizeAppConfig(assetConfig).apps);
     expect(service.defaultIcon()).toBe('apps');
+  });
+
+  it('overrides the dev URL with the real cluster URL when the backend knows it', async () => {
+    liveUrls = { 'ai-analytics': 'https://confessio-test.westeurope.cloudapp.azure.com/analytics' };
+
+    await service.load();
+
+    expect(fetchSpy.calls.allArgs().some((args) => String(args[0]).includes('hub-catalog-urls'))).toBe(
+      true,
+    );
+    expect(service.apps()[0].url).toBe(liveUrls['ai-analytics']);
+  });
+
+  it('keeps the bundled dev URL when the backend has no live URL for an app', async () => {
+    liveUrls = {};
+
+    await service.load();
+
+    expect(service.apps()[0].url).toBe(assetConfig.apps![0].url);
   });
 
   it('does not refetch when already loaded unless forced', async () => {

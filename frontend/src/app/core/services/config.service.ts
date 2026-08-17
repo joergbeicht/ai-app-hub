@@ -1,17 +1,20 @@
-import { Injectable, signal, computed } from '@angular/core';
+import { Injectable, signal, computed, inject } from '@angular/core';
 import {
+  applyLiveUrls,
   mergeAppConfig,
   normalizeAppConfig,
   type AppConfig,
   type AppEntry,
   type RawAppConfig,
 } from '../models/app-config.model';
+import { RUNTIME_CONFIG } from '../runtime-config';
 
 const CONFIG_ASSET = 'assets/konfiguration.json';
 const STORAGE_KEY = 'app-hub-config';
 
 @Injectable({ providedIn: 'root' })
 export class ConfigService {
+  private readonly backendApiUrl = inject(RUNTIME_CONFIG).backendApiUrl;
   private readonly configSignal = signal<AppConfig | null>(null);
   private readonly loadedSignal = signal<boolean>(false);
 
@@ -30,9 +33,13 @@ export class ConfigService {
     if (this.loadedSignal() && !force) {
       return;
     }
-    const asset = await this.loadAssetConfig();
+    const [asset, liveUrls] = await Promise.all([
+      this.loadAssetConfig(),
+      this.loadLiveCatalogUrls(),
+    ]);
+    const resolved = applyLiveUrls(asset, liveUrls);
     const stored = this.getStoredConfig();
-    const config = stored ? mergeAppConfig(stored, asset) : normalizeAppConfig(asset);
+    const config = stored ? mergeAppConfig(stored, resolved) : normalizeAppConfig(resolved);
     this.configSignal.set(config);
     this.loadedSignal.set(true);
   }
@@ -53,6 +60,22 @@ export class ConfigService {
     const res = await fetch(url, { cache: 'no-store' });
     if (!res.ok) throw new Error(`Failed to load configuration: ${res.status}`);
     return (await res.json()) as RawAppConfig;
+  }
+
+  /**
+   * Fragt die echten In-Cluster-URLs beim eigenen Backend ab (siehe `HubCatalogController`).
+   * Läuft bewusst nie hart fehlschlagend: ohne Antwort/bei Fehlern bleiben die Dev-URLs aus
+   * `konfiguration.json` unverändert (siehe `applyLiveUrls`).
+   */
+  private async loadLiveCatalogUrls(): Promise<Record<string, string>> {
+    try {
+      const res = await fetch(`${this.backendApiUrl}/hub-catalog-urls`);
+      if (!res.ok) return {};
+      const data: unknown = await res.json();
+      return data && typeof data === 'object' ? (data as Record<string, string>) : {};
+    } catch {
+      return {};
+    }
   }
 
   /** Update apps and persist them to localStorage. */

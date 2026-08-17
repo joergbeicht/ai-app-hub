@@ -95,6 +95,25 @@ export function mergeAppConfig(stored: RawAppConfig, asset: RawAppConfig): AppCo
   };
 }
 
+/**
+ * Overrides the `url` of matching apps with real in-cluster URLs (see `HubCatalogController`
+ * in the backend). Only known, non-empty URLs win - anything the Kubernetes lookup doesn't know
+ * about keeps its bundled default (typically a localhost dev URL), so a missing/unreachable
+ * live source never breaks the hub.
+ */
+export function applyLiveUrls(raw: RawAppConfig, liveUrls: Record<string, string>): RawAppConfig {
+  if (!raw.apps?.length || !Object.keys(liveUrls).length) {
+    return raw;
+  }
+  return {
+    ...raw,
+    apps: raw.apps.map((app) => {
+      const liveUrl = liveUrls[app.id];
+      return typeof liveUrl === 'string' && liveUrl ? { ...app, url: liveUrl } : app;
+    }),
+  };
+}
+
 export function appDisplayName(app: AppEntry, locale: AppLocale): string {
   return resolveLocalizedText(app.name, locale, DEFAULT_APP_LOCALE);
 }

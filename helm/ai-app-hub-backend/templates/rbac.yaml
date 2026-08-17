@@ -1,0 +1,31 @@
+# Erlaubt dem Backend, clusterweit ConfigMaps zu LESEN (get/list/watch, keine Schreibrechte) -
+# siehe `HubCatalogService`. Jede Fach-App trägt ihre echte Ingress-URL in eine eigene ConfigMap
+# in ihrem EIGENEN Namespace ein (Label axora.io/hub-catalog=true); der Hub braucht daher
+# clusterweiten Lesezugriff, statt dass jede Fach-App Schreibrechte im ai-app-hub-Namespace
+# bräuchte. ConfigMaps sind kein Secret-Typ - nur nicht-sensible URLs betroffen.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ .Chart.Name }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ .Chart.Name }}-hub-catalog-reader
+rules:
+  - apiGroups: [""]
+    resources: ["configmaps"]
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ .Chart.Name }}-hub-catalog-reader
+subjects:
+  - kind: ServiceAccount
+    name: {{ .Chart.Name }}
+    namespace: {{ .Release.Namespace }}
+roleRef:
+  kind: ClusterRole
+  name: {{ .Chart.Name }}-hub-catalog-reader
+  apiGroup: rbac.authorization.k8s.io

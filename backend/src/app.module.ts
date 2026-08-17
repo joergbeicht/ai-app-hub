@@ -5,6 +5,7 @@ import { HealthModule } from './health/health.module';
 import { UsersModule } from './users/users.module';
 import { BadgeLoginModule } from './badge-login/badge-login.module';
 import { TabletAuthModule } from './tablet-auth/tablet-auth.module';
+import { HubCatalogModule } from './hub-catalog/hub-catalog.module';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { TabletAuthModule } from './tablet-auth/tablet-auth.module';
     UsersModule,
     BadgeLoginModule,
     TabletAuthModule,
+    HubCatalogModule,
   ],
 })
 export class AppModule {}
