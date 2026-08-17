@@ -101,6 +101,7 @@ jobs:
             --kubeconfig "$PROD_KUBE" \
             -n "$NS" \
             -f ./helm/ai-app-hub-ingress/values-prod.yaml \
+            --set appVersion="$APP_VERSION" \
             --wait --timeout 3m
 
           kubectl --kubeconfig="$PROD_KUBE" -n "$NS" rollout status deployment/ai-app-hub-backend --timeout=180s

@@ -2,6 +2,10 @@
 # infra/bicep/README.md) - pro Umgebung über values-<env>.yaml überschreiben.
 host: ""
 
+# Für die Hub-eigene hub-catalog-ConfigMap (siehe templates/hub-catalog-configmap.yaml) - wird
+# beim Helm-Upgrade per --set appVersion=... aus der CI/CD-Pipeline gesetzt, siehe deploy-*.yml.
+appVersion: ""
+
 clusterIssuer: letsencrypt-prod
 
 frontend:

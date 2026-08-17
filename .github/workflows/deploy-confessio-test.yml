@@ -98,6 +98,7 @@ jobs:
         run: |
           helm upgrade --install ai-app-hub-ingress ./helm/ai-app-hub-ingress \
             -f ./helm/ai-app-hub-ingress/values-test.yaml \
+            --set appVersion=${{ steps.image.outputs.app_version }} \
             -n ai-app-hub --wait
 
       - name: Rollout status

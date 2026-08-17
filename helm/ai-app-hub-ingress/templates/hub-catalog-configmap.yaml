@@ -1,0 +1,15 @@
+# Der Hub trägt sich selbst nach dem gleichen Muster ein wie jede Fach-App (siehe z. B.
+# ai-daten-orchestrator/helm/.../hub-catalog-configmap.yaml) - so liest das Operations Center
+# (axora-operation-center, PLAN.md "Online-URLs im Hub" / "Live-Version-Discovery") die reale
+# Plattform-Version über denselben clusterweiten ConfigMap-Mechanismus, ohne einen separaten
+# /version.json-Sonderweg für den Hub zu brauchen.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: hub-catalog-url
+  labels:
+    axora.io/hub-catalog: "true"
+data:
+  catalogAppId: "ai-app-hub"
+  url: "https://{{ .Values.host }}/"
+  version: "{{ .Values.appVersion }}"
