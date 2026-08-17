@@ -97,17 +97,19 @@ export function mergeAppConfig(stored: RawAppConfig, asset: RawAppConfig): AppCo
 
 /**
  * Overrides the `url` of matching apps with real in-cluster URLs (see `HubCatalogController`
- * in the backend). Only known, non-empty URLs win - anything the Kubernetes lookup doesn't know
- * about keeps its bundled default (typically a localhost dev URL), so a missing/unreachable
- * live source never breaks the hub.
+ * in the backend). Must run as the LAST step, after any localStorage merge - a locally stored
+ * override (e.g. from a past Settings edit) must never keep a stale dev URL alive once Kubernetes
+ * knows the real one. Only known, non-empty URLs win - anything the Kubernetes lookup doesn't
+ * know about keeps whatever URL it already had, so a missing/unreachable live source never
+ * breaks the hub.
  */
-export function applyLiveUrls(raw: RawAppConfig, liveUrls: Record<string, string>): RawAppConfig {
-  if (!raw.apps?.length || !Object.keys(liveUrls).length) {
-    return raw;
+export function applyLiveUrls(config: AppConfig, liveUrls: Record<string, string>): AppConfig {
+  if (!config.apps.length || !Object.keys(liveUrls).length) {
+    return config;
   }
   return {
-    ...raw,
-    apps: raw.apps.map((app) => {
+    ...config,
+    apps: config.apps.map((app) => {
       const liveUrl = liveUrls[app.id];
       return typeof liveUrl === 'string' && liveUrl ? { ...app, url: liveUrl } : app;
     }),

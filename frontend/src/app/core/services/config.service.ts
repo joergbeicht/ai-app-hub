@@ -26,7 +26,10 @@ export class ConfigService {
   readonly loaded = this.loadedSignal.asReadonly();
 
   /**
-   * Load configuration: merge localStorage (if present) with the bundled asset.
+   * Load configuration: merge localStorage (if present) with the bundled asset, then apply the
+   * live in-cluster URLs as the final, highest-priority step - a locally stored override (e.g.
+   * from a past Settings edit) must never keep a stale dev URL alive once Kubernetes knows the
+   * real one (see `applyLiveUrls`).
    * Skips network reload when already loaded unless `force` is set (e.g. reset).
    */
   async load(force = false): Promise<void> {
@@ -37,9 +40,9 @@ export class ConfigService {
       this.loadAssetConfig(),
       this.loadLiveCatalogUrls(),
     ]);
-    const resolved = applyLiveUrls(asset, liveUrls);
     const stored = this.getStoredConfig();
-    const config = stored ? mergeAppConfig(stored, resolved) : normalizeAppConfig(resolved);
+    const merged = stored ? mergeAppConfig(stored, asset) : normalizeAppConfig(asset);
+    const config = applyLiveUrls(merged, liveUrls);
     this.configSignal.set(config);
     this.loadedSignal.set(true);
   }

@@ -139,6 +139,29 @@ describe('ConfigService', () => {
     expect(service.apps()[0].description.en).toBe('Analytics EN');
   });
 
+  it('overrides even a stored (localStorage) URL with the live cluster URL', async () => {
+    // Regression test: a past Settings edit (or any stored override) must never keep a stale
+    // dev URL alive once Kubernetes reports the real one - see `ConfigService.load`.
+    const storedConfig: RawAppConfig = {
+      apps: [
+        {
+          id: 'ai-analytics',
+          name: 'Custom name',
+          description: 'Custom description',
+          url: 'http://localhost:9999',
+          iconType: 'mat-icon',
+          icon: 'insights',
+        },
+      ],
+    };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(storedConfig));
+    liveUrls = { 'ai-analytics': 'https://confessio-test.westeurope.cloudapp.azure.com/analytics' };
+
+    await service.load();
+
+    expect(service.apps()[0].url).toBe(liveUrls['ai-analytics']);
+  });
+
   it('exposes only enabled apps as visibleApps', async () => {
     await service.load();
     service.saveApps([
