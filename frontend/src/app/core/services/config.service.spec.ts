@@ -88,9 +88,9 @@ describe('ConfigService', () => {
 
     await service.load();
 
-    expect(fetchSpy.calls.allArgs().some((args) => String(args[0]).includes('hub-catalog-urls'))).toBe(
-      true,
-    );
+    expect(
+      fetchSpy.calls.allArgs().some((args) => String(args[0]).includes('hub-catalog-urls')),
+    ).toBe(true);
     expect(service.apps()[0].url).toBe(liveUrls['ai-analytics']);
   });
 
