@@ -1014,3 +1014,139 @@ Versions-Resolution für `write-app-version.cjs` und neues
 `nginx.conf` (`location = /version.json`), `PwaUpdateService` (Fetch-Check
 + `forceUpdateNow()` + proaktives `activateUpdate()` bei jedem Zyklus) inkl.
 Unit-Tests (`pwa-update.service.spec.ts`).
+
+## ADR-14: Silent-SSO zwischen mehreren Axora-Apps im selben Entra-Tenant + Provisioning-Skript für weitere App-Registrierungen
+
+**Kontext:** `ai-app-hub` ist der Startpunkt für n weitere Axora-Apps
+(„Bausteine“/„Fachapplikationen“, siehe `platform-architecture.mdc`) –
+der Hub öffnet sie per `window.open(url, '_blank', 'noopener,noreferrer')`
+in einem neuen Tab (API-Komposition, kein iFrame; siehe
+`app-card.component.ts`). Ziel: Eine Person, die sich bereits im Hub
+angemeldet hat, muss beim Öffnen einer weiteren, im selben Kunden-Tenant
+deployten App **kein zweites Mal ihr Passwort eingeben** – idealerweise
+gar keine sichtbare Login-Seite sehen. Vor dieser Entscheidung gab es dafür
+weder Code (`AuthService.login()` rief nur `loginRedirect()` auf, kein
+`ssoSilent()`-Versuch) noch ein Skript, um eine **zweite** App-Registrierung
+im selben Tenant anzulegen (`provision-customer-tenant.ts` bootstrapt nur
+`ai-app-hub` selbst für einen neuen Kunden).
+
+**Wie Silent-SSO hier funktioniert:** Der Login-Zustand liegt nicht bei
+`ai-app-hub`, sondern als Sitzungs-Cookie bei Entra ID
+(`login.microsoftonline.com`). Jede Axora-App bekommt weiterhin ihre
+**eigene** App-Registrierung (eigene Client-ID, eigene Redirect-URI, eigener
+`access_as_user`-API-Scope) – „volle Architektur pro Baustein“ bleibt
+bestehen. Solange beide App-Registrierungen im selben Tenant liegen, kann
+jede App beim Start per `ssoSilent()` (verstecktes iFrame zu Entra, kein
+Redirect, kein Klick) prüfen, ob bereits eine Sitzung existiert, und sich
+ohne Interaktion anmelden. Schlägt das fehl (keine Sitzung, Drittanbieter-
+Cookies vom Browser blockiert, ...), fällt die App auf die normale
+Login-Seite zurück – kein Regressionsrisiko.
+
+**Entscheidung:**
+1. **Frontend:** `initializeMsal()` (`app.config.ts`) versucht nach dem
+   Verarbeiten der Redirect-Antwort automatisch `ssoSilent()`, falls noch
+   kein Account im lokalen MSAL-Cache liegt – mit denselben Scopes wie
+   `AuthService.login()`. Erfolg → `setActiveAccount()`, die Person landet
+   direkt eingeloggt in der App, ohne die Login-Seite je zu sehen. Fehlschlag
+   (`InteractionRequiredAuthError` oder sonstiger Fehler) wird bewusst
+   verschluckt statt als Fehler geloggt – das ist der erwartete Normalfall
+   beim allerersten Login oder nach Sitzungsablauf.
+2. **Provisioning:** Neues, generisches Skript
+   `backend/scripts/provision-app-registration.ts` (`npm run provision:app`)
+   registriert eine **weitere** App im selben Tenant: SPA-Redirect-URI, App
+   Roles (Default `User,Administrator`, per `--roles` überschreibbar),
+   `access_as_user`-API-Scope. Anders als `provision-customer-tenant.ts`
+   fordert es standardmäßig **keine** Microsoft-Graph-Berechtigungen an und
+   legt **kein** Client-Secret an (YAGNI) – die meisten weiteren Apps
+   validieren JWTs nur gegen das öffentliche JWKS-Format und rufen nie
+   selbst Graph auf. Nur Apps mit eigener Graph-basierter Nutzerverwaltung
+   (wie `ai-app-hub`) setzen `--with-graph-access`.
+3. Gemeinsame Graph-Aufrufe (App-Registrierung anlegen, Service Principal,
+   „Expose an API“, Admin-Consent, Client-Secret) wurden aus
+   `provision-customer-tenant.ts` in `backend/scripts/lib/app-registration-graph.ts`
+   extrahiert, damit beide Skripte dieselbe, getestete Logik nutzen statt
+   sie zu duplizieren.
+
+**Konsequenz / offene Punkte:**
+- `konfiguration.json` enthält aktuell nur Platzhalter-URLs
+  (`http://localhost:xxxx/...`) für alle Katalog-Apps – sobald eine echte
+  zweite App deployt ist, muss der Eintrag auf die echte Produktions-URL
+  zeigen, damit dieser Silent-SSO-Pfad überhaupt getestet werden kann.
+- Silent-SSO per iFrame ist auf Drittanbieter-Cookies angewiesen; Browser
+  mit strikter Cookie-Isolation (Safari ITP, künftig Chrome) können den
+  stillen Weg verweigern – die App fällt dann automatisch auf die normale,
+  interaktive Anmeldung zurück (kein Blocker, nur weniger nahtlos).
+- Das neue Skript legt nur die Azure-Seite an; das Verdrahten der
+  resultierenden `AZURE_CLIENT_ID`/`BACKEND_API_SCOPE` in `runtime-config`/
+  Helm-Values der neuen App ist weiterhin ein manueller Schritt in deren
+  eigenem Repo (siehe `platform-architecture.mdc`, „gepinnte
+  Versionsangabe“, kein automatischer Nebeneffekt).
+
+**Umsetzung (16.08.):** `app.config.ts` (`ssoSilent()`-Versuch in
+`initializeMsal()`), `backend/scripts/lib/app-registration-graph.ts` (neu,
+extrahierte Graph-Helfer), `provision-customer-tenant.ts` (auf die
+gemeinsame Lib umgestellt, Verhalten unverändert),
+`provision-app-registration.ts` (neu), `package.json`
+(`provision:app`-Script).
+
+## ADR-15: `navigationUrls`-Allowlist im PWA-Service-Worker (statt Default `/**`), weil der Hub sich einen Host mit anderen Fach-Apps teilt
+
+**Kontext:** Seit dem `axora-operation-center`-Discovery-Mechanismus
+(„Online-URLs im Hub“) laufen mehrere Axora-Apps auf **demselben** Host
+(`confessio-test.westeurope.cloudapp.azure.com`), per Ingress pfadbasiert
+getrennt – der Hub selbst besitzt den Catch-all-Pfad `/`, weitere Apps
+bekommen eigene Präfixe (z. B. `ai-daten-orchestrator` unter
+`/orchestrator/*`, siehe dessen `helm/ai-daten-orchestrator-ingress`).
+Das ist auf Ingress-Ebene korrekt konfiguriert und funktioniert für sich
+allein. ADR-5 hat den PWA-Service-Worker (`ngsw-config.json`) eingeführt,
+**ohne** dabei zu berücksichtigen, dass der Hub künftig nicht mehr allein
+auf seinem Host ist.
+
+**Bug (18.08.2026):** `https://.../orchestrator/workflows` öffnete nicht
+die AI-Datenorchestrator-App, sondern den Login-Screen des Hubs
+("Axora - AI App Hub" als Titel). Ursache: `ngsw-config.json` hatte kein
+eigenes `navigationUrls`, also griff Angulars Default
+(`['/**', '!/**/*.*', '!/**/*__*', '!/**/*__*/**']`) – das matcht
+**jede** Navigation ohne Dateiendung auf dem **gesamten Origin**, nicht
+nur Pfade innerhalb des Hubs. Sobald der Browser den Hub-Service-Worker
+einmal registriert hatte (Scope `/`, der gesamte Origin – Service Worker
+kennen keine Ingress-Pfadgrenzen), wurde **jede** Navigation auf diesem
+Host abgefangen und mit dem gecachten Hub-`index.html` beantwortet, auch
+für Pfade einer komplett anderen App. Der Hub-Router kennt `/orchestrator/
+workflows` naturgemäß nicht (`app.routes.ts` hat nur `/`, `/login`,
+`/settings*`), fällt auf die Wildcard-Route zurück und leitet
+unauthentifiziert auf `/login` um – exakt das beobachtete Symptom. Die
+Ingress-Regeln selbst waren nie das Problem (nginx-ingress sortiert
+Pfade nach absteigender Länge, `/orchestrator(/|$)(.*)` gewinnt dort
+korrekt gegen `/()(.*)` – der Request erreichte den Cluster in diesem
+Fall aber gar nicht, weil der Service Worker ihn schon im Browser
+abgefangen hat).
+
+**Entscheidung:** `navigationUrls` in `ngsw-config.json` von einer
+Deny-Liste (alles außer Dateien) auf eine explizite Allow-Liste der
+**eigenen** Hub-Routen umgestellt: `["/", "/login", "/settings",
+"/settings/*"]`. Bewusst eine Allow-Liste der eigenen Routen statt einer
+Deny-Liste fremder App-Präfixe – der Hub muss dadurch **nichts** über
+andere Apps wissen (kein Codechange im Hub, wenn Slice 10/11/... eine
+elfte Fach-App unter einem neuen Präfix bekommt), passend zum
+ConfigMap-Discovery-Prinzip aus `axora-operation-center/docs/PLAN.md`
+(„n Apps, kein Codechange pro neuer App“). Jede URL außerhalb dieser
+Liste – egal ob eine fremde App oder eine künftige, noch nicht in die
+Liste eingetragene Hub-Route – geht am Service Worker vorbei direkt ans
+Netz und damit korrekt durch nginx-ingress zur jeweils richtigen App.
+
+**Konsequenz / Trade-off:** Eine neue Hub-eigene Route (z. B. `/profile`)
+funktioniert auch ohne Eintrag in `navigationUrls` – sie lädt dann nur
+immer frisch vom Netz statt aus dem Service-Worker-Cache (kein
+Offline-Vorteil für diese eine Route), bricht aber nichts. Umgekehrt:
+Wer eine neue Hub-Route ergänzt und will, dass sie auch offline/als
+gecachter Navigations-Eintrag funktioniert, muss sie hier bewusst
+eintragen – kein automatischer Nebeneffekt, aber auch kein Blocker.
+
+**Lehre:** Ein Service Worker mit Scope `/` kennt keine Ingress-
+Pfadgrenzen – "mehrere Apps teilen sich einen Host über Pfad-Präfixe"
+und "eine der Apps hat eine PWA mit Default-`navigationUrls`" sind für
+sich genommen beide unauffällig, zusammen aber inkompatibel. Jede
+weitere App mit eigenem Service Worker auf demselben Host bräuchte
+dieselbe Allowlist-Behandlung (bisher hat außer dem Hub keine Axora-App
+einen Service Worker).
