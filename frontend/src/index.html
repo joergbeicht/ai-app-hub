@@ -20,8 +20,64 @@
       rel="stylesheet"
     />
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
+    <!--
+      Inline statt aus styles.scss: muss ohne JS und ohne Warten auf externes CSS sofort mit dem
+      ersten Response-Byte gemalt werden - sonst genau der Blank/Flash-Effekt, den dieser Block
+      vermeiden soll (JS-Bundles laden, runtime-config.json-Fetch, MSAL-Init und Router-Guard
+      brauchen etwas Zeit, bis Angular ueberhaupt etwas rendert, siehe main.ts). Farben manuell
+      synchron mit den Tokens in theme/custom-theme.scss halten (--bg-primary/--text-secondary/
+      --text-muted/--primary-500).
+    -->
+    <style>
+      body { background-color: #0f172a; margin: 0; }
+      .app-boot-loading {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 1rem;
+        min-height: 100vh;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        text-align: center;
+      }
+      .app-boot-loading__spinner {
+        width: 32px;
+        height: 32px;
+        border: 3px solid #334155;
+        border-top-color: #0ea5e9;
+        border-radius: 50%;
+        animation: app-boot-spin 0.8s linear infinite;
+      }
+      .app-boot-loading__text {
+        margin: 0;
+        font-size: 0.9375rem;
+        color: #cbd5e1;
+      }
+      .app-boot-loading__text-en {
+        color: #94a3b8;
+        font-size: 0.875rem;
+      }
+      @keyframes app-boot-spin {
+        to { transform: rotate(360deg); }
+      }
+    </style>
   </head>
   <body>
-    <app-root></app-root>
+    <app-root>
+      <!--
+        Statischer Fallback-Inhalt: Angular ersetzt dies automatisch beim Bootstrap, weil
+        AppComponent kein <ng-content> nutzt - kein eigenes JS zum Entfernen noetig. Bleibt
+        sichtbar, falls Bootstrap fehlschlaegt, bevor Angular ueberhaupt an <app-root> andockt
+        (kein permanenter Blank-Screen ohne Feedback, siehe main.ts/renderBootstrapErrorFallback
+        fuer den Fall, dass sogar das fehlschlaegt).
+      -->
+      <div class="app-boot-loading" role="status" aria-live="polite">
+        <span class="app-boot-loading__spinner" aria-hidden="true"></span>
+        <p class="app-boot-loading__text">
+          Axora AI App Hub wird geladen …<br />
+          <span class="app-boot-loading__text-en">Loading …</span>
+        </p>
+      </div>
+    </app-root>
   </body>
 </html>
