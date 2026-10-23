@@ -1,9 +1,4 @@
-import {
-  APP_LOCALES,
-  DEFAULT_APP_LOCALE,
-  type AppLocale,
-  isAppLocale,
-} from './locale.model';
+import { APP_LOCALES, DEFAULT_APP_LOCALE, type AppLocale, isAppLocale } from './locale.model';
 
 /** Name/description text available in every supported hub locale. */
 export type LocalizedText = Record<AppLocale, string>;
@@ -73,7 +68,10 @@ export function resolveLocalizedText(
 }
 
 /** Fill empty locale slots in `base` from `fallback` (e.g. asset catalog). */
-export function mergeLocalizedText(base: LocalizedTextInput, fallback: LocalizedTextInput): LocalizedText {
+export function mergeLocalizedText(
+  base: LocalizedTextInput,
+  fallback: LocalizedTextInput,
+): LocalizedText {
   const primary = toLocalizedText(base);
   const secondary = toLocalizedText(fallback);
   const merged = emptyLocalizedText();
@@ -88,7 +86,5 @@ export function isLocalizedText(value: unknown): value is LocalizedText {
     return false;
   }
   const record = value as Record<string, unknown>;
-  return APP_LOCALES.every(
-    ({ code }) => isAppLocale(code) && typeof record[code] === 'string',
-  );
+  return APP_LOCALES.every(({ code }) => isAppLocale(code) && typeof record[code] === 'string');
 }

@@ -7,7 +7,11 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 import { AuthService } from '../../../core/services/auth.service';
 import { UserAdminService } from '../../../core/services/user-admin.service';
-import { MANAGED_APP_ROLES, type ManagedAppRole, type ManagedUser } from '../../../core/models/managed-user.model';
+import {
+  MANAGED_APP_ROLES,
+  type ManagedAppRole,
+  type ManagedUser,
+} from '../../../core/models/managed-user.model';
 
 /**
  * Rollenverwaltung ohne Azure Portal (siehe ADR-6): Liste aller Tenant-Nutzer + Rollen-Dropdown,
@@ -196,6 +200,8 @@ export class UserManagementComponent implements OnInit {
    * Sicherheitsprüfung. */
   isCurrentUser(user: ManagedUser): boolean {
     const currentEmail = this.authService.currentUser()?.email;
-    return !!currentEmail && !!user.email && currentEmail.toLowerCase() === user.email.toLowerCase();
+    return (
+      !!currentEmail && !!user.email && currentEmail.toLowerCase() === user.email.toLowerCase()
+    );
   }
 }

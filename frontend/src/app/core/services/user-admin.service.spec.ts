@@ -27,7 +27,9 @@ describe('UserAdminService', () => {
   afterEach(() => httpMock.verify());
 
   it('lists users from the backend', () => {
-    const users = [{ id: 'u1', displayName: 'Sam', email: 'sam@axora.local', role: 'Guest' as const }];
+    const users = [
+      { id: 'u1', displayName: 'Sam', email: 'sam@axora.local', role: 'Guest' as const },
+    ];
 
     service.listUsers().subscribe((result) => expect(result).toEqual(users));
 
@@ -37,9 +39,16 @@ describe('UserAdminService', () => {
   });
 
   it('updates a user role via PATCH', () => {
-    const updated = { id: 'u1', displayName: 'Sam', email: 'sam@axora.local', role: 'Administrator' as const };
+    const updated = {
+      id: 'u1',
+      displayName: 'Sam',
+      email: 'sam@axora.local',
+      role: 'Administrator' as const,
+    };
 
-    service.updateRole('u1', 'Administrator').subscribe((result) => expect(result).toEqual(updated));
+    service
+      .updateRole('u1', 'Administrator')
+      .subscribe((result) => expect(result).toEqual(updated));
 
     const req = httpMock.expectOne(`${backendApiUrl}/users/u1/role`);
     expect(req.request.method).toBe('PATCH');

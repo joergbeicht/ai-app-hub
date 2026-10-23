@@ -53,7 +53,9 @@ export class UsersService {
       (assignment) => assignment.principalId === userId,
     );
     await Promise.all(
-      existingAssignments.map((assignment) => this.graphService.removeRoleAssignment(assignment.id)),
+      existingAssignments.map((assignment) =>
+        this.graphService.removeRoleAssignment(assignment.id),
+      ),
     );
 
     if (targetRole === GUEST_FALLBACK_ROLE) {

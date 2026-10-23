@@ -13,7 +13,9 @@ function createContext(roles: string[] | undefined): ExecutionContext {
 
 describe('RolesGuard', () => {
   function createGuard(requiredRoles: string[] | undefined) {
-    const reflector = { getAllAndOverride: jest.fn().mockReturnValue(requiredRoles) } as unknown as Reflector;
+    const reflector = {
+      getAllAndOverride: jest.fn().mockReturnValue(requiredRoles),
+    } as unknown as Reflector;
     return new RolesGuard(reflector);
   }
 

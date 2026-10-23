@@ -21,13 +21,23 @@ describe('UserManagementComponent', () => {
     await TestBed.configureTestingModule({
       imports: [
         UserManagementComponent,
-        TranslocoTestingModule.forRoot({ langs: { de: {} }, translocoConfig: { availableLangs: ['de'], defaultLang: 'de' } }),
+        TranslocoTestingModule.forRoot({
+          langs: { de: {} },
+          translocoConfig: { availableLangs: ['de'], defaultLang: 'de' },
+        }),
       ],
       providers: [
         { provide: UserAdminService, useValue: userAdminServiceSpy },
         {
           provide: AuthService,
-          useValue: { currentUser: () => ({ id: 'x', displayName: 'Jörg', role: 'Administrator', email: 'joerg@axora.local' }) },
+          useValue: {
+            currentUser: () => ({
+              id: 'x',
+              displayName: 'Jörg',
+              role: 'Administrator',
+              email: 'joerg@axora.local',
+            }),
+          },
         },
       ],
     }).compileComponents();

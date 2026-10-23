@@ -153,7 +153,7 @@ import { getUserAvatarColor, getUserInitials } from './core/utils/avatar.util';
       }
       .toolbar-logo-img {
         display: block;
-        height: 22px;
+        height: 30px;
         width: auto;
         flex-shrink: 0;
         mix-blend-mode: lighten;
