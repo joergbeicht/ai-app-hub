@@ -3,6 +3,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { NestFactory } from '@nestjs/core';
 import { Logger, ValidationPipe } from '@nestjs/common';
 import type { NestExpressApplication } from '@nestjs/platform-express';
+import cookieParser from 'cookie-parser';
 import { AppModule } from './app.module';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 
@@ -36,7 +37,9 @@ async function bootstrap(): Promise<void> {
     .split(',')
     .map((origin) => origin.trim())
     .filter((origin) => origin.length > 0);
-  app.enableCors({ origin: corsOrigins.length > 0 ? corsOrigins : false });
+  // `credentials`: das Keycloak-BFF (ADR-19) authentifiziert über das HttpOnly-Session-Cookie.
+  app.enableCors({ origin: corsOrigins.length > 0 ? corsOrigins : false, credentials: true });
+  app.use(cookieParser());
 
   app.useGlobalPipes(
     new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }),

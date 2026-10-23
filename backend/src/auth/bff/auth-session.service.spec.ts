@@ -1,0 +1,184 @@
+import type { PrismaService } from '../../prisma/prisma.service';
+import { AuthSessionService, type SessionIdentity } from './auth-session.service';
+import {
+  LOGIN_TRANSACTION_LIFETIME_MS,
+  SESSION_ABSOLUTE_LIFETIME_MS,
+  SESSION_IDLE_TIMEOUT_MS,
+  SESSION_TOUCH_INTERVAL_MS,
+} from './bff.constants';
+import { hashToken } from './secure-token';
+
+const NOW = new Date('2026-10-23T12:00:00Z');
+
+const identity: SessionIdentity = {
+  subject: 'kc-user-1',
+  displayName: 'Hub Administrator',
+  email: 'admin@axora.local',
+  roles: ['Administrator'],
+  idToken: 'id-token',
+};
+
+function sessionRow(overrides: Partial<{ expiresAt: Date; lastSeenAt: Date }> = {}) {
+  return {
+    id: hashToken('session-handle'),
+    subject: identity.subject,
+    displayName: identity.displayName,
+    email: identity.email,
+    roles: identity.roles,
+    idToken: identity.idToken,
+    csrfToken: 'csrf',
+    expiresAt: new Date(NOW.getTime() + SESSION_ABSOLUTE_LIFETIME_MS),
+    lastSeenAt: NOW,
+    createdAt: NOW,
+    ...overrides,
+  };
+}
+
+function createService() {
+  const prisma = {
+    authSession: {
+      create: jest.fn().mockResolvedValue(undefined),
+      findUnique: jest.fn(),
+      update: jest.fn().mockResolvedValue(undefined),
+      deleteMany: jest.fn().mockResolvedValue({ count: 1 }),
+    },
+    authLoginTransaction: {
+      create: jest.fn().mockResolvedValue(undefined),
+      findUnique: jest.fn(),
+      deleteMany: jest.fn().mockResolvedValue({ count: 1 }),
+    },
+  };
+  const service = new AuthSessionService(prisma as unknown as PrismaService);
+  return { service, prisma };
+}
+
+describe('AuthSessionService', () => {
+  beforeEach(() => {
+    jest.useFakeTimers({ now: NOW });
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
+  describe('login transactions', () => {
+    it('stores only the hash of the cookie handle', async () => {
+      const { service, prisma } = createService();
+
+      const transaction = await service.startLoginTransaction('/settings');
+
+      const stored = prisma.authLoginTransaction.create.mock.calls[0][0].data;
+      expect(stored.id).toBe(hashToken(transaction.handle));
+      expect(stored.id).not.toBe(transaction.handle);
+      expect(stored.expiresAt).toEqual(new Date(NOW.getTime() + LOGIN_TRANSACTION_LIFETIME_MS));
+      expect(new Set([transaction.state, transaction.nonce, transaction.codeVerifier]).size).toBe(3);
+    });
+
+    it('can be consumed exactly once', async () => {
+      const { service, prisma } = createService();
+      prisma.authLoginTransaction.findUnique.mockResolvedValue({
+        state: 's',
+        nonce: 'n',
+        codeVerifier: 'v',
+        returnTo: '/',
+        expiresAt: new Date(NOW.getTime() + 1000),
+      });
+      prisma.authLoginTransaction.deleteMany.mockResolvedValueOnce({ count: 1 }).mockResolvedValueOnce({ count: 0 });
+
+      await expect(service.consumeLoginTransaction('tx')).resolves.toEqual({
+        state: 's',
+        nonce: 'n',
+        codeVerifier: 'v',
+        returnTo: '/',
+      });
+      await expect(service.consumeLoginTransaction('tx')).resolves.toBeNull();
+    });
+
+    it('rejects expired or missing transactions', async () => {
+      const { service, prisma } = createService();
+      prisma.authLoginTransaction.findUnique.mockResolvedValue({
+        state: 's',
+        nonce: 'n',
+        codeVerifier: 'v',
+        returnTo: '/',
+        expiresAt: NOW,
+      });
+
+      await expect(service.consumeLoginTransaction('tx')).resolves.toBeNull();
+      await expect(service.consumeLoginTransaction(undefined)).resolves.toBeNull();
+    });
+  });
+
+  describe('sessions', () => {
+    it('creates a session with absolute lifetime and a hashed id', async () => {
+      const { service, prisma } = createService();
+
+      const created = await service.createSession(identity);
+
+      const stored = prisma.authSession.create.mock.calls[0][0].data;
+      expect(stored.id).toBe(hashToken(created.handle));
+      expect(created.expiresAt).toEqual(new Date(NOW.getTime() + SESSION_ABSOLUTE_LIFETIME_MS));
+      expect(stored.csrfToken).toEqual(expect.any(String));
+    });
+
+    it('returns an active session without the ID token', async () => {
+      const { service, prisma } = createService();
+      prisma.authSession.findUnique.mockResolvedValue(sessionRow());
+
+      const session = await service.findActiveSession('session-handle');
+
+      expect(prisma.authSession.findUnique).toHaveBeenCalledWith({
+        where: { id: hashToken('session-handle') },
+      });
+      expect(session).toEqual({
+        subject: identity.subject,
+        displayName: identity.displayName,
+        email: identity.email,
+        roles: identity.roles,
+        csrfToken: 'csrf',
+      });
+      expect(prisma.authSession.update).not.toHaveBeenCalled();
+    });
+
+    it('refreshes lastSeenAt at most once per touch interval', async () => {
+      const { service, prisma } = createService();
+      const lastSeenAt = new Date(NOW.getTime() - SESSION_TOUCH_INTERVAL_MS);
+      prisma.authSession.findUnique.mockResolvedValue(sessionRow({ lastSeenAt }));
+
+      await service.findActiveSession('session-handle');
+
+      expect(prisma.authSession.update).toHaveBeenCalledWith({
+        where: { id: hashToken('session-handle') },
+        data: { lastSeenAt: NOW },
+      });
+    });
+
+    it.each([
+      ['after the absolute lifetime', { expiresAt: NOW }],
+      ['after the idle timeout', { lastSeenAt: new Date(NOW.getTime() - SESSION_IDLE_TIMEOUT_MS) }],
+    ])('deletes and rejects a session %s', async (_label, overrides) => {
+      const { service, prisma } = createService();
+      prisma.authSession.findUnique.mockResolvedValue(sessionRow(overrides));
+
+      await expect(service.findActiveSession('session-handle')).resolves.toBeNull();
+      expect(prisma.authSession.deleteMany).toHaveBeenCalledWith({
+        where: { id: hashToken('session-handle') },
+      });
+    });
+
+    it('returns the ID token when ending a session for the Keycloak logout', async () => {
+      const { service, prisma } = createService();
+      prisma.authSession.findUnique.mockResolvedValue(sessionRow());
+
+      await expect(service.endSession('session-handle')).resolves.toBe('id-token');
+      expect(prisma.authSession.deleteMany).toHaveBeenCalled();
+    });
+
+    it('ends nothing without a session cookie', async () => {
+      const { service, prisma } = createService();
+
+      await expect(service.endSession(undefined)).resolves.toBeNull();
+      expect(prisma.authSession.findUnique).not.toHaveBeenCalled();
+    });
+  });
+});

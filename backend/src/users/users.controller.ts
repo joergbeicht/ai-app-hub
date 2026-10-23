@@ -1,5 +1,5 @@
 import { Body, Controller, Get, Param, Patch, UseGuards } from '@nestjs/common';
-import { AzureJwtGuard } from '../auth/azure-jwt.guard';
+import { HubAuthGuard } from '../auth/hub-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
 import { UsersService } from './users.service';
@@ -8,11 +8,11 @@ import { UpdateUserRoleDto } from './dto/update-user-role.dto';
 
 /**
  * Nur für `Administrator` - Rollenverwaltung ohne Azure-Portal (siehe ADR-6 in
- * `docs/ARCHITEKTUR-ENTSCHEIDUNGEN.md`). `AzureJwtGuard` validiert das Token selbst
- * (Signatur/Issuer/Audience), `RolesGuard` prüft danach den `roles`-Claim.
+ * `docs/ARCHITEKTUR-ENTSCHEIDUNGEN.md`). `HubAuthGuard` prüft die Anmeldung,
+ * `RolesGuard` danach die Rollen. Verwaltet Entra-App-Rollen über Graph und ist damit Bestand.
  */
 @Controller('users')
-@UseGuards(AzureJwtGuard, RolesGuard)
+@UseGuards(HubAuthGuard, RolesGuard)
 @Roles('Administrator')
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}

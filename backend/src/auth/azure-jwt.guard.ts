@@ -9,6 +9,7 @@ import { ConfigService } from '@nestjs/config';
 import * as jwt from 'jsonwebtoken';
 import { JwksClient } from 'jwks-rsa';
 import type { Request } from 'express';
+import type { AuthenticatedRequest, HubPrincipal } from './hub-principal';
 
 export interface AzureTokenClaims {
   sub: string;
@@ -19,11 +20,6 @@ export interface AzureTokenClaims {
   iss: string;
   aud: string;
   exp: number;
-}
-
-/** Express Request, angereichert um die geprüften Token-Claims (siehe `azure-jwt.guard.ts`). */
-export interface AuthenticatedRequest extends Request {
-  user: AzureTokenClaims;
 }
 
 /**
@@ -62,7 +58,7 @@ export class AzureJwtGuard implements CanActivate {
 
     try {
       const claims = await this.verifyToken(token);
-      request.user = claims;
+      request.user = toPrincipal(claims);
       return true;
     } catch (error) {
       this.logger.warn(`Token-Validierung fehlgeschlagen: ${(error as Error).message}`);
@@ -110,4 +106,13 @@ export class AzureJwtGuard implements CanActivate {
       );
     });
   }
+}
+
+function toPrincipal(claims: AzureTokenClaims): HubPrincipal {
+  return {
+    sub: claims.oid ?? claims.sub,
+    name: claims.name,
+    email: claims.preferred_username,
+    roles: claims.roles ?? [],
+  };
 }

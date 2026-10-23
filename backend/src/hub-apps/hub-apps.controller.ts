@@ -1,5 +1,5 @@
 import { Body, Controller, Get, Put, UseGuards } from '@nestjs/common';
-import { AzureJwtGuard } from '../auth/azure-jwt.guard';
+import { HubAuthGuard } from '../auth/hub-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
 import { HubAppsService } from './hub-apps.service';
@@ -8,11 +8,11 @@ import { ReplaceHubAppsDto } from './dto/replace-hub-apps.dto';
 
 /**
  * Der zentrale App-Katalog (siehe ADR-17): jeder eingeloggte Benutzer darf ihn lesen, nur
- * `Administrator` darf ihn ändern (`AzureJwtGuard` validiert das Token, `RolesGuard` danach den
- * `roles`-Claim - gleiches Muster wie `UsersController`, siehe ADR-6).
+ * `Administrator` darf ihn ändern (`HubAuthGuard` prüft die Anmeldung, `RolesGuard` danach die
+ * Rollen - gleiches Muster wie `UsersController`, siehe ADR-6/ADR-19).
  */
 @Controller('hub-apps')
-@UseGuards(AzureJwtGuard)
+@UseGuards(HubAuthGuard)
 export class HubAppsController {
   constructor(private readonly hubAppsService: HubAppsService) {}
 

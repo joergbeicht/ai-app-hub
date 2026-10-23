@@ -25,3 +25,38 @@ model HubApp {
   @@index([sortOrder])
   @@map("hub_apps")
 }
+
+/// Browser-Sitzung des BFF-Logins (ADR-19). Der Browser hält nur den zufälligen Cookie-Wert;
+/// gespeichert wird ausschließlich dessen SHA-256-Hash, damit ein DB-Leak keine gültigen
+/// Cookies preisgibt. Access-/Refresh-Tokens werden nicht gespeichert.
+model AuthSession {
+  id          String   @id
+  subject     String
+  displayName String
+  email       String?
+  roles       String[]
+  /// Nur als `id_token_hint` für den Keycloak-Logout.
+  idToken     String
+  csrfToken   String
+  expiresAt   DateTime
+  lastSeenAt  DateTime @default(now())
+  createdAt   DateTime @default(now())
+
+  @@index([expiresAt])
+  @@map("auth_sessions")
+}
+
+/// Kurzlebiger Zustand zwischen `/auth/login` und `/auth/callback` (state, nonce, PKCE-Verifier).
+/// Wird beim Callback genau einmal verbraucht.
+model AuthLoginTransaction {
+  id           String   @id
+  state        String
+  nonce        String
+  codeVerifier String
+  returnTo     String
+  expiresAt    DateTime
+  createdAt    DateTime @default(now())
+
+  @@index([expiresAt])
+  @@map("auth_login_transactions")
+}

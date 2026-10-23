@@ -1,10 +1,10 @@
 import { CanActivate, ExecutionContext, ForbiddenException, Injectable } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { ROLES_KEY } from './roles.decorator';
-import type { AuthenticatedRequest } from './azure-jwt.guard';
+import type { AuthenticatedRequest } from './hub-principal';
 
 /**
- * Muss nach `AzureJwtGuard` laufen (braucht `request.user.roles`). Fällt auf "keine der
+ * Muss nach `HubAuthGuard` laufen (braucht `request.user.roles`). Fällt auf "keine der
  * geforderten Rollen" zurück, wenn der `roles`-Claim leer ist - Standard-Fallback "Guest" ist
  * damit implizit nie ausreichend für `@Roles('Administrator')`-Endpunkte.
  */

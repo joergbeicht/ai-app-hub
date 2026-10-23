@@ -8,16 +8,18 @@ import { TabletAuthModule } from './tablet-auth/tablet-auth.module';
 import { HubCatalogModule } from './hub-catalog/hub-catalog.module';
 import { HubAppsModule } from './hub-apps/hub-apps.module';
 import { PrismaModule } from './prisma/prisma.module';
+import { AuthModule } from './auth/auth.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
     // Nur für den öffentlichen Badge-Lookup und den Tablet-PIN-Login gebraucht (siehe
     // `BadgeLoginController`/`TabletAuthController`) - alle anderen Endpunkte verlangen ohnehin
-    // ein gültiges Access Token (`AzureJwtGuard`). Der strengere Tablet-Login-Throttle wird per
+    // eine Anmeldung (`HubAuthGuard`). Der strengere Tablet-Login-Throttle wird per
     // `@Throttle()` auf `TabletAuthController` überschrieben (siehe ADR-12).
     ThrottlerModule.forRoot({ throttlers: [{ ttl: 60_000, limit: 20 }] }),
     PrismaModule,
+    AuthModule.forRoot(),
     HealthModule,
     UsersModule,
     BadgeLoginModule,
