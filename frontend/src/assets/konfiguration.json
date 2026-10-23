@@ -4,24 +4,24 @@
     {
       "id": "ai-berichtgenerator",
       "name": {
-        "de": "AI Dokumentenerstellung",
-        "en": "AI Document Creation",
-        "es": "Creación de documentos con IA",
-        "fr": "Création de documents IA",
-        "tr": "AI Belge Oluşturma",
-        "it": "Creazione documenti IA"
+        "de": "AI Dokumenten Workspace",
+        "en": "AI Document Workspace",
+        "es": "Espacio de Documentos con IA",
+        "fr": "Espace Documentaire IA",
+        "tr": "AI Doküman Çalışma Alanı",
+        "it": "Spazio di Lavoro Documenti IA"
       },
       "description": {
-        "de": "Aus chronologischen Notizen professionelle Berichte erzeugen – KI-generiert, einheitlicher Stil, weniger manuelle Schreibtischarbeit.",
-        "en": "Turn chronological notes into professional reports – AI-generated, consistent style, less manual desk work.",
-        "es": "Convierte notas cronológicas en informes profesionales – generados por IA, estilo uniforme, menos trabajo manual.",
-        "fr": "Transformez des notes chronologiques en rapports professionnels – générés par IA, style cohérent, moins de travail manuel.",
-        "tr": "Kronolojik notları profesyonel raporlara dönüştürün – yapay zekâ ile üretilmiş, tutarlı stil, daha az manuel masa başı işi.",
-        "it": "Trasforma note cronologiche in report professionali – generati dall’IA, stile coerente, meno lavoro manuale da scrivania."
+        "de": "Der zentrale Dokumenten-Arbeitsplatz: Dokumente speichern & organisieren, inhaltlich verstehen und im Chat befragen, per Sprache oder automatisiert aus Daten erzeugen – ersetzt klassische Ablage und manuelle Word-Arbeit, Wissen statt Dateisuche.",
+        "en": "The central document workspace: store & organize documents, understand and query them via chat, generate them from data or dictation – replaces old-school filing and manual Word work, knowledge instead of file search.",
+        "es": "El espacio de trabajo central de documentos: almacenar y organizar documentos, entenderlos y consultarlos por chat, generarlos por voz o automáticamente a partir de datos – sustituye el archivo clásico y el trabajo manual en Word, conocimiento en lugar de búsqueda de archivos.",
+        "fr": "L'espace de travail documentaire central : stocker et organiser les documents, les comprendre et les interroger par chat, les générer par la voix ou automatiquement à partir de données – remplace le classement classique et le travail manuel sous Word, la connaissance plutôt que la recherche de fichiers.",
+        "tr": "Merkezi doküman çalışma alanı: belgeleri depolayın ve düzenleyin, içeriklerini anlayın ve sohbet üzerinden sorgulayın, sesle veya verilerden otomatik olarak oluşturun – klasik dosyalamayı ve elle Word çalışmasını ortadan kaldırır, dosya aramak yerine bilgiye erişim sağlar.",
+        "it": "Il workspace documentale centrale: archiviare e organizzare i documenti, comprenderli e interrogarli in chat, generarli tramite voce o automaticamente dai dati – sostituisce l'archiviazione classica e il lavoro manuale su Word, conoscenza invece di ricerca di file."
       },
       "url": "http://localhost:4202/notes",
       "iconType": "mat-icon",
-      "icon": "menu_book"
+      "icon": "workspaces"
     },
     {
       "id": "ai-analytics",
@@ -374,6 +374,72 @@
       "url": "http://localhost:6090/dashboard",
       "iconType": "mat-icon",
       "icon": "schedule"
+    },
+    {
+      "id": "ai-notizen",
+      "name": {
+        "de": "AI Notizen",
+        "en": "AI Notes",
+        "es": "Notas IA",
+        "fr": "Notes IA",
+        "tr": "AI Notlar",
+        "it": "AI Note"
+      },
+      "description": {
+        "de": "KI-gestützte Aufnahme und Protokollierung von Präsenzgesprächen (Mandanten-, Steuerberater- und Projektgespräche) – automatische Transkription, Sprechererkennung und Zusammenfassung, weniger Handnotizen.",
+        "en": "AI-powered recording and minutes for in-person conversations (client, tax-advisor and project meetings) – automatic transcription, speaker recognition and summaries, less handwritten note-taking.",
+        "es": "Grabación y actas con IA para conversaciones presenciales (cliente, asesoría fiscal, reuniones de proyecto) – transcripción automática, reconocimiento de interlocutores y resúmenes, menos notas manuales.",
+        "fr": "Enregistrement et compte-rendu par IA des entretiens en présentiel (client, conseil fiscal, réunions de projet) – transcription automatique, reconnaissance des intervenants et résumés, moins de prise de notes manuelle.",
+        "tr": "Yüz yüze görüşmeler (müşteri, mali müşavir, proje toplantıları) için yapay zekâ destekli kayıt ve tutanak – otomatik transkripsiyon, konuşmacı tanıma ve özetler, daha az elle not tutma.",
+        "it": "Registrazione e verbalizzazione con IA di colloqui in presenza (cliente, consulente fiscale, riunioni di progetto) – trascrizione automatica, riconoscimento degli interlocutori e riepiloghi, meno appunti manuali."
+      },
+      "url": "https://localhost:6210/notes",
+      "iconType": "mat-icon",
+      "icon": "mic"
+    },
+    {
+      "id": "ai-voice-workspace",
+      "name": {
+        "de": "AI Voice Workspace",
+        "en": "AI Voice Workspace",
+        "es": "Espacio de Voz con IA",
+        "fr": "Espace Vocal IA",
+        "tr": "AI Ses Çalışma Alanı",
+        "it": "Spazio di Lavoro Vocale IA"
+      },
+      "description": {
+        "de": "Sprache erfassen, strukturieren und verstehen: Notizen (1 Sprecher), Protokolle (mehrere Sprecher, mehrsprachig, Audit-Protokoll) und Live-Dolmetschen – automatische Transkription, Sprechererkennung und KI-Zusammenfassung statt Handnotizen.",
+        "en": "Capture, structure and understand speech: notes (single speaker), minutes (multiple speakers, multilingual, audit trail) and live interpretation – automatic transcription, speaker recognition and AI summaries instead of handwritten notes.",
+        "es": "Capture, estructure y comprenda el habla: notas (un interlocutor), actas (varios interlocutores, multilingüe, registro de auditoría) e interpretación en vivo – transcripción automática, reconocimiento de interlocutores y resúmenes con IA en lugar de notas manuales.",
+        "fr": "Capturez, structurez et comprenez la parole : notes (un seul intervenant), comptes-rendus (plusieurs intervenants, multilingue, piste d’audit) et interprétation en direct – transcription automatique, reconnaissance des intervenants et résumés par IA au lieu de prises de notes manuelles.",
+        "tr": "Konuşmayı yakalayın, yapılandırın ve anlayın: notlar (tek konuşmacı), tutanaklar (birden çok konuşmacı, çok dilli, denetim izi) ve canlı tercüme – elle not almak yerine otomatik transkripsiyon, konuşmacı tanıma ve yapay zekâ özetleri.",
+        "it": "Cattura, struttura e comprendi il parlato: note (un solo interlocutore), verbali (più interlocutori, multilingue, traccia di audit) e interpretariato dal vivo – trascrizione automatica, riconoscimento degli interlocutori e riepiloghi IA invece di appunti manuali."
+      },
+      "url": "https://localhost:6230",
+      "iconType": "mat-icon",
+      "icon": "record_voice_over"
+    },
+    {
+      "id": "ai-axora-portal",
+      "name": {
+        "de": "AI Portal",
+        "en": "AI Portal",
+        "es": "AI Portal",
+        "fr": "AI Portal",
+        "tr": "AI Portal",
+        "it": "AI Portal"
+      },
+      "description": {
+        "de": "Sicheres externes Portal für Mandanten, Kunden und Partner: Aufgaben mit Foto, Dokument oder Text beantworten, Rückmeldungen geben – intern stellt das Anforderungscenter Empfänger, Inhalte und Versand in drei Schritten zusammen, inklusive Status- und Audit-Trail.",
+        "en": "Secure external portal for clients, customers and partners: answer tasks with photos, documents or text, send feedback – internally, the requirement center assembles recipients, content and dispatch in three steps, including status and audit trail.",
+        "es": "Portal externo seguro para mandantes, clientes y socios: responder tareas con foto, documento o texto, enviar comentarios – internamente, el centro de requerimientos reúne destinatarios, contenidos y envío en tres pasos, con estado y registro de auditoría.",
+        "fr": "Portail externe sécurisé pour mandants, clients et partenaires : répondre aux tâches par photo, document ou texte, envoyer des retours – en interne, le centre de demandes réunit destinataires, contenus et envoi en trois étapes, avec statut et piste d’audit.",
+        "tr": "Müvekkiller, müşteriler ve iş ortakları için güvenli dış portal: görevleri fotoğraf, belge veya metinle yanıtlayın, geri bildirim gönderin – dahili talep merkezi alıcıları, içerikleri ve gönderimi üç adımda birleştirir, durum ve denetim izi dahil.",
+        "it": "Portale esterno sicuro per mandanti, clienti e partner: rispondere alle attività con foto, documento o testo, inviare feedback – internamente, il centro richieste riunisce destinatari, contenuti e invio in tre passaggi, con stato e traccia di audit."
+      },
+      "url": "http://localhost:6094",
+      "iconType": "mat-icon",
+      "icon": "assignment_ind"
     }
   ]
 }
