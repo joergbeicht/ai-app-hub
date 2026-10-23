@@ -35,6 +35,11 @@ import { LocalePreferencesService } from '../../core/services/locale-preferences
 import { AuthService } from '../../core/services/auth.service';
 import { RUNTIME_CONFIG } from '../../core/runtime-config';
 import { UserManagementComponent } from './user-management/user-management.component';
+import { IamUsersComponent } from './iam/iam-users.component';
+import { IamGroupsComponent } from './iam/iam-groups.component';
+import { IamRolesComponent } from './iam/iam-roles.component';
+import { IamAccessService } from '../../core/services/iam-access.service';
+import { IAM_PERMISSIONS } from '../../core/models/iam.model';
 import {
   appDisplayDescription,
   appDisplayName,
@@ -45,9 +50,11 @@ import {
 import type { AppLocale } from '../../core/models/locale.model';
 import {
   DEFAULT_SETTINGS_TAB,
+  SETTINGS_TABS,
   isSettingsTab,
   settingsIndexToTab,
   settingsTabToIndex,
+  type SettingsTab,
 } from './settings-tab';
 
 type AppFormGroup = FormGroup<{
@@ -78,6 +85,9 @@ type AppFormGroup = FormGroup<{
     MatTabsModule,
     TranslocoPipe,
     UserManagementComponent,
+    IamUsersComponent,
+    IamGroupsComponent,
+    IamRolesComponent,
   ],
   providers: [provideTranslocoScope('settings')],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -244,13 +254,39 @@ type AppFormGroup = FormGroup<{
             </div>
           </mat-tab>
 
-          @if (canManageUsers()) {
+          @if (isTabVisible('users')) {
             <mat-tab>
               <ng-template mat-tab-label>{{
                 'settings.tabs.users' | transloco: {} : lang
               }}</ng-template>
               <div class="tab-panel">
-                <app-user-management></app-user-management>
+                @if (authMode === 'entra') {
+                  <app-user-management></app-user-management>
+                } @else {
+                  <app-iam-users></app-iam-users>
+                }
+              </div>
+            </mat-tab>
+          }
+
+          @if (isTabVisible('groups')) {
+            <mat-tab>
+              <ng-template mat-tab-label>{{
+                'settings.tabs.groups' | transloco: {} : lang
+              }}</ng-template>
+              <div class="tab-panel">
+                <app-iam-groups></app-iam-groups>
+              </div>
+            </mat-tab>
+          }
+
+          @if (isTabVisible('roles')) {
+            <mat-tab>
+              <ng-template mat-tab-label>{{
+                'settings.tabs.roles' | transloco: {} : lang
+              }}</ng-template>
+              <div class="tab-panel">
+                <app-iam-roles></app-iam-roles>
               </div>
             </mat-tab>
           }
@@ -405,35 +441,33 @@ export class SettingsPageComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
   private readonly cdr = inject(ChangeDetectorRef);
-  private readonly authMode = inject(RUNTIME_CONFIG).authMode;
+  private readonly iamAccess = inject(IamAccessService);
+  readonly authMode = inject(RUNTIME_CONFIG).authMode;
 
   readonly locales = this.localePreferences.availableLocales;
   readonly activeLanguage = this.localePreferences.activeLanguage;
-  /** Steuert nur die Sichtbarkeit des "Benutzerverwaltung"-Tabs (UX) - die eigentliche
-   * Durchsetzung passiert serverseitig im `app-hub-backend` (`RolesGuard`, siehe ADR-6). */
+  /** Steuert nur, was die Oberfläche anbietet (UX) - durchgesetzt wird serverseitig im
+   * `app-hub-backend` (`RolesGuard`, ADR-6) bzw. in der Axora IAM (ADR-20). */
   readonly isAdmin = computed(() => this.authService.currentUser()?.role === 'Administrator');
-  /** Die Benutzerverwaltung pflegt Entra-App-Rollen über Graph (ADR-6) - im Keycloak-Modus
-   * (ADR-19) gibt es diese Benutzer nicht; dort folgt die Verwaltung über Axora IAM. */
-  readonly canManageUsers = computed(() => this.isAdmin() && this.authMode === 'entra');
+  /** Entra-Modus: App-Rollen über Graph (ADR-6). Keycloak-Modus: Benutzer, Gruppen und Rollen
+   * über Axora IAM, sichtbar je nach IAM-Permission (ADR-20). */
+  readonly visibleTabs = computed(() => SETTINGS_TABS.filter((tab) => this.canSeeTab(tab)));
+
+  private readonly routeTab = toSignal(
+    this.route.paramMap.pipe(map((params) => params.get('tab'))),
+    { initialValue: this.route.snapshot.paramMap.get('tab') },
+  );
+
+  readonly selectedTabIndex = computed(() => {
+    const tab = this.routeTab();
+    return settingsTabToIndex(isSettingsTab(tab) ? tab : DEFAULT_SETTINGS_TAB, this.visibleTabs());
+  });
 
   /** Full localized app drafts; the form shows the active-locale slice. */
   private appDrafts: AppEntry[] = [];
   private contentLocale: AppLocale = this.localePreferences.activeLanguage();
   /** Skip auto-persist while programmatically rebuilding the apps form. */
   private suppressAppsPersist = false;
-
-  readonly selectedTabIndex = toSignal(
-    this.route.paramMap.pipe(
-      map((params) => {
-        const tab = params.get('tab');
-        if (!isSettingsTab(tab)) {
-          return settingsTabToIndex(DEFAULT_SETTINGS_TAB);
-        }
-        return settingsTabToIndex(tab);
-      }),
-    ),
-    { initialValue: settingsTabToIndex(DEFAULT_SETTINGS_TAB) },
-  );
 
   readonly generalForm = this.fb.group({
     defaultLanguage: this.fb.control<AppLocale>(this.localePreferences.defaultLanguage(), {
@@ -470,7 +504,7 @@ export class SettingsPageComponent implements OnInit {
 
   ngOnInit(): void {
     const tab = this.route.snapshot.paramMap.get('tab');
-    if (!isSettingsTab(tab) || (tab === 'users' && !this.canManageUsers())) {
+    if (!isSettingsTab(tab) || !this.isTabVisible(tab)) {
       void this.router.navigate(['/settings', DEFAULT_SETTINGS_TAB], { replaceUrl: true });
     }
 
@@ -505,8 +539,28 @@ export class SettingsPageComponent implements OnInit {
   }
 
   onTabIndexChange(index: number): void {
-    const tab = settingsIndexToTab(index);
+    const tab = settingsIndexToTab(index, this.visibleTabs());
     void this.router.navigate(['/settings', tab]);
+  }
+
+  isTabVisible(tab: SettingsTab): boolean {
+    return this.visibleTabs().includes(tab);
+  }
+
+  private canSeeTab(tab: SettingsTab): boolean {
+    switch (tab) {
+      case 'general':
+      case 'apps':
+        return true;
+      case 'users':
+        return this.authMode === 'entra'
+          ? this.isAdmin()
+          : this.iamAccess.can(IAM_PERMISSIONS.userRead);
+      case 'groups':
+        return this.iamAccess.can(IAM_PERMISSIONS.groupRead);
+      case 'roles':
+        return this.iamAccess.can(IAM_PERMISSIONS.roleRead);
+    }
   }
 
   trackAppRow(appGroup: AppFormGroup, lang: string): string {

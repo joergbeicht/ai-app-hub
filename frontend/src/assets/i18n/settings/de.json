@@ -4,7 +4,9 @@
   "tabs": {
     "general": "Allgemein",
     "apps": "App hinzufügen",
-    "users": "Benutzerverwaltung"
+    "users": "Benutzerverwaltung",
+    "groups": "Gruppen",
+    "roles": "Rollen & Rechte"
   },
   "general": {
     "subtitle": "Allgemeine Hub-Einstellungen.",
@@ -52,6 +54,81 @@
       "User": "Benutzer",
       "Administrator": "Administrator",
       "Guest": "Gast"
+    }
+  },
+  "iam": {
+    "loading": "Wird geladen …",
+    "retry": "Erneut versuchen",
+    "loadError": "Daten konnten nicht geladen werden.",
+    "saveError": "Änderung konnte nicht gespeichert werden.",
+    "saved": "Änderung gespeichert.",
+    "add": "Hinzufügen",
+    "status": {
+      "INVITED": "Eingeladen",
+      "ACTIVE": "Aktiv",
+      "SUSPENDED": "Gesperrt"
+    },
+    "errors": {
+      "FORBIDDEN": "Dafür fehlt Ihnen die Berechtigung.",
+      "ENTITLEMENT_REQUIRED": "Ihre Organisation hat für diese App keine Lizenz.",
+      "VALIDATION_FAILED": "Bitte prüfen Sie Ihre Eingaben.",
+      "NOT_FOUND": "Der Eintrag wurde nicht gefunden. Bitte neu laden.",
+      "CONFLICT": "Ein Eintrag mit diesen Daten existiert bereits.",
+      "ALREADY_MEMBER": "Die Person ist bereits Mitglied der Organisation.",
+      "SELF_MODIFICATION_FORBIDDEN": "Sie können sich nicht selbst sperren oder Ihre eigene Administratorrolle entziehen.",
+      "IDP_UNAVAILABLE": "Der Anmeldedienst ist gerade nicht erreichbar. Bitte später erneut versuchen."
+    },
+    "users": {
+      "subtitle": "Personen Ihrer Organisation. Neue Personen laden Sie per E-Mail ein; Rechte vergeben Sie über Gruppen oder Rollen.",
+      "search": "Name oder E-Mail suchen",
+      "invite": "Person einladen",
+      "inviteTitle": "Neue Person einladen",
+      "email": "E-Mail",
+      "firstName": "Vorname",
+      "lastName": "Nachname",
+      "inviteHint": "Die Person erhält eine E-Mail mit einem Link, um ihr Passwort zu setzen. Der Link ist 72 Stunden gültig.",
+      "sendInvite": "Einladung senden",
+      "empty": "Keine Personen gefunden.",
+      "suspend": "Sperren",
+      "reactivate": "Entsperren",
+      "invited": "Einladung versendet.",
+      "suspended": "Person gesperrt.",
+      "reactivated": "Person entsperrt."
+    },
+    "groups": {
+      "subtitle": "Gruppen bündeln Personen. Rollen, die einer Gruppe zugewiesen sind, gelten für alle Mitglieder.",
+      "create": "Gruppe anlegen",
+      "createTitle": "Neue Gruppe",
+      "name": "Name",
+      "description": "Beschreibung (optional)",
+      "memberCount": "{{count}} Mitglieder",
+      "external": "Extern verwaltet",
+      "confirmDelete": "Gruppe wirklich löschen?",
+      "delete": "Löschen",
+      "details": "Details anzeigen",
+      "members": "Mitglieder",
+      "noMembers": "Noch keine Mitglieder.",
+      "addMember": "Mitglied hinzufügen",
+      "roles": "Rollen der Gruppe",
+      "noRoles": "Keine Rollen zugewiesen.",
+      "addRole": "Rolle zuweisen",
+      "empty": "Noch keine Gruppen.",
+      "created": "Gruppe angelegt.",
+      "deleted": "Gruppe gelöscht."
+    },
+    "roles": {
+      "subtitle": "Rollen fassen Rechte einer App zusammen. Weisen Sie Rollen einzelnen Personen oder ganzen Gruppen zu.",
+      "assignTitle": "Rolle zuweisen",
+      "role": "Rolle",
+      "targetKind": "Zuweisen an",
+      "targetUser": "Person",
+      "targetGroup": "Gruppe",
+      "target": "Person oder Gruppe",
+      "assign": "Zuweisen",
+      "assignments": "Zuweisungen",
+      "revoke": "Zuweisung entziehen",
+      "noAssignments": "Noch keine Zuweisungen.",
+      "catalog": "Verfügbare Rollen und ihre Rechte"
     }
   }
 }

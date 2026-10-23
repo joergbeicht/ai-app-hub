@@ -24,6 +24,8 @@ const session: BffSession = {
     email: 'admin@axora.local',
     roles: ['User', 'Administrator'],
   },
+  organization: { id: 'org-1', name: 'Axora' },
+  permissions: ['hub.catalog.manage', 'hub.catalog.read'],
   csrfToken: 'csrf-token',
 };
 

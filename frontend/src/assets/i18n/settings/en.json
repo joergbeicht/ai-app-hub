@@ -4,7 +4,9 @@
   "tabs": {
     "general": "General",
     "apps": "Add app",
-    "users": "User management"
+    "users": "User management",
+    "groups": "Groups",
+    "roles": "Roles & permissions"
   },
   "general": {
     "subtitle": "General hub settings.",
@@ -52,6 +54,81 @@
       "User": "User",
       "Administrator": "Administrator",
       "Guest": "Guest"
+    }
+  },
+  "iam": {
+    "loading": "Loading …",
+    "retry": "Try again",
+    "loadError": "Data could not be loaded.",
+    "saveError": "The change could not be saved.",
+    "saved": "Change saved.",
+    "add": "Add",
+    "status": {
+      "INVITED": "Invited",
+      "ACTIVE": "Active",
+      "SUSPENDED": "Suspended"
+    },
+    "errors": {
+      "FORBIDDEN": "You do not have permission to do this.",
+      "ENTITLEMENT_REQUIRED": "Your organization has no license for this app.",
+      "VALIDATION_FAILED": "Please check your input.",
+      "NOT_FOUND": "The entry was not found. Please reload.",
+      "CONFLICT": "An entry with these details already exists.",
+      "ALREADY_MEMBER": "This person is already a member of the organization.",
+      "SELF_MODIFICATION_FORBIDDEN": "You cannot suspend yourself or remove your own administrator role.",
+      "IDP_UNAVAILABLE": "The sign-in service is currently unavailable. Please try again later."
+    },
+    "users": {
+      "subtitle": "People in your organization. Invite new people by email; grant permissions through groups or roles.",
+      "search": "Search name or email",
+      "invite": "Invite person",
+      "inviteTitle": "Invite a new person",
+      "email": "Email",
+      "firstName": "First name",
+      "lastName": "Last name",
+      "inviteHint": "The person receives an email with a link to set their password. The link is valid for 72 hours.",
+      "sendInvite": "Send invitation",
+      "empty": "No people found.",
+      "suspend": "Suspend",
+      "reactivate": "Reactivate",
+      "invited": "Invitation sent.",
+      "suspended": "Person suspended.",
+      "reactivated": "Person reactivated."
+    },
+    "groups": {
+      "subtitle": "Groups bundle people. Roles assigned to a group apply to all of its members.",
+      "create": "Create group",
+      "createTitle": "New group",
+      "name": "Name",
+      "description": "Description (optional)",
+      "memberCount": "{{count}} members",
+      "external": "Managed externally",
+      "confirmDelete": "Really delete this group?",
+      "delete": "Delete",
+      "details": "Show details",
+      "members": "Members",
+      "noMembers": "No members yet.",
+      "addMember": "Add member",
+      "roles": "Group roles",
+      "noRoles": "No roles assigned.",
+      "addRole": "Assign role",
+      "empty": "No groups yet.",
+      "created": "Group created.",
+      "deleted": "Group deleted."
+    },
+    "roles": {
+      "subtitle": "Roles bundle the permissions of an app. Assign roles to individual people or whole groups.",
+      "assignTitle": "Assign role",
+      "role": "Role",
+      "targetKind": "Assign to",
+      "targetUser": "Person",
+      "targetGroup": "Group",
+      "target": "Person or group",
+      "assign": "Assign",
+      "assignments": "Assignments",
+      "revoke": "Revoke assignment",
+      "noAssignments": "No assignments yet.",
+      "catalog": "Available roles and their permissions"
     }
   }
 }

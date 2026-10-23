@@ -4,7 +4,9 @@
   "tabs": {
     "general": "Genel",
     "apps": "Uygulama ekle",
-    "users": "Kullanıcı yönetimi"
+    "users": "Kullanıcı yönetimi",
+    "groups": "Gruplar",
+    "roles": "Roller ve yetkiler"
   },
   "general": {
     "subtitle": "Genel hub ayarları.",
@@ -52,6 +54,81 @@
       "User": "Kullanıcı",
       "Administrator": "Yönetici",
       "Guest": "Misafir"
+    }
+  },
+  "iam": {
+    "loading": "Yükleniyor …",
+    "retry": "Tekrar dene",
+    "loadError": "Veriler yüklenemedi.",
+    "saveError": "Değişiklik kaydedilemedi.",
+    "saved": "Değişiklik kaydedildi.",
+    "add": "Ekle",
+    "status": {
+      "INVITED": "Davet edildi",
+      "ACTIVE": "Aktif",
+      "SUSPENDED": "Engellendi"
+    },
+    "errors": {
+      "FORBIDDEN": "Bunun için yetkiniz yok.",
+      "ENTITLEMENT_REQUIRED": "Kuruluşunuzun bu uygulama için lisansı yok.",
+      "VALIDATION_FAILED": "Lütfen girdilerinizi kontrol edin.",
+      "NOT_FOUND": "Kayıt bulunamadı. Lütfen yeniden yükleyin.",
+      "CONFLICT": "Bu bilgilere sahip bir kayıt zaten var.",
+      "ALREADY_MEMBER": "Bu kişi zaten kuruluşun üyesi.",
+      "SELF_MODIFICATION_FORBIDDEN": "Kendinizi engelleyemez veya kendi yönetici rolünüzü kaldıramazsınız.",
+      "IDP_UNAVAILABLE": "Oturum açma hizmetine şu anda ulaşılamıyor. Lütfen daha sonra tekrar deneyin."
+    },
+    "users": {
+      "subtitle": "Kuruluşunuzdaki kişiler. Yeni kişileri e-posta ile davet edin; yetkileri gruplar veya roller üzerinden verin.",
+      "search": "Ad veya e-posta ara",
+      "invite": "Kişi davet et",
+      "inviteTitle": "Yeni kişi davet et",
+      "email": "E-posta",
+      "firstName": "Ad",
+      "lastName": "Soyad",
+      "inviteHint": "Kişi, şifresini belirlemek için bağlantı içeren bir e-posta alır. Bağlantı 72 saat geçerlidir.",
+      "sendInvite": "Davet gönder",
+      "empty": "Kişi bulunamadı.",
+      "suspend": "Engelle",
+      "reactivate": "Engeli kaldır",
+      "invited": "Davet gönderildi.",
+      "suspended": "Kişi engellendi.",
+      "reactivated": "Kişinin engeli kaldırıldı."
+    },
+    "groups": {
+      "subtitle": "Gruplar kişileri bir araya getirir. Bir gruba atanan roller tüm üyeleri için geçerlidir.",
+      "create": "Grup oluştur",
+      "createTitle": "Yeni grup",
+      "name": "Ad",
+      "description": "Açıklama (isteğe bağlı)",
+      "memberCount": "{{count}} üye",
+      "external": "Harici olarak yönetiliyor",
+      "confirmDelete": "Grup gerçekten silinsin mi?",
+      "delete": "Sil",
+      "details": "Ayrıntıları göster",
+      "members": "Üyeler",
+      "noMembers": "Henüz üye yok.",
+      "addMember": "Üye ekle",
+      "roles": "Grubun rolleri",
+      "noRoles": "Atanmış rol yok.",
+      "addRole": "Rol ata",
+      "empty": "Henüz grup yok.",
+      "created": "Grup oluşturuldu.",
+      "deleted": "Grup silindi."
+    },
+    "roles": {
+      "subtitle": "Roller bir uygulamanın yetkilerini bir araya getirir. Rolleri tek tek kişilere veya tüm gruplara atayın.",
+      "assignTitle": "Rol ata",
+      "role": "Rol",
+      "targetKind": "Atanacak",
+      "targetUser": "Kişi",
+      "targetGroup": "Grup",
+      "target": "Kişi veya grup",
+      "assign": "Ata",
+      "assignments": "Atamalar",
+      "revoke": "Atamayı kaldır",
+      "noAssignments": "Henüz atama yok.",
+      "catalog": "Kullanılabilir roller ve yetkileri"
     }
   }
 }

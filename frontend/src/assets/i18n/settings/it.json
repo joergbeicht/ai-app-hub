@@ -4,7 +4,9 @@
   "tabs": {
     "general": "Generale",
     "apps": "Aggiungi app",
-    "users": "Gestione utenti"
+    "users": "Gestione utenti",
+    "groups": "Gruppi",
+    "roles": "Ruoli e permessi"
   },
   "general": {
     "subtitle": "Impostazioni generali del hub.",
@@ -52,6 +54,81 @@
       "User": "Utente",
       "Administrator": "Amministratore",
       "Guest": "Ospite"
+    }
+  },
+  "iam": {
+    "loading": "Caricamento …",
+    "retry": "Riprova",
+    "loadError": "Impossibile caricare i dati.",
+    "saveError": "Impossibile salvare la modifica.",
+    "saved": "Modifica salvata.",
+    "add": "Aggiungi",
+    "status": {
+      "INVITED": "Invitato",
+      "ACTIVE": "Attivo",
+      "SUSPENDED": "Bloccato"
+    },
+    "errors": {
+      "FORBIDDEN": "Non hai i permessi per farlo.",
+      "ENTITLEMENT_REQUIRED": "La tua organizzazione non ha una licenza per questa app.",
+      "VALIDATION_FAILED": "Controlla i dati inseriti.",
+      "NOT_FOUND": "Voce non trovata. Ricarica la pagina.",
+      "CONFLICT": "Esiste già una voce con questi dati.",
+      "ALREADY_MEMBER": "Questa persona è già membro dell'organizzazione.",
+      "SELF_MODIFICATION_FORBIDDEN": "Non puoi bloccare te stesso né revocare il tuo ruolo di amministratore.",
+      "IDP_UNAVAILABLE": "Il servizio di accesso non è al momento raggiungibile. Riprova più tardi."
+    },
+    "users": {
+      "subtitle": "Le persone della tua organizzazione. Invita nuove persone via e-mail; assegna i permessi tramite gruppi o ruoli.",
+      "search": "Cerca nome o e-mail",
+      "invite": "Invita persona",
+      "inviteTitle": "Invita una nuova persona",
+      "email": "E-mail",
+      "firstName": "Nome",
+      "lastName": "Cognome",
+      "inviteHint": "La persona riceve un’e-mail con un link per impostare la password. Il link è valido 72 ore.",
+      "sendInvite": "Invia invito",
+      "empty": "Nessuna persona trovata.",
+      "suspend": "Blocca",
+      "reactivate": "Sblocca",
+      "invited": "Invito inviato.",
+      "suspended": "Persona bloccata.",
+      "reactivated": "Persona sbloccata."
+    },
+    "groups": {
+      "subtitle": "I gruppi riuniscono persone. I ruoli assegnati a un gruppo valgono per tutti i suoi membri.",
+      "create": "Crea gruppo",
+      "createTitle": "Nuovo gruppo",
+      "name": "Nome",
+      "description": "Descrizione (facoltativa)",
+      "memberCount": "{{count}} membri",
+      "external": "Gestito esternamente",
+      "confirmDelete": "Eliminare davvero il gruppo?",
+      "delete": "Elimina",
+      "details": "Mostra dettagli",
+      "members": "Membri",
+      "noMembers": "Ancora nessun membro.",
+      "addMember": "Aggiungi membro",
+      "roles": "Ruoli del gruppo",
+      "noRoles": "Nessun ruolo assegnato.",
+      "addRole": "Assegna ruolo",
+      "empty": "Ancora nessun gruppo.",
+      "created": "Gruppo creato.",
+      "deleted": "Gruppo eliminato."
+    },
+    "roles": {
+      "subtitle": "I ruoli raggruppano i permessi di un'app. Assegna i ruoli a singole persone o a interi gruppi.",
+      "assignTitle": "Assegna ruolo",
+      "role": "Ruolo",
+      "targetKind": "Assegna a",
+      "targetUser": "Persona",
+      "targetGroup": "Gruppo",
+      "target": "Persona o gruppo",
+      "assign": "Assegna",
+      "assignments": "Assegnazioni",
+      "revoke": "Revoca assegnazione",
+      "noAssignments": "Ancora nessuna assegnazione.",
+      "catalog": "Ruoli disponibili e relativi permessi"
     }
   }
 }

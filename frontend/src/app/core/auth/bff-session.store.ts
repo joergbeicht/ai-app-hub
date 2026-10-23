@@ -1,6 +1,9 @@
 import { Injectable, signal } from '@angular/core';
 
-/** Antwort von `GET /auth/session` des Backend-BFF (ADR-19) - enthält bewusst kein Token. */
+/**
+ * Antwort von `GET /auth/session` des Backend-BFF (ADR-19) - enthält bewusst kein Token.
+ * `permissions` sind die Axora-IAM-Rechte (`hub.*`, `iam.*`) in `organization` (ADR-20).
+ */
 export interface BffSession {
   user: {
     id: string;
@@ -8,6 +11,8 @@ export interface BffSession {
     email: string | null;
     roles: string[];
   };
+  organization: { id: string; name: string };
+  permissions: string[];
   csrfToken: string;
 }
 

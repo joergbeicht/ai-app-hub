@@ -15,6 +15,8 @@ const BACKEND = 'https://backend.example.com';
 
 const session: BffSession = {
   user: { id: 'u1', displayName: 'Hub Admin', email: null, roles: ['Administrator'] },
+  organization: { id: 'org-1', name: 'Axora' },
+  permissions: [],
   csrfToken: 'csrf-token',
 };
 
