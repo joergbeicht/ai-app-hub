@@ -1,0 +1,280 @@
+/*
+ * Axora login card (ADR-19). Tokens 1:1 from ai-axora-portal (frontend/src/theme/variables.css),
+ * layout from its login page and shared login-brand component. Loaded after keycloak.v2's
+ * styles.css and only overrides PatternFly 5 variables/properties - markup stays keycloak.v2.
+ */
+:root {
+  color-scheme: dark;
+
+  --axora-surface-page: #070a0e;
+  --axora-surface-card: #11161c;
+  --axora-surface-sunken: #171d24;
+  --axora-text-primary: #f6f7f9;
+  --axora-text-secondary: #9ba6b4;
+  --axora-text-tertiary: #6b7684;
+  --axora-border: #29313c;
+  --axora-danger: #e6535c;
+  --axora-radius-lg: 25px;
+  --axora-radius-md: 15px;
+  --axora-touch-target: 44px;
+  --axora-font: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+
+  /* Platform default accent (Axora orange); apps override it via `axora-app--<slug>`. */
+  --axora-accent: #ff7a1a;
+  --axora-accent-hover: #ff9446;
+  --axora-accent-contrast: #070a0e;
+}
+
+/* One block per app brand (client attribute `axora.brand.app`). */
+.axora-app--ai-app-hub {
+  --axora-accent: #0ea5e9;
+  --axora-accent-hover: #38bdf8;
+}
+
+/* --- Page ------------------------------------------------------------------------------- */
+
+.login-pf body {
+  background: var(--axora-surface-page);
+  font-family: var(--axora-font);
+  color: var(--axora-text-primary);
+}
+
+.pf-v5-c-login {
+  --pf-v5-global--FontFamily--text: var(--axora-font);
+  --pf-v5-global--FontFamily--heading: var(--axora-font);
+  --pf-v5-global--link--Color: var(--axora-accent);
+  --pf-v5-global--link--Color--hover: var(--axora-accent-hover);
+  --pf-v5-global--primary-color--100: var(--axora-accent);
+  --pf-v5-global--Color--100: var(--axora-text-primary);
+  --pf-v5-global--Color--200: var(--axora-text-secondary);
+  --pf-v5-c-login__container--MaxWidth: 420px;
+  min-height: 100vh;
+  padding: 24px 20px calc(24px + env(safe-area-inset-bottom));
+}
+
+.pf-v5-c-login__container {
+  grid-template-columns: minmax(0, 420px);
+  justify-content: center;
+  padding-inline: 0;
+  width: 100%;
+}
+
+/* --- Brand mark (Axora logo | app glyph, app name) ---------------------------------------- */
+
+.axora-brand {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 32px;
+  padding: 0;
+}
+
+.axora-brand-mark {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.axora-brand-logo {
+  display: block;
+  height: 22px;
+  width: auto;
+  filter: brightness(0) invert(1);
+}
+
+.axora-brand-divider {
+  width: 1px;
+  height: 22px;
+  background: var(--axora-accent);
+  flex-shrink: 0;
+}
+
+.axora-brand-glyph {
+  display: block;
+  width: 20px;
+  height: 20px;
+}
+
+.axora-brand-name {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-align: center;
+  color: var(--axora-accent);
+}
+
+/* --- Card ------------------------------------------------------------------------------- */
+
+.pf-v5-c-login__main {
+  background: var(--axora-surface-card);
+  border: 1px solid var(--axora-border);
+  border-radius: var(--axora-radius-lg);
+  box-shadow: none;
+}
+
+.pf-v5-c-login__main-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border-top: none;
+  padding: 28px 24px 0;
+  margin-bottom: 20px;
+}
+
+.pf-v5-c-login__main-body {
+  padding: 0 24px 28px;
+}
+
+.pf-v5-c-login__main-footer {
+  padding-inline: 24px;
+}
+
+#kc-page-title {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--axora-text-primary);
+}
+
+/* Language switcher: small pill next to the title (like the portal's language badge). */
+.pf-v5-c-login__main-header-utilities {
+  flex: none;
+}
+
+.pf-v5-c-login__main-header-utilities .pf-v5-c-form-control {
+  width: auto;
+  min-height: 32px;
+  font-size: 12px;
+  font-weight: 700;
+  border-radius: 999px;
+}
+
+.pf-v5-c-login__main-header-utilities .pf-v5-c-form-control::before,
+.pf-v5-c-login__main-header-utilities .pf-v5-c-form-control::after {
+  border-radius: 999px;
+}
+
+#login-select-toggle {
+  width: auto;
+  field-sizing: content;
+  background: transparent;
+  padding: 4px 32px 4px 14px;
+  color: var(--axora-text-secondary);
+}
+
+/* --- Form ------------------------------------------------------------------------------- */
+
+.pf-v5-c-form__label-text {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--axora-text-secondary);
+}
+
+.pf-v5-c-form-control {
+  --pf-v5-c-form-control--BackgroundColor: var(--axora-surface-sunken);
+  --pf-v5-c-form-control--Color: var(--axora-text-primary);
+  --pf-v5-c-form-control--before--BorderTopColor: var(--axora-border);
+  --pf-v5-c-form-control--before--BorderRightColor: var(--axora-border);
+  --pf-v5-c-form-control--before--BorderBottomColor: var(--axora-border);
+  --pf-v5-c-form-control--before--BorderLeftColor: var(--axora-border);
+  --pf-v5-c-form-control--after--BorderBottomColor: transparent;
+  --pf-v5-c-form-control--hover--after--BorderBottomColor: transparent;
+  --pf-v5-c-form-control--focus--after--BorderBottomColor: transparent;
+  --pf-v5-c-form-control--m-error--after--BorderBottomColor: var(--axora-danger);
+  border-radius: var(--axora-radius-md);
+  min-height: var(--axora-touch-target);
+  font-size: 16px;
+}
+
+.pf-v5-c-form-control::before,
+.pf-v5-c-form-control::after {
+  border-radius: var(--axora-radius-md);
+}
+
+.pf-v5-c-form-control:focus-within {
+  --pf-v5-c-form-control--before--BorderTopColor: var(--axora-accent);
+  --pf-v5-c-form-control--before--BorderRightColor: var(--axora-accent);
+  --pf-v5-c-form-control--before--BorderBottomColor: var(--axora-accent);
+  --pf-v5-c-form-control--before--BorderLeftColor: var(--axora-accent);
+}
+
+.pf-v5-c-form-control > input {
+  padding: 12px 16px;
+}
+
+/* The accent border from :focus-within is the focus indicator; the square UA outline would
+   cut across the rounded corners. */
+.pf-v5-c-form-control > input:focus,
+.pf-v5-c-form-control > select:focus {
+  outline: none;
+}
+
+/* Password field + reveal button read as one rounded field. */
+.pf-v5-c-input-group__item:not(:last-child) .pf-v5-c-form-control,
+.pf-v5-c-input-group__item:not(:last-child) .pf-v5-c-form-control::before,
+.pf-v5-c-input-group__item:not(:last-child) .pf-v5-c-form-control::after {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.pf-v5-c-input-group .pf-v5-c-button.pf-m-control {
+  min-height: var(--axora-touch-target);
+  background: var(--axora-surface-sunken);
+  color: var(--axora-text-secondary);
+  border: 1px solid var(--axora-border);
+  border-left: none;
+  border-radius: 0 var(--axora-radius-md) var(--axora-radius-md) 0;
+}
+
+.pf-v5-c-input-group .pf-v5-c-button.pf-m-control::after {
+  border: none;
+}
+
+.pf-v5-c-input-group .pf-v5-c-button.pf-m-control:hover {
+  color: var(--axora-text-primary);
+}
+
+.pf-v5-c-helper-text__item.pf-m-error,
+.pf-v5-c-form__helper-text .pf-m-error {
+  color: var(--axora-danger);
+}
+
+/* --- Buttons ---------------------------------------------------------------------------- */
+
+.pf-v5-c-button.pf-m-primary {
+  --pf-v5-c-button--m-primary--BackgroundColor: var(--axora-accent);
+  --pf-v5-c-button--m-primary--hover--BackgroundColor: var(--axora-accent-hover);
+  --pf-v5-c-button--m-primary--focus--BackgroundColor: var(--axora-accent-hover);
+  --pf-v5-c-button--m-primary--active--BackgroundColor: var(--axora-accent);
+  --pf-v5-c-button--m-primary--Color: var(--axora-accent-contrast);
+  --pf-v5-c-button--m-primary--hover--Color: var(--axora-accent-contrast);
+  --pf-v5-c-button--m-primary--focus--Color: var(--axora-accent-contrast);
+  --pf-v5-c-button--m-primary--active--Color: var(--axora-accent-contrast);
+  border-radius: var(--axora-radius-md);
+  min-height: var(--axora-touch-target);
+  font-weight: 700;
+}
+
+.pf-v5-c-button.pf-m-secondary,
+.pf-v5-c-button.pf-m-tertiary {
+  border-radius: var(--axora-radius-md);
+}
+
+/* --- Alerts (wrong password, expired session, ...) ------------------------------------- */
+
+.pf-v5-c-alert {
+  --pf-v5-c-alert--BackgroundColor: var(--axora-surface-sunken);
+  --pf-v5-c-alert--BoxShadow: none;
+  border-radius: var(--axora-radius-md);
+  margin-bottom: 16px;
+}
+
+.pf-v5-c-alert.pf-m-danger {
+  --pf-v5-c-alert--m-danger--BorderTopColor: var(--axora-danger);
+  --pf-v5-c-alert--m-danger__icon--Color: var(--axora-danger);
+  --pf-v5-c-alert--m-danger__title--Color: var(--axora-danger);
+}

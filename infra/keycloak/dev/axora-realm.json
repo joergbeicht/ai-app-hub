@@ -1,0 +1,97 @@
+{
+  "realm": "axora",
+  "displayName": "Axora",
+  "enabled": true,
+  "sslRequired": "external",
+  "registrationAllowed": false,
+  "loginWithEmailAllowed": true,
+  "duplicateEmailsAllowed": false,
+  "resetPasswordAllowed": false,
+  "rememberMe": false,
+  "bruteForceProtected": true,
+  "failureFactor": 5,
+  "passwordPolicy": "length(12) and notUsername",
+  "ssoSessionIdleTimeout": 3600,
+  "ssoSessionMaxLifespan": 36000,
+  "accessTokenLifespan": 300,
+  "internationalizationEnabled": true,
+  "supportedLocales": ["de", "en", "es", "fr", "tr", "it"],
+  "defaultLocale": "de",
+  "loginTheme": "axora",
+  "roles": {
+    "client": {
+      "ai-app-hub-bff": [
+        {
+          "name": "Administrator",
+          "description": "Pflegt den zentralen App-Katalog des AI App Hub."
+        },
+        {
+          "name": "User",
+          "description": "Nutzt den AI App Hub lesend."
+        }
+      ]
+    }
+  },
+  "clients": [
+    {
+      "clientId": "ai-app-hub-bff",
+      "name": "AI App Hub",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "${HUB_OIDC_CLIENT_SECRET}",
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "frontchannelLogout": false,
+      "fullScopeAllowed": false,
+      "redirectUris": ["${HUB_OIDC_REDIRECT_URI}"],
+      "webOrigins": [],
+      "attributes": {
+        "pkce.code.challenge.method": "S256",
+        "post.logout.redirect.uris": "${HUB_OIDC_POST_LOGOUT_REDIRECT_URI}",
+        "axora.brand.app": "ai-app-hub"
+      },
+      "protocolMappers": [
+        {
+          "name": "hub roles",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-client-role-mapper",
+          "consentRequired": false,
+          "config": {
+            "usermodel.clientRoleMapping.clientId": "ai-app-hub-bff",
+            "claim.name": "roles",
+            "jsonType.label": "String",
+            "multivalued": "true",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "userinfo.token.claim": "true",
+            "introspection.token.claim": "true"
+          }
+        }
+      ]
+    }
+  ],
+  "users": [
+    {
+      "username": "hub-admin",
+      "email": "admin@axora.local",
+      "emailVerified": true,
+      "firstName": "Hub",
+      "lastName": "Administrator",
+      "enabled": true,
+      "credentials": [
+        {
+          "type": "password",
+          "value": "${HUB_DEV_ADMIN_PASSWORD}",
+          "temporary": false
+        }
+      ],
+      "clientRoles": {
+        "ai-app-hub-bff": ["Administrator", "User"]
+      }
+    }
+  ]
+}
