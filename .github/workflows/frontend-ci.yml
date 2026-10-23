@@ -46,8 +46,15 @@ jobs:
         run: npm run write-version
         env:
           APP_VERSION: 0.0.0-ci
+      # ubuntu-latest blockiert unprivilegierte User-Namespaces (AppArmor). Puppeteer-Chrome
+      # startet dort nur mit --no-sandbox. Der Wrapper gilt nur für diesen CI-Job.
       - name: Run unit tests (headless Chrome via puppeteer)
-        run: CHROME_BIN=$(node -e "console.log(require('puppeteer').executablePath())") npm run test:ci
+        run: |
+          chrome_real="$(node -e "console.log(require('puppeteer').executablePath())")"
+          wrapper="${RUNNER_TEMP}/chrome-no-sandbox"
+          printf '%s\n' '#!/bin/sh' "exec $(printf '%q' "$chrome_real") --no-sandbox --disable-dev-shm-usage \"\$@\"" > "$wrapper"
+          chmod +x "$wrapper"
+          CHROME_BIN="$wrapper" npm run test:ci
 
   build:
     runs-on: ubuntu-latest
