@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Writes frontend/src/app/core/app-version.ts from, in order of precedence:
- * 1) process.env.APP_VERSION (required for Docker/CI without a git checkout)
+ * 1) process.env.APP_VERSION (CI / explicit override)
  * 2) nearest SemVer git tag (`git describe --tags --abbrev=0`)
  *
  * No silent fallback to package.json – a missing version is a hard error.
@@ -29,7 +29,7 @@ There is no fallback to package.json – that would invent a fake version.
 Next steps:
   • Create and push a tag:  git tag v1.0.0 && git push origin v1.0.0
   • Or pass the version explicitly:  APP_VERSION=1.0.0 npm start
-  • Docker: use ./start-docker.sh (resolves the tag on the host)
+  • Docker: docker compose up (resolves the tag from the bind-mounted .git automatically)
 `);
   process.exit(1);
 }
