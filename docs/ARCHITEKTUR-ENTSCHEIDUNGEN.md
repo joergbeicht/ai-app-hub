@@ -1397,7 +1397,8 @@ Keycloak-Konfiguration existieren noch nicht.
 5. **Übergangs-Autorisierung:** Bis Axora IAM existiert, kommen die Rollen
    aus den Client-Rollen von `ai-app-hub-bff` (Claim `roles`, Werte
    `Administrator`/`User`). Ohne eine dieser Rollen endet der Login mit
-   `not_entitled` (Default Deny). Abgelöst durch die IAM-Policy-Abfrage.
+   `not_entitled` (Default Deny). **Abgelöst durch ADR-20** (Rechte aus
+   Axora IAM); die Client-Rollen sind aus dem Dev-Realm entfernt.
 6. **Dev-Realm als Code in diesem Repo** (`infra/keycloak/dev/axora-realm.json`,
    Import beim Start von `quay.io/keycloak/keycloak:26.8` in Compose).
    Secrets kommen als `${ENV}`-Platzhalter aus der `.env`. Default-Admin
@@ -1428,3 +1429,67 @@ bei `entra`, bis dort ein Keycloak-Realm betrieben wird (`deployment.mdc`);
 für `keycloak` braucht das Backend dann `FRONTEND_URL` und `OIDC_*`.
 Offen: Axora-IAM-Anbindung statt Token-Rollen, Benutzerverwaltung über IAM,
 Ersatz für den Tablet-Login, Back-Channel-Logout von Keycloak.
+
+## ADR-20: Rechte und Verwaltung über Axora IAM, Tokens verschlüsselt in der BFF-Sitzung
+
+**Kontext:** ADR-19 hat den Login auf Keycloak umgestellt, die Rechte kamen
+aber noch aus Client-Rollen im Token. Laut ADR-18 entscheidet Axora IAM über
+Organisationen, Rollen und Rechte, und der Hub ist deren Verwaltungsoberfläche.
+Die erste Ausbaustufe von `axora-iam-api` liegt jetzt im Plattform-Repository
+`axora-platform` (dort ADR-0001).
+
+**Entscheidung:**
+
+1. **Entitlement beim Login aus der IAM:** Nach dem Code-Tausch ruft das BFF
+   `GET /api/iam/v1/me` mit dem Access-Token des Nutzers auf. Eine Sitzung gibt
+   es nur bei aktiver Mitgliedschaft, gültigem Entitlement für `ai-app-hub`
+   und `hub.catalog.read` (Default Deny). IAM nicht erreichbar → `unavailable`
+   (fail closed); Principal unbekannt oder gesperrt → `not_entitled`.
+   Bei mehreren Organisationen gilt vorerst die erste passende (nach Name);
+   ein Organisationswechsel kommt später.
+2. **Abgeleitete Hub-Rollen:** `hub.catalog.manage` → `Administrator`, sonst
+   `User`. Die bestehenden `@Roles(...)`-Prüfungen bleiben dadurch unverändert.
+   Die Sitzung hält zusätzlich Organisation und die Permissions `hub.*`/`iam.*`;
+   `GET /auth/session` liefert sie dem Frontend nur zur Anzeige.
+3. **Tokens in der Sitzung, verschlüsselt:** Access- und Refresh-Token liegen
+   AES-256-GCM-verschlüsselt in `auth_sessions` (Schlüssel `SESSION_TOKEN_KEY`,
+   32 Byte base64, Format `v1.<iv>.<tag>.<ciphertext>`). Sie verlassen das
+   Backend nur in Richtung IAM. Bestehende Sitzungen wurden bei der Migration
+   beendet.
+4. **Sitzung aktuell halten** (`SessionAccessService`): Das Access-Token wird
+   30 s vor Ablauf erneuert. Die IAM-Rechte werden höchstens alle 30 s neu
+   abgefragt (Konzept: kurze Caches). Lehnt Keycloak den Refresh ab oder
+   entzieht die IAM den Zugriff, endet die Sitzung (401). Ist Keycloak oder
+   die IAM nicht erreichbar, wird der Request mit 503 abgelehnt, die Sitzung
+   bleibt bestehen. Der Logout nutzt nur die Cookie-/CSRF-Prüfung
+   (`SessionCookieGuard`) und funktioniert deshalb auch ohne IAM.
+5. **IAM-Proxy `/iam/v1/*`:** Die Verwaltungsseiten rufen nur das Hub-Backend
+   auf (Cookie + CSRF). Das Backend hängt das Access-Token an und reicht
+   Antwort und Problem Details unverändert durch. Erlaubt sind nur Pfade aus
+   `[A-Za-z0-9_-]`-Segmenten (kein `..`, keine kodierten Zeichen) und die
+   Methoden GET/POST/PUT/PATCH/DELETE. Autorisierung und Mandantenprüfung
+   macht ausschließlich die IAM. Ein generischer Proxy statt einzelner
+   Endpunkte, weil der Hub die IAM-Verwaltung nur darstellt und keine eigene
+   Logik dazu hat.
+6. **Verwaltungsoberfläche:** Einstellungen → Benutzer (suchen, per E-Mail
+   einladen, sperren/entsperren), Gruppen (anlegen, löschen, Mitglieder,
+   Gruppenrollen), Rollen & Rechte (Katalog, Zuweisungen an Personen oder
+   Gruppen). Die Tabs erscheinen je nach IAM-Permission. Im Entra-Modus bleibt
+   die Graph-Benutzerverwaltung (ADR-6) unverändert.
+7. **Einladung:** Die IAM legt den Keycloak-Benutzer über ihren
+   Service-Account `axora-iam-api` an (nur `view-/query-/manage-users`) und
+   lässt Keycloak die Mail „E-Mail bestätigen + Passwort setzen“ senden
+   (Link 72 h gültig, Rücksprung zum Hub). Lokal fängt Mailpit die Mails ab
+   (http://localhost:6060). Der Browser spricht nie mit der
+   Keycloak-Admin-API.
+8. **Dev-Realm:** `ai-app-hub-bff` bekommt einen Audience-Mapper auf
+   `axora-iam-api`; die Client-Rollen `Administrator`/`User` und ihr Mapper
+   sind entfernt. Neu: Client `axora-iam-api` (nur Service-Account), SMTP auf
+   Mailpit. Der Realm bleibt vorerst in diesem Repo (siehe ADR-19 Punkt 6).
+
+**Konsequenz:** Rechte werden an einer Stelle gepflegt und wirken nach
+spätestens 30 s im Hub. Lokal muss `axora-platform` laufen (Start nach dem
+Hub, gemeinsames Docker-Netz `ai-app-hub_default`). Neue ENV-Variablen im
+Backend: `IAM_API_URL`, `SESSION_TOKEN_KEY` (nur `AUTH_MODE=keycloak`). Cluster
+bleiben bei `entra`. Offen: Organisationswechsel, Audit-Ansicht,
+Back-Channel-Logout, Verwaltung organisationseigener Rollen.
