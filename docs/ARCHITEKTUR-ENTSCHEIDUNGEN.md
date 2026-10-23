@@ -1493,3 +1493,52 @@ Hub, gemeinsames Docker-Netz `ai-app-hub_default`). Neue ENV-Variablen im
 Backend: `IAM_API_URL`, `SESSION_TOKEN_KEY` (nur `AUTH_MODE=keycloak`). Cluster
 bleiben bei `entra`. Offen: Organisationswechsel, Audit-Ansicht,
 Back-Channel-Logout, Verwaltung organisationseigener Rollen.
+
+## ADR-21: Keycloak-Login mit E-Mail + Passwort und E-Mail-OTP, Passkeys als Option
+
+**Kontext:** Bisher reichten Benutzername oder E-Mail plus Passwort. Gewünscht
+ist ein zweiter Faktor als 6-stelliger Code. Eine Authenticator-App kommt nicht
+für alle Benutzer in Frage (keine App für Windows-Desktops ab Werk, nicht jeder
+nutzt ein Firmenhandy). Keycloak 26 bringt TOTP und Passkeys mit, aber keinen
+E-Mail-OTP.
+
+**Entscheidung:**
+
+1. **E-Mail ist der Benutzername** (`registrationEmailAsUsername`). Die
+   Login-Seite fragt nur „E-Mail“ und „Passwort“ ab. Die IAM legt eingeladene
+   Benutzer ohnehin mit der E-Mail als Benutzernamen an. Der Dev-Admin heißt
+   jetzt `admin@axora.local` (IAM-Seed `SEED_ADMIN_USERNAME`).
+2. **E-Mail-OTP als Pflicht für alle**, über die Erweiterung
+   [`mesutpiskin/keycloak-2fa-email-authenticator`](https://github.com/mesutpiskin/keycloak-2fa-email-authenticator)
+   (Apache 2.0), Schritt „Email OTP (No Enrollment)“: jeder Benutzer mit
+   E-Mail bekommt den Code ohne vorherige Einrichtung. Einstellungen: 6
+   Stellen, 5 Minuten gültig, 5 Fehlversuche, 30 s bis zum erneuten Senden,
+   maskierte Adresse im Formular, Versand über das Realm-SMTP (lokal
+   Mailpit). Benutzer ohne E-Mail können sich nicht anmelden.
+3. **Passkeys als Option** (Windows Hello, Touch ID, Handy, Sicherheitsschlüssel):
+   im Realm aktiviert (`webAuthnPolicyPasswordlessPasskeysEnabled`, Mediation
+   `conditional`). Die Login-Seite zeigt „Anmelden mit Passkey“; ein Passkey
+   ersetzt Passwort **und** E-Mail-OTP, weil er selbst zwei Faktoren vereint
+   (Gerät + Biometrie/PIN). Benutzer richten ihn in der Keycloak-Kontoverwaltung
+   ein (`/realms/axora/account` → Kontosicherheit).
+4. **Browser-Flow `axora browser`:** Cookie (SSO) **oder** Formular-Teilflow.
+   Darin: „Username Password Form“, danach der bedingte Teilflow mit
+   „Condition - credential“ (nur wenn nicht per Passkey angemeldet) und
+   „Email OTP (No Enrollment)“.
+5. **Eigenes Keycloak-Image** (`infra/keycloak/Dockerfile`): Basis
+   `keycloak:26.8.1`, Erweiterung `v26.7.2-KC26.8.0` per `ADD --checksum`
+   gepinnt. Die Erweiterung nutzt interne Keycloak-SPIs (Warnung
+   `KC-SERVICES0047` beim Start); bei jedem Keycloak-Update muss der passende
+   Build mitgezogen und der Login einmal durchgetestet werden.
+
+**Abgewogen:** TOTP per App (eingebaut, aber nicht für alle nutzbar);
+E-Mail-OTP ist der schwächste zweite Faktor, weil er am Postfach hängt –
+deshalb Passkeys als stärkere und bequemere Alternative. Eine selbst
+geschriebene Erweiterung wäre mehr Pflegeaufwand als eine gepinnte,
+gepflegte Fremderweiterung.
+
+**Konsequenz:** Jede Anmeldung ohne Passkey verschickt eine Mail; das Realm-
+SMTP muss in jeder Umgebung zuverlässig funktionieren. Realm-Änderungen
+greifen lokal erst nach dem Keycloak-Reset (siehe `AGENTS.md`). Für einen
+Cluster-Keycloak braucht es dasselbe Image. Offen: Link „Passkey einrichten“
+im Hub, Wiederherstellung bei verlorenem Postfach-Zugang (Admin).

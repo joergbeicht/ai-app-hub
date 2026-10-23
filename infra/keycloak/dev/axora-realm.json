@@ -4,6 +4,7 @@
   "enabled": true,
   "sslRequired": "external",
   "registrationAllowed": false,
+  "registrationEmailAsUsername": true,
   "loginWithEmailAllowed": true,
   "duplicateEmailsAllowed": false,
   "resetPasswordAllowed": false,
@@ -20,6 +21,63 @@
   "defaultLocale": "de",
   "loginTheme": "axora",
   "emailTheme": "keycloak",
+  "webAuthnPolicyPasswordlessRpEntityName": "Axora",
+  "webAuthnPolicyPasswordlessPasskeysEnabled": true,
+  "webAuthnPolicyPasswordlessMediation": "conditional",
+  "browserFlow": "axora browser",
+  "authenticationFlows": [
+    {
+      "alias": "axora browser",
+      "description": "Password and email OTP; a passkey replaces both (ADR-21).",
+      "providerId": "basic-flow",
+      "topLevel": true,
+      "builtIn": false,
+      "authenticationExecutions": [
+        { "authenticator": "auth-cookie", "requirement": "ALTERNATIVE", "priority": 10, "autheticatorFlow": false, "userSetupAllowed": false },
+        { "flowAlias": "axora browser forms", "requirement": "ALTERNATIVE", "priority": 20, "autheticatorFlow": true, "userSetupAllowed": false }
+      ]
+    },
+    {
+      "alias": "axora browser forms",
+      "description": "Email and password or passkey, then email OTP.",
+      "providerId": "basic-flow",
+      "topLevel": false,
+      "builtIn": false,
+      "authenticationExecutions": [
+        { "authenticator": "auth-username-password-form", "requirement": "REQUIRED", "priority": 10, "autheticatorFlow": false, "userSetupAllowed": false },
+        { "flowAlias": "axora browser email otp", "requirement": "CONDITIONAL", "priority": 20, "autheticatorFlow": true, "userSetupAllowed": false }
+      ]
+    },
+    {
+      "alias": "axora browser email otp",
+      "description": "Email OTP unless the user signed in with a passkey.",
+      "providerId": "basic-flow",
+      "topLevel": false,
+      "builtIn": false,
+      "authenticationExecutions": [
+        { "authenticator": "conditional-credential", "authenticatorConfig": "axora-not-signed-in-with-passkey", "requirement": "REQUIRED", "priority": 10, "autheticatorFlow": false, "userSetupAllowed": false },
+        { "authenticator": "email-authenticator-no-enrollment", "authenticatorConfig": "axora-email-otp", "requirement": "REQUIRED", "priority": 20, "autheticatorFlow": false, "userSetupAllowed": false }
+      ]
+    }
+  ],
+  "authenticatorConfig": [
+    {
+      "alias": "axora-not-signed-in-with-passkey",
+      "config": { "credentials": "webauthn-passwordless" }
+    },
+    {
+      "alias": "axora-email-otp",
+      "config": {
+        "emailProviderType": "KEYCLOAK",
+        "length": "6",
+        "ttl": "300",
+        "maxAttempts": "5",
+        "resendCooldown": "30",
+        "showMaskedEmailOnOtpForm": "true",
+        "simulationMode": "false"
+      }
+    }
+  ],
   "smtpServer": {
     "host": "mailpit",
     "port": "1025",
@@ -84,7 +142,7 @@
   ],
   "users": [
     {
-      "username": "hub-admin",
+      "username": "admin@axora.local",
       "email": "admin@axora.local",
       "emailVerified": true,
       "firstName": "Hub",

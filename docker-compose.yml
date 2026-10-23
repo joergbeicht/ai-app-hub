@@ -100,7 +100,8 @@ services:
   # ersten Start importiert. Eigene Datenhaltung (dev-file im Volume), keine gemeinsame DB mit
   # dem Backend (platform-architecture.mdc).
   keycloak:
-    image: quay.io/keycloak/keycloak:26.8
+    build: ./infra/keycloak
+    image: ai-app-hub-keycloak:26.8.1
     container_name: app-hub-keycloak
     command: start-dev --import-realm
     ports:

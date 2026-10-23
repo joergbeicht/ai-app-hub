@@ -259,9 +259,21 @@
   font-weight: 700;
 }
 
+/* PatternFly draws the outline in ::after from its own radius variable, not from border-radius. */
 .pf-v5-c-button.pf-m-secondary,
 .pf-v5-c-button.pf-m-tertiary {
+  --pf-v5-c-button--BorderRadius: var(--axora-radius-md);
+  --pf-v5-c-button--after--BorderRadius: var(--axora-radius-md);
   border-radius: var(--axora-radius-md);
+  min-height: var(--axora-touch-target);
+}
+
+/* Passkey login below the password form (ADR-21); PatternFly only spaces it from md upwards. */
+#authenticateWebAuthnButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 12px;
 }
 
 /* --- Alerts (wrong password, expired session, ...) ------------------------------------- */

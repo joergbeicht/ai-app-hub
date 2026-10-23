@@ -37,12 +37,16 @@ Arbeitsanweisungen für Coding-Agents (Cursor). Verbindliche Detailregeln stehen
 derselbe `IAM_KEYCLOAK_CLIENT_SECRET`. Erst den Hub starten, dann `docker compose up -d` in
 `axora-platform`; die Plattform hängt sich an das Netz `ai-app-hub_default`. Ohne laufende IAM
 endet jeder Login mit `unavailable`. Danach https://localhost:6054 öffnen und mit
-`admin@axora.local` sowie dem Passwort aus `HUB_DEV_ADMIN_PASSWORD` anmelden. Der Realm wird nur beim ersten Start
+`admin@axora.local` sowie dem Passwort aus `HUB_DEV_ADMIN_PASSWORD` anmelden. Den 6-stelligen
+E-Mail-Code zeigt Mailpit (ADR-21). Passkeys richtet man unter
+https://localhost:6057/realms/axora/account → Kontosicherheit ein; sie ersetzen Passwort und Code. Der Realm wird nur beim ersten Start
 importiert. Das Login-Theme liegt in `infra/keycloak/themes/axora/` und wirkt ohne Neustart.
 Nach Änderungen an `axora-realm.json` oder den Secrets:
 `docker compose rm -sf keycloak && docker volume rm ai-app-hub_keycloak_data && docker compose up -d keycloak`.
 Danach die IAM-API neu starten (`docker restart axora-iam-api`), damit der Seed den neuen
-Keycloak-Benutzer `hub-admin` verknüpft.
+Keycloak-Benutzer `admin@axora.local` verknüpft. Keycloak läuft aus einem eigenen Image mit der
+E-Mail-OTP-Erweiterung (`infra/keycloak/Dockerfile`); bei einem Keycloak-Update den passenden
+Erweiterungs-Build mitziehen (ADR-21).
 
 ```bash
 ./start-docker.sh                 # oder: docker compose up (Hot Reload für frontend/ und backend/)
@@ -92,7 +96,7 @@ docs/                 Konzepte, ADRs, Leistungsbeschreibung – Einstieg docs/RE
  `hub.catalog.manage`/`hub.catalog.read` abgeleitet. Neue IAM-Verwaltungsaufrufe laufen über den
  Proxy `/iam/v1/*`, nie direkt vom Browser zur IAM oder zur Keycloak-Admin-API.
 - **IAM-Seed** (`axora-platform`): läuft bei jedem Start der IAM-API, ist idempotent und
- verknüpft `hub-admin` als Admin der Organisation `axora`.
+ verknüpft `admin@axora.local` als Admin der Organisation `axora`.
 - **localStorage** enthält nur persönliche Präferenzen (`app-hub-personal-preferences`), nie
   Katalog- oder Fachdaten, nie Tokens.
 - **Fehlerbehandlung im Backend:** Der globale `AllExceptionsFilter` fängt Nicht-HTTP-Fehler
