@@ -276,6 +276,68 @@
   margin-top: 12px;
 }
 
+/* --- Email OTP form (extension template, ADR-21) ---------------------------------------- */
+
+#kc-otp-login-form .pf-v5-c-form__label {
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--axora-text-secondary);
+}
+
+#kc-otp-login-form .pf-v5-c-form__label strong {
+  color: var(--axora-text-primary);
+}
+
+/* The code field is a bare <input>, so PatternFly's ::before border never renders. */
+#kc-otp-login-form input#emailCode {
+  width: 100%;
+  padding: 12px 16px;
+  background: var(--axora-surface-sunken);
+  color: var(--axora-text-primary);
+  border: 1px solid var(--axora-border);
+  border-radius: var(--axora-radius-md);
+  font-size: 20px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.3em;
+  text-align: center;
+}
+
+#kc-otp-login-form input#emailCode:focus {
+  border-color: var(--axora-accent);
+  outline: none;
+}
+
+#kc-otp-login-form #kc-form-buttons > div {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+#kc-otp-login-form .pf-v5-c-button {
+  width: 100%;
+  min-height: var(--axora-touch-target);
+  border-radius: var(--axora-radius-md);
+  font-size: 16px;
+}
+
+/* Resend and cancel come without a PatternFly variant and would render as grey UA buttons. */
+#kc-otp-login-form .pf-v5-c-button:not(.pf-m-primary) {
+  background: transparent;
+  color: var(--axora-text-secondary);
+  border: 1px solid var(--axora-border);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+#kc-otp-login-form .pf-v5-c-button:not(.pf-m-primary):hover {
+  color: var(--axora-text-primary);
+  border-color: var(--axora-accent);
+}
+
+#kc-otp-login-form .pf-v5-c-button[name='cancel'] {
+  border-color: transparent;
+}
+
 /* --- Alerts (wrong password, expired session, ...) ------------------------------------- */
 
 .pf-v5-c-alert {
