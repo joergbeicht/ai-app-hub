@@ -4,6 +4,7 @@ import { NestFactory } from '@nestjs/core';
 import { Logger, ValidationPipe } from '@nestjs/common';
 import type { NestExpressApplication } from '@nestjs/platform-express';
 import { AppModule } from './app.module';
+import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 
 /**
  * Frontend läuft lokal per HTTPS (mkcert, siehe `scripts/setup-ssl.sh`) - eine HTTPS-Seite kann
@@ -40,12 +41,13 @@ async function bootstrap(): Promise<void> {
   app.useGlobalPipes(
     new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }),
   );
+  // Siehe `AllExceptionsFilter`: verhindert, dass ein Fehler mit ungültiger `statusCode`-
+  // Eigenschaft (z. B. Microsoft Graph SDK bei Netzwerkfehlern) den ganzen Prozess abstürzt.
+  app.useGlobalFilters(new AllExceptionsFilter());
 
   const port = Number(process.env['PORT'] ?? 6055);
   await app.listen(port, '0.0.0.0');
-  new Logger('Bootstrap').log(
-    `listening on port ${port} (${httpsOptions ? 'https' : 'http'})`,
-  );
+  new Logger('Bootstrap').log(`listening on port ${port} (${httpsOptions ? 'https' : 'http'})`);
 }
 
 void bootstrap();
