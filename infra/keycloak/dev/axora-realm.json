@@ -36,6 +36,7 @@
     {
       "clientId": "ai-app-hub-bff",
       "name": "AI App Hub",
+      "baseUrl": "${HUB_FRONTEND_URL}",
       "enabled": true,
       "protocol": "openid-connect",
       "publicClient": false,
