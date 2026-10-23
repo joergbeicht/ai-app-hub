@@ -10,12 +10,14 @@ set -eu
 : "${AZURE_CLIENT_ID:?AZURE_CLIENT_ID is required (per-cluster Helm value, see platform-architecture.mdc)}"
 : "${BACKEND_API_URL:?BACKEND_API_URL is required (per-cluster Helm value, see ADR-6 - URL des app-hub-backend)}"
 export CLUSTER_NAME="${CLUSTER_NAME:-Unbekannt}"
+# ADR-19: ohne Helm-Wert bleibt der MSAL-Bestand aktiv.
+export AUTH_MODE="${AUTH_MODE:-entra}"
 
 HTML_ROOT=/usr/share/nginx/html
 TEMPLATE="$HTML_ROOT/runtime-config.template.json"
 TARGET="$HTML_ROOT/runtime-config.json"
 
-envsubst '${CLUSTER_NAME} ${AZURE_TENANT_ID} ${AZURE_CLIENT_ID} ${BACKEND_API_URL}' <"$TEMPLATE" >"$TARGET"
+envsubst '${CLUSTER_NAME} ${AZURE_TENANT_ID} ${AZURE_CLIENT_ID} ${BACKEND_API_URL} ${AUTH_MODE}' <"$TEMPLATE" >"$TARGET"
 rm -f "$TEMPLATE"
 
-echo "[runtime-config] wrote $TARGET (cluster=$CLUSTER_NAME)"
+echo "[runtime-config] wrote $TARGET (cluster=$CLUSTER_NAME, auth=$AUTH_MODE)"

@@ -5,6 +5,7 @@ const config: RuntimeConfig = {
   azureTenantId: 'tenant-1',
   azureClientId: 'client-1',
   backendApiUrl: 'https://backend.example.com',
+  authMode: 'keycloak',
 };
 
 describe('loadRuntimeConfig', () => {
@@ -37,6 +38,22 @@ describe('loadRuntimeConfig', () => {
 
     expect(result).toEqual(config);
     expect(fetchSpy).toHaveBeenCalledTimes(2);
+  });
+
+  it('keeps the MSAL legacy auth mode when authMode is missing or empty', async () => {
+    const legacyConfig = {
+      clusterName: config.clusterName,
+      azureTenantId: config.azureTenantId,
+      azureClientId: config.azureClientId,
+      backendApiUrl: config.backendApiUrl,
+    };
+    fetchSpy.and.returnValues(
+      Promise.resolve(new Response(JSON.stringify(legacyConfig), { status: 200 })),
+      Promise.resolve(new Response(JSON.stringify({ ...legacyConfig, authMode: '' }), { status: 200 })),
+    );
+
+    expect((await loadRuntimeConfig()).authMode).toBe('entra');
+    expect((await loadRuntimeConfig()).authMode).toBe('entra');
   });
 
   it('throws after exhausting all retry attempts', async () => {

@@ -1,20 +1,16 @@
 import 'zone.js';
 import { bootstrapApplication } from '@angular/platform-browser';
-import { appConfig } from './app/app.config';
+import { createAppConfig } from './app/app.config';
 import { AppComponent } from './app/app.component';
-import { loadRuntimeConfig, RUNTIME_CONFIG } from './app/core/runtime-config';
+import { loadRuntimeConfig } from './app/core/runtime-config';
 
 /**
- * Runtime config (cluster name, Azure tenant/client ID) must be resolved *before* bootstrap: the
- * MSAL instance factory reads it synchronously via `inject()`, so it has to already be in the DI
- * container by the time anything first injects `MsalService`. See `core/runtime-config.ts`.
+ * Runtime config (cluster name, Azure tenant/client ID, auth mode) must be resolved *before*
+ * bootstrap: the MSAL instance factory reads it synchronously via `inject()`, and the auth mode
+ * decides which providers exist at all (ADR-19). See `core/runtime-config.ts`.
  */
 loadRuntimeConfig()
-  .then((runtimeConfig) =>
-    bootstrapApplication(AppComponent, {
-      providers: [...appConfig.providers, { provide: RUNTIME_CONFIG, useValue: runtimeConfig }],
-    }),
-  )
+  .then((runtimeConfig) => bootstrapApplication(AppComponent, createAppConfig(runtimeConfig)))
   .catch((err) => {
     console.error('[bootstrap] Application failed to start', err);
     renderBootstrapErrorFallback();

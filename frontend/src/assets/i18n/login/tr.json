@@ -20,5 +20,16 @@
     "rateLimited": "Çok fazla deneme yapıldı. Lütfen bir süre bekleyip tekrar deneyin.",
     "unknownError": "Giriş başarısız oldu. Lütfen tekrar deneyin.",
     "cancel": "İptal"
+  },
+  "keycloak": {
+    "subline": "Devam etmek için Axora hesabınla oturum aç.",
+    "retry": "Yeniden oturum aç",
+    "redirecting": "Oturum açma sayfasına yönlendiriliyor …"
+  },
+  "errors": {
+    "session_expired": "Oturum açma çok uzun sürdü veya oturumunun süresi doldu. Lütfen yeniden oturum aç.",
+    "not_entitled": "Hesabının AI App Hub erişimi yok. Lütfen yöneticinle iletişime geç.",
+    "login_failed": "Oturum açılamadı. Lütfen tekrar dene.",
+    "unavailable": "Oturum açma hizmeti şu anda kullanılamıyor. Lütfen daha sonra tekrar dene."
   }
 }

@@ -20,5 +20,16 @@
     "rateLimited": "Too many attempts. Please wait a moment and try again.",
     "unknownError": "Sign-in failed. Please try again.",
     "cancel": "Cancel"
+  },
+  "keycloak": {
+    "subline": "Sign in with your Axora account to continue.",
+    "retry": "Sign in again",
+    "redirecting": "Redirecting to sign-in …"
+  },
+  "errors": {
+    "session_expired": "Signing in took too long or your session has expired. Please sign in again.",
+    "not_entitled": "Your account has no access to AI App Hub. Please contact your administrator.",
+    "login_failed": "Sign-in failed. Please try again.",
+    "unavailable": "The sign-in service is currently unavailable. Please try again later."
   }
 }

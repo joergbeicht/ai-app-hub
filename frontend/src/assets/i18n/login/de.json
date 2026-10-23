@@ -20,5 +20,16 @@
     "rateLimited": "Zu viele Versuche. Bitte kurz warten und erneut versuchen.",
     "unknownError": "Anmeldung fehlgeschlagen. Bitte erneut versuchen.",
     "cancel": "Abbrechen"
+  },
+  "keycloak": {
+    "subline": "Melde dich mit deinem Axora-Konto an, um fortzufahren.",
+    "retry": "Erneut anmelden",
+    "redirecting": "Weiterleitung zur Anmeldung …"
+  },
+  "errors": {
+    "session_expired": "Die Anmeldung hat zu lange gedauert oder deine Sitzung ist abgelaufen. Bitte erneut anmelden.",
+    "not_entitled": "Dein Konto hat keinen Zugriff auf den AI App Hub. Bitte wende dich an deine Administration.",
+    "login_failed": "Die Anmeldung ist fehlgeschlagen. Bitte erneut versuchen.",
+    "unavailable": "Der Anmeldedienst ist gerade nicht erreichbar. Bitte später erneut versuchen."
   }
 }

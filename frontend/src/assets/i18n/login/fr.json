@@ -20,5 +20,16 @@
     "rateLimited": "Trop de tentatives. Veuillez patienter puis réessayer.",
     "unknownError": "La connexion a échoué. Veuillez réessayer.",
     "cancel": "Annuler"
+  },
+  "keycloak": {
+    "subline": "Connecte-toi avec ton compte Axora pour continuer.",
+    "retry": "Se reconnecter",
+    "redirecting": "Redirection vers la connexion …"
+  },
+  "errors": {
+    "session_expired": "La connexion a pris trop de temps ou ta session a expiré. Merci de te reconnecter.",
+    "not_entitled": "Ton compte n’a pas accès à AI App Hub. Contacte ton administration.",
+    "login_failed": "La connexion a échoué. Merci de réessayer.",
+    "unavailable": "Le service de connexion est momentanément indisponible. Merci de réessayer plus tard."
   }
 }

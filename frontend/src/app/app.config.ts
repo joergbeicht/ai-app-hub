@@ -4,6 +4,8 @@ import {
   inject,
   isDevMode,
   provideZoneChangeDetection,
+  type Provider,
+  type EnvironmentProviders,
 } from '@angular/core';
 import { provideRouter } from '@angular/router';
 import { HTTP_INTERCEPTORS, provideHttpClient, withInterceptorsFromDi } from '@angular/common/http';
@@ -31,8 +33,12 @@ import {
   msalInstanceFactory,
   msalInterceptorConfigFactory,
 } from './core/auth/msal-config';
-import { RUNTIME_CONFIG } from './core/runtime-config';
+import { RUNTIME_CONFIG, type RuntimeConfig } from './core/runtime-config';
 import { TabletSessionInterceptor } from './core/auth/tablet-session.interceptor';
+import { BffSessionInterceptor } from './core/auth/bff-session.interceptor';
+import { AuthService } from './core/services/auth.service';
+import { BffAuthService } from './core/services/bff-auth.service';
+import { MsalAuthService } from './core/services/msal-auth.service';
 
 function initializeLocale(): () => void {
   const localePreferences = inject(LocalePreferencesService);
@@ -83,8 +89,44 @@ function initializeMsal(): () => Promise<void> {
   };
 }
 
-export const appConfig: ApplicationConfig = {
-  providers: [
+function initializeBffSession(): () => Promise<void> {
+  const bffAuthService = inject(BffAuthService);
+  return () => bffAuthService.restoreSession();
+}
+
+/** MSAL-Bestand (ADR-2/12/14): Entra-Login, Graph-Rollen und Tablet-Login per Badge + PIN. */
+function msalAuthProviders(): Provider[] {
+  return [
+    { provide: APP_INITIALIZER, useFactory: initializeMsal, multi: true },
+    { provide: MSAL_INSTANCE, useFactory: msalInstanceFactory },
+    { provide: MSAL_GUARD_CONFIG, useFactory: msalGuardConfigFactory },
+    { provide: MSAL_INTERCEPTOR_CONFIG, useFactory: msalInterceptorConfigFactory },
+    // Replays events fired during the APP_INITIALIZER redirect handling to late subscribers
+    // (e.g. MsalAuthService), which would otherwise miss the LOGIN_SUCCESS event.
+    { provide: MSAL_BROADCAST_CONFIG, useValue: { eventsToReplay: 5 } },
+    { provide: HTTP_INTERCEPTORS, useClass: MsalInterceptor, multi: true },
+    // Für Tablet-Sitzungen (siehe ADR-12) - läuft neben `MsalInterceptor`, greift aber nur, wenn
+    // tatsächlich eine Tablet-Sitzung aktiv ist (siehe `TabletSessionInterceptor`).
+    { provide: HTTP_INTERCEPTORS, useClass: TabletSessionInterceptor, multi: true },
+    MsalService,
+    MsalBroadcastService,
+    { provide: AuthService, useExisting: MsalAuthService },
+  ];
+}
+
+/** Keycloak über das Backend-BFF (ADR-19): kein MSAL, keine Tokens im Browser. */
+function bffAuthProviders(): Provider[] {
+  return [
+    { provide: APP_INITIALIZER, useFactory: initializeBffSession, multi: true },
+    { provide: HTTP_INTERCEPTORS, useClass: BffSessionInterceptor, multi: true },
+    { provide: AuthService, useExisting: BffAuthService },
+  ];
+}
+
+export function createAppConfig(runtimeConfig: RuntimeConfig): ApplicationConfig {
+  const authProviders = runtimeConfig.authMode === 'keycloak' ? bffAuthProviders() : msalAuthProviders();
+  const providers: (Provider | EnvironmentProviders)[] = [
+    { provide: RUNTIME_CONFIG, useValue: runtimeConfig },
     provideZoneChangeDetection({ eventCoalescing: true }),
     provideRouter(routes),
     provideHttpClient(withInterceptorsFromDi()),
@@ -104,26 +146,11 @@ export const appConfig: ApplicationConfig = {
       useFactory: initializeLocale,
       multi: true,
     },
-    {
-      provide: APP_INITIALIZER,
-      useFactory: initializeMsal,
-      multi: true,
-    },
     provideServiceWorker('ngsw-worker.js', {
       enabled: !isDevMode(),
       registrationStrategy: 'registerWhenStable:30000',
     }),
-    { provide: MSAL_INSTANCE, useFactory: msalInstanceFactory },
-    { provide: MSAL_GUARD_CONFIG, useFactory: msalGuardConfigFactory },
-    { provide: MSAL_INTERCEPTOR_CONFIG, useFactory: msalInterceptorConfigFactory },
-    // Replays events fired during the APP_INITIALIZER redirect handling to late subscribers
-    // (e.g. AuthService), which would otherwise miss the LOGIN_SUCCESS event.
-    { provide: MSAL_BROADCAST_CONFIG, useValue: { eventsToReplay: 5 } },
-    { provide: HTTP_INTERCEPTORS, useClass: MsalInterceptor, multi: true },
-    // Für Tablet-Sitzungen (siehe ADR-12) - läuft neben `MsalInterceptor`, greift aber nur, wenn
-    // tatsächlich eine Tablet-Sitzung aktiv ist (siehe `TabletSessionInterceptor`).
-    { provide: HTTP_INTERCEPTORS, useClass: TabletSessionInterceptor, multi: true },
-    MsalService,
-    MsalBroadcastService,
-  ],
-};
+    ...authProviders,
+  ];
+  return { providers };
+}

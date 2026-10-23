@@ -20,5 +20,16 @@
     "rateLimited": "Troppi tentativi. Attendi un momento e riprova.",
     "unknownError": "Accesso non riuscito. Riprova.",
     "cancel": "Annulla"
+  },
+  "keycloak": {
+    "subline": "Accedi con il tuo account Axora per continuare.",
+    "retry": "Accedi di nuovo",
+    "redirecting": "Reindirizzamento all’accesso …"
+  },
+  "errors": {
+    "session_expired": "L’accesso ha richiesto troppo tempo o la sessione è scaduta. Accedi di nuovo.",
+    "not_entitled": "Il tuo account non ha accesso ad AI App Hub. Contatta l’amministrazione.",
+    "login_failed": "Accesso non riuscito. Riprova.",
+    "unavailable": "Il servizio di accesso non è al momento disponibile. Riprova più tardi."
   }
 }

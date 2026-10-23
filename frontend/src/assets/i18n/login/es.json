@@ -20,5 +20,16 @@
     "rateLimited": "Demasiados intentos. Espera un momento y vuelve a intentarlo.",
     "unknownError": "No se pudo iniciar sesión. Vuelve a intentarlo.",
     "cancel": "Cancelar"
+  },
+  "keycloak": {
+    "subline": "Inicia sesión con tu cuenta de Axora para continuar.",
+    "retry": "Volver a iniciar sesión",
+    "redirecting": "Redirigiendo al inicio de sesión …"
+  },
+  "errors": {
+    "session_expired": "El inicio de sesión tardó demasiado o tu sesión ha caducado. Vuelve a iniciar sesión.",
+    "not_entitled": "Tu cuenta no tiene acceso a AI App Hub. Ponte en contacto con tu administración.",
+    "login_failed": "No se pudo iniciar sesión. Inténtalo de nuevo.",
+    "unavailable": "El servicio de inicio de sesión no está disponible. Inténtalo más tarde."
   }
 }

@@ -1,38 +1,41 @@
 import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { provideRouter, Router, UrlTree } from '@angular/router';
+import type { RouterStateSnapshot } from '@angular/router';
 import { authGuard } from './auth.guard';
 import { AuthService } from '../services/auth.service';
 
 describe('authGuard', () => {
   let authServiceSpy: jasmine.SpyObj<AuthService>;
+  const state = { url: '/settings/apps' } as RouterStateSnapshot;
 
-  function configure(isLoggedIn: boolean): Router {
-    authServiceSpy = jasmine.createSpyObj<AuthService>('AuthService', ['login', 'logout'], {
-      isLoggedIn: signal(isLoggedIn),
-    });
+  function configure(isLoggedIn: boolean): void {
+    authServiceSpy = jasmine.createSpyObj<AuthService>(
+      'AuthService',
+      ['login', 'logout', 'redirectToLogin'],
+      { isLoggedIn: signal(isLoggedIn) },
+    );
+    authServiceSpy.redirectToLogin.and.returnValue(false);
 
     TestBed.configureTestingModule({
-      providers: [provideRouter([]), { provide: AuthService, useValue: authServiceSpy }],
+      providers: [{ provide: AuthService, useValue: authServiceSpy }],
     });
-
-    return TestBed.inject(Router);
   }
 
   it('allows navigation when a user is logged in', () => {
     configure(true);
 
-    const result = TestBed.runInInjectionContext(() => authGuard({} as never, {} as never));
+    const result = TestBed.runInInjectionContext(() => authGuard({} as never, state));
 
     expect(result).toBe(true);
+    expect(authServiceSpy.redirectToLogin).not.toHaveBeenCalled();
   });
 
-  it('redirects to /login when nobody is logged in', () => {
-    const router = configure(false);
+  it('lets the auth implementation start the login with the requested URL', () => {
+    configure(false);
 
-    const result = TestBed.runInInjectionContext(() => authGuard({} as never, {} as never));
+    const result = TestBed.runInInjectionContext(() => authGuard({} as never, state));
 
-    expect(result).toBeInstanceOf(UrlTree);
-    expect(router.serializeUrl(result as UrlTree)).toBe('/login');
+    expect(result).toBe(false);
+    expect(authServiceSpy.redirectToLogin).toHaveBeenCalledWith('/settings/apps');
   });
 });

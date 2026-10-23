@@ -10,7 +10,7 @@ import {
   signal,
   viewChild,
 } from '@angular/core';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import type { HttpErrorResponse } from '@angular/common/http';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -20,10 +20,19 @@ import { AuthService } from '../../core/services/auth.service';
 import { LocalePreferencesService } from '../../core/services/locale-preferences.service';
 import { TabletAuthService } from '../../core/services/tablet-auth.service';
 import { BarcodeScannerService } from '../../core/services/barcode-scanner.service';
+import { RUNTIME_CONFIG } from '../../core/runtime-config';
 
 /** Fehlerzustände beim Ausweis-Scan/PIN-Login (siehe ADR-12) - Übersetzungs-Keys unter `login.*`. */
 type BadgeScanError = 'notFound' | 'cameraError';
 type PinError = 'wrongPin' | 'notAllowed' | 'rateLimited' | 'notFound' | 'unknownError';
+
+/** `?error=` vom Backend-BFF nach einem gescheiterten Keycloak-Login (ADR-19). */
+const LOGIN_ERROR_CODES = ['session_expired', 'not_entitled', 'login_failed', 'unavailable'] as const;
+type LoginErrorCode = (typeof LOGIN_ERROR_CODES)[number];
+
+function toLoginErrorCode(value: string | null): LoginErrorCode | null {
+  return LOGIN_ERROR_CODES.find((code) => code === value) ?? null;
+}
 
 @Component({
   selector: 'app-login-page',
@@ -37,10 +46,26 @@ type PinError = 'wrongPin' | 'notAllowed' | 'rateLimited' | 'notFound' | 'unknow
       <div class="login-header">
         <img class="login-logo" src="/favicon.svg" alt="" />
         <h1>{{ 'login.title' | transloco: {} : lang }}</h1>
-        <p class="login-subline">{{ 'login.subline' | transloco: {} : lang }}</p>
+        <p class="login-subline">
+          {{ (isKeycloakMode ? 'login.keycloak.subline' : 'login.subline') | transloco: {} : lang }}
+        </p>
       </div>
 
-      @if (mode() === 'default') {
+      @if (mode() === 'default' && isKeycloakMode) {
+        @if (loginError; as errorCode) {
+          <p class="login-error" role="alert">
+            {{ 'login.errors.' + errorCode | transloco: {} : lang }}
+          </p>
+          <button mat-flat-button color="primary" class="login-button" (click)="login()">
+            <mat-icon>login</mat-icon>
+            {{ 'login.keycloak.retry' | transloco: {} : lang }}
+          </button>
+        } @else {
+          <p class="login-subline" role="status">
+            {{ 'login.keycloak.redirecting' | transloco: {} : lang }}
+          </p>
+        }
+      } @else if (mode() === 'default') {
         <button mat-flat-button color="primary" class="login-button" (click)="login()">
           <mat-icon>login</mat-icon>
           {{ 'login.signIn' | transloco: {} : lang }}
@@ -162,6 +187,10 @@ type PinError = 'wrongPin' | 'notAllowed' | 'rateLimited' | 'notFound' | 'unknow
         margin: 0;
         color: var(--text-secondary);
       }
+      .login-error {
+        margin: 0 0 1rem;
+        color: var(--mat-sys-error, #b3261e);
+      }
       .login-button {
         display: inline-flex;
         align-items: center;
@@ -263,6 +292,11 @@ export class LoginPageComponent implements OnInit, OnDestroy {
   private readonly barcodeScannerService = inject(BarcodeScannerService);
   private readonly injector = inject(Injector);
   readonly activeLanguage = inject(LocalePreferencesService).activeLanguage;
+  /** Keycloak-Modus: Keycloak ist die Login-Seite, kein Ausweis-/PIN-Login (ROPC, ADR-12). */
+  readonly isKeycloakMode = inject(RUNTIME_CONFIG).authMode === 'keycloak';
+  readonly loginError = toLoginErrorCode(
+    inject(ActivatedRoute).snapshot.queryParamMap.get('error'),
+  );
 
   private readonly scannerVideo = viewChild<ElementRef<HTMLVideoElement>>('scannerVideo');
   private scanSubscription: Subscription | undefined;
@@ -283,6 +317,12 @@ export class LoginPageComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     if (this.authService.isLoggedIn()) {
       void this.router.navigateByUrl('/');
+      return;
+    }
+    // Im Keycloak-Modus ist diese Seite nur noch Fallback für Fehlermeldungen; ohne Fehler (z. B.
+    // nach dem Logout) direkt weiter zu Keycloak. Mit Fehler kein Auto-Redirect, sonst Schleife.
+    if (this.isKeycloakMode && !this.loginError) {
+      this.authService.login();
     }
   }
 

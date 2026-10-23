@@ -33,6 +33,7 @@ import { debounceTime, map } from 'rxjs/operators';
 import { ConfigService } from '../../core/services/config.service';
 import { LocalePreferencesService } from '../../core/services/locale-preferences.service';
 import { AuthService } from '../../core/services/auth.service';
+import { RUNTIME_CONFIG } from '../../core/runtime-config';
 import { UserManagementComponent } from './user-management/user-management.component';
 import {
   appDisplayDescription,
@@ -243,7 +244,7 @@ type AppFormGroup = FormGroup<{
             </div>
           </mat-tab>
 
-          @if (isAdmin()) {
+          @if (canManageUsers()) {
             <mat-tab>
               <ng-template mat-tab-label>{{
                 'settings.tabs.users' | transloco: {} : lang
@@ -404,12 +405,16 @@ export class SettingsPageComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
   private readonly cdr = inject(ChangeDetectorRef);
+  private readonly authMode = inject(RUNTIME_CONFIG).authMode;
 
   readonly locales = this.localePreferences.availableLocales;
   readonly activeLanguage = this.localePreferences.activeLanguage;
   /** Steuert nur die Sichtbarkeit des "Benutzerverwaltung"-Tabs (UX) - die eigentliche
    * Durchsetzung passiert serverseitig im `app-hub-backend` (`RolesGuard`, siehe ADR-6). */
   readonly isAdmin = computed(() => this.authService.currentUser()?.role === 'Administrator');
+  /** Die Benutzerverwaltung pflegt Entra-App-Rollen über Graph (ADR-6) - im Keycloak-Modus
+   * (ADR-19) gibt es diese Benutzer nicht; dort folgt die Verwaltung über Axora IAM. */
+  readonly canManageUsers = computed(() => this.isAdmin() && this.authMode === 'entra');
 
   /** Full localized app drafts; the form shows the active-locale slice. */
   private appDrafts: AppEntry[] = [];
@@ -465,7 +470,7 @@ export class SettingsPageComponent implements OnInit {
 
   ngOnInit(): void {
     const tab = this.route.snapshot.paramMap.get('tab');
-    if (!isSettingsTab(tab) || (tab === 'users' && !this.isAdmin())) {
+    if (!isSettingsTab(tab) || (tab === 'users' && !this.canManageUsers())) {
       void this.router.navigate(['/settings', DEFAULT_SETTINGS_TAB], { replaceUrl: true });
     }
 

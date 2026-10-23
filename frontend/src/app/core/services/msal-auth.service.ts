@@ -1,6 +1,6 @@
 import { DestroyRef, Injectable, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { Router } from '@angular/router';
+import { Router, type UrlTree } from '@angular/router';
 import { MsalBroadcastService, MsalService } from '@azure/msal-angular';
 import type { AccountInfo } from '@azure/msal-browser';
 import { EventType, InteractionStatus } from '@azure/msal-browser';
@@ -8,6 +8,7 @@ import { filter } from 'rxjs/operators';
 import { resolvePrimaryRole, type HubUser } from '../models/user.model';
 import { RUNTIME_CONFIG } from '../runtime-config';
 import { backendApiScope } from '../auth/msal-config';
+import { AuthService } from './auth.service';
 import { TabletAuthService, type TabletSession } from './tablet-auth.service';
 
 /** Custom claim added by the `ai-app-hub` App Roles (see ADR-2) – not part of MSAL's base types. */
@@ -25,9 +26,11 @@ interface AppRoleClaims {
  * Tablet-Benutzer (`TabletAuthService`, PIN+ROPC statt MSAL-Redirect) - `currentUser`/`isLoggedIn`
  * fassen beide hinter derselben Fassade zusammen, damit `authGuard`/Router/restliche Komponenten
  * den Unterschied nicht kennen müssen (siehe ADR-12, "PC-Login bleibt komplett unberührt").
+ *
+ * Bestand bis zur Migration auf Keycloak (ADR-19): nur fixen, nicht ausbauen.
  */
 @Injectable({ providedIn: 'root' })
-export class AuthService {
+export class MsalAuthService extends AuthService {
   private readonly msalService = inject(MsalService);
   private readonly msalBroadcastService = inject(MsalBroadcastService);
   private readonly tabletAuthService = inject(TabletAuthService);
@@ -44,6 +47,7 @@ export class AuthService {
   readonly isLoggedIn = computed(() => this.currentUser() !== null);
 
   constructor() {
+    super();
     this.msalBroadcastService.msalSubject$
       .pipe(
         filter((message) => message.eventType === EventType.LOGIN_SUCCESS),
@@ -81,6 +85,11 @@ export class AuthService {
       scopes: ['openid', 'profile', backendApiScope(this.azureClientId)],
       ...(loginHint ? { loginHint } : {}),
     });
+  }
+
+  /** Eigene Login-Seite, weil dort zwischen Entra-Login und Ausweis-/PIN-Login gewählt wird. */
+  redirectToLogin(): UrlTree {
+    return this.router.createUrlTree(['/login']);
   }
 
   logout(): void {

@@ -16,7 +16,14 @@ export interface RuntimeConfig {
   readonly azureClientId: string;
   /** Basis-URL des `app-hub-backend` (Rollenverwaltung, siehe ADR-6) - pro Cluster unterschiedlich. */
   readonly backendApiUrl: string;
+  /** Anmeldeweg (ADR-19): `entra` = MSAL-Bestand, `keycloak` = Backend-BFF mit Session-Cookie. */
+  readonly authMode: AuthMode;
 }
+
+export type AuthMode = 'entra' | 'keycloak';
+
+const KEYCLOAK_AUTH_MODE: AuthMode = 'keycloak';
+const DEFAULT_AUTH_MODE: AuthMode = 'entra';
 
 export const RUNTIME_CONFIG = new InjectionToken<RuntimeConfig>('RUNTIME_CONFIG');
 
@@ -54,7 +61,13 @@ async function fetchRuntimeConfig(): Promise<RuntimeConfig> {
   if (!res.ok) {
     throw new Error(`Failed to load runtime-config.json: ${res.status}`);
   }
-  return (await res.json()) as RuntimeConfig;
+  const raw = (await res.json()) as Omit<RuntimeConfig, 'authMode'> & { authMode?: string };
+  return { ...raw, authMode: resolveAuthMode(raw.authMode) };
+}
+
+/** Bestehende Cluster liefern kein (oder ein leeres) `authMode` und bleiben beim MSAL-Bestand. */
+function resolveAuthMode(raw: string | undefined): AuthMode {
+  return raw?.trim().toLowerCase() === KEYCLOAK_AUTH_MODE ? KEYCLOAK_AUTH_MODE : DEFAULT_AUTH_MODE;
 }
 
 function sleep(ms: number): Promise<void> {

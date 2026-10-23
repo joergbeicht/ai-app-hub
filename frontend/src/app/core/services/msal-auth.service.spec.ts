@@ -1,12 +1,12 @@
 import { TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
-import { Router } from '@angular/router';
+import { Router, type UrlTree } from '@angular/router';
 import { MsalBroadcastService, MsalService } from '@azure/msal-angular';
 import type { AccountInfo, EventMessage, IPublicClientApplication } from '@azure/msal-browser';
 import { EventType, InteractionStatus } from '@azure/msal-browser';
 import { Subject } from 'rxjs';
-import { AuthService } from './auth.service';
+import { MsalAuthService } from './msal-auth.service';
 import { TabletAuthService } from './tablet-auth.service';
 import { RUNTIME_CONFIG } from '../runtime-config';
 
@@ -15,6 +15,7 @@ const testRuntimeConfig = {
   azureTenantId: 'tenant-1',
   azureClientId: 'client-1',
   backendApiUrl: 'https://backend.example.com',
+  authMode: 'entra',
 };
 
 const testAccount = {
@@ -24,7 +25,7 @@ const testAccount = {
   idTokenClaims: { roles: ['User'] },
 } as AccountInfo;
 
-describe('AuthService', () => {
+describe('MsalAuthService', () => {
   let msalServiceSpy: jasmine.SpyObj<MsalService>;
   let routerSpy: jasmine.SpyObj<Router>;
   let msalSubject$: Subject<EventMessage>;
@@ -33,7 +34,7 @@ describe('AuthService', () => {
   function configure(
     activeAccount: AccountInfo | null,
     allAccounts: AccountInfo[] = [],
-  ): AuthService {
+  ): MsalAuthService {
     msalSubject$ = new Subject();
     inProgress$ = new Subject();
     let activeAccountRef = activeAccount;
@@ -50,7 +51,7 @@ describe('AuthService', () => {
           activeAccountRef = account;
         }),
     } as unknown as IPublicClientApplication;
-    routerSpy = jasmine.createSpyObj<Router>('Router', ['navigateByUrl']);
+    routerSpy = jasmine.createSpyObj<Router>('Router', ['navigateByUrl', 'createUrlTree']);
 
     TestBed.configureTestingModule({
       providers: [
@@ -63,7 +64,7 @@ describe('AuthService', () => {
       ],
     });
 
-    return TestBed.inject(AuthService);
+    return TestBed.inject(MsalAuthService);
   }
 
   it('starts logged out when there is no account', () => {
@@ -99,6 +100,15 @@ describe('AuthService', () => {
     expect(msalServiceSpy.loginRedirect).toHaveBeenCalledWith({
       scopes: ['openid', 'profile', 'api://client-1/access_as_user'],
     });
+  });
+
+  it('sends unauthenticated navigation to the own login page (Entra or badge login)', () => {
+    const service = configure(null);
+    const loginPage = {} as UrlTree;
+    routerSpy.createUrlTree.and.returnValue(loginPage);
+
+    expect(service.redirectToLogin()).toBe(loginPage);
+    expect(routerSpy.createUrlTree).toHaveBeenCalledWith(['/login']);
   });
 
   it('delegates logout() to msalService.logoutRedirect()', () => {

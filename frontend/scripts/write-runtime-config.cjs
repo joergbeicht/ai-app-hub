@@ -25,6 +25,8 @@ const DEV_DEFAULTS = {
   azureClientId: 'c52e2ae0-a32d-46d7-9e1b-a0fdb06ff094',
   // app-hub-backend läuft im selben Docker-Compose-Setup auf Port 6055 (siehe docker-compose.yml).
   backendApiUrl: 'https://localhost:6055',
+  // Ohne Compose (`ng serve` direkt) bleibt der MSAL-Bestand; Compose setzt `keycloak` (ADR-19).
+  authMode: 'entra',
 };
 
 const config = {
@@ -32,9 +34,12 @@ const config = {
   azureTenantId: process.env.AZURE_TENANT_ID?.trim() || DEV_DEFAULTS.azureTenantId,
   azureClientId: process.env.AZURE_CLIENT_ID?.trim() || DEV_DEFAULTS.azureClientId,
   backendApiUrl: process.env.BACKEND_API_URL?.trim() || DEV_DEFAULTS.backendApiUrl,
+  authMode: process.env.AUTH_MODE?.trim() || DEV_DEFAULTS.authMode,
 };
 
 fs.mkdirSync(path.dirname(outPath), { recursive: true });
 fs.writeFileSync(outPath, `${JSON.stringify(config, null, 2)}\n`, 'utf8');
 
-console.log(`[write-runtime-config] cluster=${config.clusterName} tenant=${config.azureTenantId}`);
+console.log(
+  `[write-runtime-config] cluster=${config.clusterName} tenant=${config.azureTenantId} auth=${config.authMode}`,
+);
