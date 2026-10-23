@@ -1,11 +1,11 @@
 name: Frontend CI
 
 on:
+  # Push auf main immer: der Deploy nach confessio-test wartet auf diesen Lauf und den
+  # Backend-CI-Lauf desselben Commits (testing-pipeline.mdc). Path-Filter würden das Gate
+  # aushebeln, sobald nur eine Seite geändert wurde.
   push:
     branches: [main]
-    paths:
-      - 'frontend/**'
-      - '.github/workflows/frontend-ci.yml'
   pull_request:
     paths:
       - 'frontend/**'
@@ -40,6 +40,12 @@ jobs:
           cache: 'npm'
           cache-dependency-path: frontend/package-lock.json
       - run: npm ci --legacy-peer-deps
+      # app-version.ts ist generiert und nicht im Git (write-app-version.cjs). Tests importieren
+      # die Konstante; der konkrete Wert ist hier egal, der Build-Job setzt die echte Version.
+      - name: Generate app version module
+        run: npm run write-version
+        env:
+          APP_VERSION: 0.0.0-ci
       - name: Run unit tests (headless Chrome via puppeteer)
         run: CHROME_BIN=$(node -e "console.log(require('puppeteer').executablePath())") npm run test:ci
 

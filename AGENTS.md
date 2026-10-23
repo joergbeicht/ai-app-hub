@@ -72,7 +72,9 @@ docs/                 Konzepte, ADRs, Leistungsbeschreibung – Einstieg docs/RE
   (z. B. aus Graph) ab. Nicht durch eigene try/catch-Kaskaden umgehen.
 - **`location.reload` ist in Tests nicht spionierbar** – Seiten-Reloads über ein InjectionToken
   kapseln (Beispiel: `PAGE_RELOAD` in `pwa-update.service.ts`).
-- **Deploy:** Postgres (`helm/ai-app-hub-postgres`) wird vor dem Backend ausgerollt. Jede
+- **Deploy:** `confessio-test` startet erst, wenn Backend-CI und Frontend-CI für denselben
+  Commit grün sind und HEAD einen exakten Versionstag trägt (`vX.Y.Z`). Ein Push ohne Tag
+  deployt nicht. Postgres (`helm/ai-app-hub-postgres`) wird vor dem Backend ausgerollt. Jede
   GitHub-Environment (`confessio-test`, `confessio-prod`) braucht ein eigenes Secret
   `POSTGRES_PASSWORD` (nur Hex, wird unescaped in `DATABASE_URL` eingesetzt). Die Pipeline seedet
   den Katalog per `--if-empty` nur in eine leere DB.

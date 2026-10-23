@@ -1,27 +1,98 @@
 name: Deploy to confessio-test
 
-# confessio-test ist ein Test-Cluster, kein Prod (siehe ADR-9) - hier soll jeder Push nach main
-# sofort automatisch deployen, damit man beim Öffnen der App immer den aktuellen main-Stand sieht.
-# Die "fehlende Prod-Smoke-Tests/Rollback-Logik"-Vorsicht aus testing-pipeline.mdc gilt für einen
-# späteren confessio-prod-Workflow (siehe ADR-10 offene Punkte), nicht für dieses Test-Environment.
-# workflow_dispatch bleibt zusätzlich für manuelle Re-Deploys (z. B. nach einem fehlgeschlagenen
-# Lauf, ohne dafür einen leeren Commit zu brauchen).
+# confessio-test ist das Test-System (ADR-9), nicht Prod. Deploy läuft erst, wenn Backend CI
+# und Frontend CI für denselben Commit grün sind (testing-pipeline.mdc: Stufe 2 ist das Gate
+# vor Stufe 3) und HEAD einen exakten Versionstag trägt. Ein Push ohne Tag löst keinen
+# Rollout aus. workflow_dispatch bleibt für einen erneuten Deploy eines bereits grünen,
+# bereits getaggten Commits.
+# Prod-Smoke-Tests und Rollback bleiben beim confessio-prod-Workflow (ADR-10).
 on:
-  push:
+  workflow_run:
+    workflows: ["Backend CI", "Frontend CI"]
+    types: [completed]
     branches: [main]
   workflow_dispatch: {}
 
 permissions:
   id-token: write # Für OIDC/Workload Identity Federation (azure/login) - kein Client-Secret.
+  actions: read # CI-Läufe des auslösenden Commits lesen.
   contents: read
 
+# Zwei CI-Abschlüsse lösen diesen Workflow kurz nacheinander aus. Der zweite Lauf wartet,
+# statt ein zweites Helm-Upgrade parallel zu starten.
+concurrency:
+  group: deploy-confessio-test
+  cancel-in-progress: false
+
 jobs:
+  ci-gate:
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    outputs:
+      deploy: ${{ steps.gate.outputs.deploy }}
+      sha: ${{ steps.gate.outputs.sha }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+          fetch-depth: 0
+
+      - name: Require green CI and a version tag
+        id: gate
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EVENT_NAME: ${{ github.event_name }}
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
+        run: |
+          set -euo pipefail
+          echo "sha=${HEAD_SHA}" >> "$GITHUB_OUTPUT"
+
+          if ! git describe --tags --exact-match HEAD >/dev/null 2>&1; then
+            if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
+              echo "::error::HEAD (${HEAD_SHA}) hat keinen Versionstag. Prozess: git tag vX.Y.Z && git push origin vX.Y.Z, danach den Deploy manuell starten."
+              exit 1
+            fi
+            echo "::notice::HEAD (${HEAD_SHA}) hat keinen Versionstag. Deploy nach confessio-test wird übersprungen."
+            echo "deploy=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          pending=false
+          for workflow in "Backend CI" "Frontend CI"; do
+            json=$(gh run list --commit "$HEAD_SHA" --workflow "$workflow" --json status,conclusion --limit 1)
+            status=$(echo "$json" | jq -r '.[0].status // empty')
+            conclusion=$(echo "$json" | jq -r '.[0].conclusion // empty')
+            if [ -z "$status" ]; then
+              echo "::error::${workflow} hat keinen Lauf für ${HEAD_SHA}. Beide CI-Workflows müssen grün sein, bevor confessio-test deployt."
+              exit 1
+            fi
+            if [ "$status" != "completed" ]; then
+              echo "${workflow} läuft noch für ${HEAD_SHA}. Dieser Versuch deployt nicht; der abschließende CI-Lauf startet den Deploy erneut."
+              pending=true
+              continue
+            fi
+            if [ "$conclusion" != "success" ]; then
+              echo "::error::${workflow} ist für ${HEAD_SHA} nicht grün (${conclusion})."
+              exit 1
+            fi
+          done
+
+          if [ "$pending" = true ]; then
+            echo "deploy=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          echo "deploy=true" >> "$GITHUB_OUTPUT"
+
   deploy:
+    needs: ci-gate
+    if: needs.ci-gate.outputs.deploy == 'true'
     runs-on: ubuntu-latest
     environment: confessio-test
     steps:
       - uses: actions/checkout@v4
         with:
+          ref: ${{ needs.ci-gate.outputs.sha }}
           # `git describe` (siehe unten) braucht die volle Tag-Historie - der Default
           # (fetch-depth: 1) liefert nur den letzten Commit ohne erreichbare Tags.
           fetch-depth: 0
@@ -36,22 +107,22 @@ jobs:
           tenant-id: ${{ vars.AZURE_TENANT_ID }}
           subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
 
-      # Versions-Prozess (platform-architecture.mdc): "jeder Push deployt" (siehe Kommentar oben)
-      # gilt weiterhin, aber nur für Pushes, denen zuvor ein Versionstag auf genau diesem Commit
-      # gesetzt wurde (git tag vX.Y.Z && git push --tags && git push). Vorher fiel dieser Schritt
-      # ohne exakten Tag auf HEAD lautlos auf den letzten (ggf. veralteten) Tag zurueck - das liess
-      # das Operations Center faelschlich "Cluster ist neuer" melden. Jetzt: harter Fail.
+      # Zweite Sicherung hinter dem CI-Gate: ohne exakten Tag auf diesem Commit kein Rollout.
+      # Vorher fiel `git describe` ohne exakten Tag lautlos auf den letzten (ggf. veralteten) Tag
+      # zurück - das liess das Operations Center fälschlich "Cluster ist neuer" melden.
       - name: Enforce version tag on HEAD
         run: |
           if ! git describe --tags --exact-match HEAD >/dev/null 2>&1; then
-            echo "::error::HEAD (${GITHUB_SHA::8}) hat keinen Versionstag. Prozess: erst 'git tag vX.Y.Z' auf dem Release-Commit setzen, dann 'git push --tags' und 'git push' - erst danach deployt die Pipeline."
+            echo "::error::HEAD ($(git rev-parse --short=8 HEAD)) hat keinen Versionstag. Prozess: erst 'git tag vX.Y.Z' auf dem Release-Commit setzen, dann 'git push origin vX.Y.Z' - erst danach deployt die Pipeline."
             exit 1
           fi
 
       - name: Determine image tag and app version
         id: image
         run: |
-          echo "tag=${GITHUB_SHA::8}" >> "$GITHUB_OUTPUT"
+          # workflow_run setzt GITHUB_SHA auf den Workflow-Stand von main, nicht auf den
+          # auslösenden Commit. Der Checkout oben ist der CI-Commit, deshalb die SHA von HEAD.
+          echo "tag=$(git rev-parse --short=8 HEAD)" >> "$GITHUB_OUTPUT"
           # Image-Tag (oben) bleibt die Commit-SHA - eindeutig pro Build, für Rollback/Traceability.
           # APP_VERSION (hier) ist die für Menschen sichtbare Versionsnummer im Toolbar-Header
           # (siehe frontend/scripts/write-app-version.cjs) - dank des Gates oben immer der exakte
