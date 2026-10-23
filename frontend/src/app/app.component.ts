@@ -10,6 +10,7 @@ import { MatMenuModule } from '@angular/material/menu';
 import { MatSnackBarModule } from '@angular/material/snack-bar';
 import { TranslocoPipe, provideTranslocoScope } from '@jsverse/transloco';
 import { APP_VERSION } from './core/app-version';
+import { BffSessionStore } from './core/auth/bff-session.store';
 import { RUNTIME_CONFIG } from './core/runtime-config';
 import type { AppLocale } from './core/models/locale.model';
 import { AuthService } from './core/services/auth.service';
@@ -105,6 +106,12 @@ import { getUserAvatarColor, getUserInitials } from './core/utils/avatar.util';
                   <strong>{{ clusterName }}</strong></span
                 >
               </div>
+              @if (accountSecurityUrl(); as url) {
+                <a mat-menu-item [href]="url" target="_blank" rel="noopener">
+                  <mat-icon>key</mat-icon>
+                  <span>{{ 'shell.user.passkeys' | transloco: {} : lang }}</span>
+                </a>
+              }
               <button mat-menu-item (click)="logout()">
                 <mat-icon>logout</mat-icon>
                 <span>{{ 'shell.user.logout' | transloco: {} : lang }}</span>
@@ -310,6 +317,7 @@ import { getUserAvatarColor, getUserInitials } from './core/utils/avatar.util';
 })
 export class AppComponent {
   private readonly authService = inject(AuthService);
+  private readonly bffSession = inject(BffSessionStore);
   private readonly localePreferences = inject(LocalePreferencesService);
   private readonly pwaUpdate = inject(PwaUpdateService);
   private readonly router = inject(Router);
@@ -323,6 +331,10 @@ export class AppComponent {
 
   readonly currentUser = this.authService.currentUser;
   readonly isLoggedIn = this.authService.isLoggedIn;
+  /** Nur im Keycloak-Modus (ADR-21): Passkeys verwaltet die Keycloak-Kontoverwaltung. */
+  readonly accountSecurityUrl = computed(
+    () => this.bffSession.session()?.accountSecurityUrl ?? null,
+  );
   readonly isLoginPage = computed(() => this.currentUrl().startsWith('/login'));
 
   readonly userInitials = computed(() => {

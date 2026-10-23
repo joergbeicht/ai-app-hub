@@ -1520,7 +1520,8 @@ E-Mail-OTP.
    `conditional`). Die Login-Seite zeigt „Anmelden mit Passkey“; ein Passkey
    ersetzt Passwort **und** E-Mail-OTP, weil er selbst zwei Faktoren vereint
    (Gerät + Biometrie/PIN). Benutzer richten ihn in der Keycloak-Kontoverwaltung
-   ein (`/realms/axora/account` → Kontosicherheit).
+   ein; der Hub verlinkt sie im Benutzermenü („Passkey einrichten“, neuer Tab).
+   Die Adresse liefert das BFF in `GET /auth/session` (`accountSecurityUrl`).
 4. **Browser-Flow `axora browser`:** Cookie (SSO) **oder** Formular-Teilflow.
    Darin: „Username Password Form“, danach der bedingte Teilflow mit
    „Condition - credential“ (nur wenn nicht per Passkey angemeldet) und
@@ -1540,5 +1541,5 @@ gepflegte Fremderweiterung.
 **Konsequenz:** Jede Anmeldung ohne Passkey verschickt eine Mail; das Realm-
 SMTP muss in jeder Umgebung zuverlässig funktionieren. Realm-Änderungen
 greifen lokal erst nach dem Keycloak-Reset (siehe `AGENTS.md`). Für einen
-Cluster-Keycloak braucht es dasselbe Image. Offen: Link „Passkey einrichten“
-im Hub, Wiederherstellung bei verlorenem Postfach-Zugang (Admin).
+Cluster-Keycloak braucht es dasselbe Image. Offen: Wiederherstellung bei
+verlorenem Postfach-Zugang (Admin).

@@ -6,6 +6,7 @@
     "language": "Sprache wählen"
   },
   "user": {
+    "passkeys": "Passkey einrichten",
     "logout": "Abmelden",
     "cluster": "Cluster"
   },

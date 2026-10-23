@@ -27,6 +27,7 @@ const session: BffSession = {
   organization: { id: 'org-1', name: 'Axora' },
   permissions: ['hub.catalog.manage', 'hub.catalog.read'],
   csrfToken: 'csrf-token',
+  accountSecurityUrl: 'https://keycloak.example/realms/axora/account/account-security/signing-in',
 };
 
 describe('BffAuthService', () => {

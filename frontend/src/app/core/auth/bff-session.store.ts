@@ -14,6 +14,8 @@ export interface BffSession {
   organization: { id: string; name: string };
   permissions: string[];
   csrfToken: string;
+  /** Keycloak-Kontoverwaltung zum Einrichten von Passkeys (ADR-21). */
+  accountSecurityUrl: string;
 }
 
 /**

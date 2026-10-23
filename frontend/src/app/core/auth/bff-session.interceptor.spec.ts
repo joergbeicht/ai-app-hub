@@ -18,6 +18,7 @@ const session: BffSession = {
   organization: { id: 'org-1', name: 'Axora' },
   permissions: [],
   csrfToken: 'csrf-token',
+  accountSecurityUrl: 'https://keycloak.example/realms/axora/account/account-security/signing-in',
 };
 
 describe('BffSessionInterceptor', () => {

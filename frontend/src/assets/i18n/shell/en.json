@@ -6,6 +6,7 @@
     "language": "Choose language"
   },
   "user": {
+    "passkeys": "Set up passkey",
     "logout": "Log out",
     "cluster": "Cluster"
   },

@@ -13,6 +13,8 @@ export interface SessionViewDto {
   organization: { id: string; name: string };
   permissions: string[];
   csrfToken: string;
+  /** Keycloak-Kontoverwaltung, Bereich „Anmelden“: Passkeys einrichten und entfernen (ADR-21). */
+  accountSecurityUrl: string;
 }
 
 /** Antwort von `POST /auth/logout`: der Browser navigiert danach zum Keycloak-Logout. */

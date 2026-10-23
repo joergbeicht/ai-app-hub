@@ -5,12 +5,18 @@ import {
   type IamClientService,
   type IamMe,
 } from '../../iam/iam-client.service';
-import type { AuthSessionService, SessionIdentity, SessionTokens } from './auth-session.service';
+import type {
+  ActiveSession,
+  AuthSessionService,
+  SessionIdentity,
+  SessionTokens,
+} from './auth-session.service';
 import type { BffConfig } from './bff-config';
 import { BffAuthService, LoginFlowError } from './bff-auth.service';
 import type { OidcClientService } from './oidc-client.service';
 
 const FRONTEND_URL = 'https://localhost:6054';
+const ISSUER_URL = 'https://localhost:6057/realms/axora';
 const callbackRequest = {} as IncomingMessage;
 const transaction = { state: 's', nonce: 'n', codeVerifier: 'v', returnTo: '/settings' };
 
@@ -24,6 +30,20 @@ const tokens: SessionTokens = {
   accessToken: 'access-token',
   accessTokenExpiresAt: new Date(0),
   refreshToken: 'refresh-token',
+};
+
+const activeSession: ActiveSession = {
+  id: 'session-id',
+  subject: 'kc-user-1',
+  displayName: 'Hub Admin',
+  email: null,
+  roles: ['User'],
+  permissions: ['hub.catalog.read'],
+  organizationId: 'org-1',
+  organizationName: 'Axora',
+  csrfToken: 'csrf',
+  accessCheckedAt: new Date(0),
+  ...tokens,
 };
 
 function meWith(permissions: string[]): IamMe {
@@ -55,7 +75,7 @@ function createService() {
     endSession: jest.fn().mockResolvedValue('id-token'),
   };
   const iam = { getMe: jest.fn().mockResolvedValue(meWith(['hub.catalog.read'])) };
-  const config = { frontendUrl: FRONTEND_URL } as BffConfig;
+  const config = { frontendUrl: FRONTEND_URL, issuerUrl: ISSUER_URL } as BffConfig;
   const service = new BffAuthService(
     oidc as unknown as OidcClientService,
     sessions as unknown as AuthSessionService,
@@ -134,5 +154,19 @@ describe('BffAuthService', () => {
 
     await expect(service.logout('session-handle')).resolves.toBe('https://kc/logout');
     expect(oidc.endSessionUrl).toHaveBeenCalledWith('id-token');
+  });
+
+  it('shows the session without tokens and links to the Keycloak sign-in settings', () => {
+    const { service } = createService();
+
+    const view = service.toSessionView(activeSession);
+
+    expect(view).toEqual({
+      user: { id: 'kc-user-1', displayName: 'Hub Admin', email: null, roles: ['User'] },
+      organization: { id: 'org-1', name: 'Axora' },
+      permissions: ['hub.catalog.read'],
+      csrfToken: 'csrf',
+      accountSecurityUrl: `${ISSUER_URL}/account/account-security/signing-in`,
+    });
   });
 });

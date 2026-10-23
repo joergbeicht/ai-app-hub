@@ -6,6 +6,7 @@
     "language": "Dil seç"
   },
   "user": {
+    "passkeys": "Geçiş anahtarı ayarla",
     "logout": "Çıkış yap",
     "cluster": "Küme"
   },

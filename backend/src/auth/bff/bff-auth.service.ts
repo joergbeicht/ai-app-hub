@@ -13,6 +13,8 @@ import { AuthSessionService, type ActiveSession } from './auth-session.service';
 import { OidcClientService } from './oidc-client.service';
 import type { SessionViewDto } from './dto/session-view.dto';
 
+const ACCOUNT_SECURITY_PATH = '/account/account-security/signing-in';
+
 /** Fehlercodes, die das Frontend auf der Login-Seite übersetzt anzeigt (`?error=`). */
 export type LoginErrorCode = 'session_expired' | 'not_entitled' | 'login_failed' | 'unavailable';
 
@@ -92,6 +94,7 @@ export class BffAuthService {
       organization: { id: session.organizationId, name: session.organizationName },
       permissions: session.permissions,
       csrfToken: session.csrfToken,
+      accountSecurityUrl: `${this.config.issuerUrl}${ACCOUNT_SECURITY_PATH}`,
     };
   }
 
