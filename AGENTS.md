@@ -27,6 +27,14 @@ Arbeitsanweisungen für Coding-Agents (Cursor). Verbindliche Detailregeln stehen
 | Frontend | Angular 19 (Standalone, Signals, OnPush), Material, Transloco (de/en/es/fr/tr/it) | https://localhost:6054 |
 | Backend | NestJS 10 (`backend/`) | https://localhost:6055 (Host-Port per `BACKEND_HOST_PORT` in `.env`, hier oft 6059) |
 | DB | PostgreSQL 16 + Prisma 7 (`backend/prisma/`) | `localhost:6056`, DB `ai_app_hub` |
+| Keycloak | 26.8, Dev-Realm `axora` aus `infra/keycloak/dev/` (ADR-19) | https://localhost:6057 |
+
+**Lokal anmelden (ADR-19):** `.env` aus `.env.example` anlegen und die drei Keycloak-Secrets
+setzen. Danach auf https://localhost:6054 „Anmelden“ klicken und mit `admin@axora.local` sowie
+dem Passwort aus `HUB_DEV_ADMIN_PASSWORD` anmelden. Der Realm wird nur beim ersten Start
+importiert. Das Login-Theme liegt in `infra/keycloak/themes/axora/` und wirkt ohne Neustart.
+Nach Änderungen an `axora-realm.json` oder den Secrets:
+`docker compose rm -sf keycloak && docker volume rm ai-app-hub_keycloak_data && docker compose up -d keycloak`.
 
 ```bash
 ./start-docker.sh                 # oder: docker compose up (Hot Reload für frontend/ und backend/)
@@ -64,8 +72,12 @@ docs/                 Konzepte, ADRs, Leistungsbeschreibung – Einstieg docs/RE
   `cd backend && DATABASE_URL=postgresql://postgres:password@localhost:6056/ai_app_hub npm run seed:hub-apps`.
   Er überschreibt Admin-Änderungen an denselben IDs. Eine neue App-Card braucht in deployten
   Clustern einen `PUT /hub-apps` (Admin) oder einen Seed-Lauf gegen die Cluster-DB.
-- **Neue Backend-Route mit Auth:** im Frontend in `protectedResourceMap` (`msal-config.ts`)
-  eintragen, sonst fehlt das Token (Bestand bis BFF-Umbau).
+- **Neue Backend-Route mit Auth:** `@UseGuards(HubAuthGuard)` verwenden, nie direkt
+ `AzureJwtGuard`. `AUTH_MODE` entscheidet, ob dahinter die BFF-Sitzung oder das Entra-Token
+ geprüft wird. Im Entra-Modus die Route zusätzlich in `protectedResourceMap` (`msal-config.ts`)
+ eintragen, sonst fehlt das Token.
+- **`AUTH_MODE` (ADR-19):** Compose nutzt `keycloak`, Helm-Cluster `entra`. Im Keycloak-Modus
+ sind Ausweis-/PIN-Login und die Graph-Benutzerverwaltung ausgeblendet.
 - **localStorage** enthält nur persönliche Präferenzen (`app-hub-personal-preferences`), nie
   Katalog- oder Fachdaten, nie Tokens.
 - **Fehlerbehandlung im Backend:** Der globale `AllExceptionsFilter` fängt Nicht-HTTP-Fehler

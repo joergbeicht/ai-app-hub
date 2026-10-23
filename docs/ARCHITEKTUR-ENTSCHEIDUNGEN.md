@@ -39,6 +39,7 @@ erfolgt ist. Er wird aber nicht mehr funktional ausgebaut.
 | ADR-16 | Retry für `runtime-config.json` | gilt |
 | ADR-17 | Zentraler App-Katalog in PostgreSQL | gilt |
 | ADR-18 | IAM-Konzept v1.0 als Zielbild | gilt |
+| ADR-19 | Keycloak-Login über Backend-BFF (`AUTH_MODE`) | gilt lokal; Cluster bleiben vorerst `entra` |
 
 ## ADR-1: Kein eigenes PostgreSQL-DB, `app-hub-backend` nur für Rollenverwaltung (Stand: seit ADR-6 teilweise überholt)
 
@@ -1367,3 +1368,63 @@ nicht hier.
 **Nächste Schritte für dieses Repo:** Ablöse-ADR für den Tablet-Login
 (ADR-12), BFF-Umbau von `app-hub-backend` (sobald `@axora/iam-nestjs` und ein
 Keycloak-Realm bereitstehen), App-Hub-Admin-Module gemäß IAM-Konzept §15.
+
+## ADR-19: Keycloak-Login über das Backend als BFF, umschaltbar per `AUTH_MODE`
+
+**Kontext:** ADR-18 macht Keycloak + BFF zum Zielbild, der Code meldete aber
+weiterhin nur über Entra/MSAL an. Lokal (`https://localhost:6054`) war damit
+gar keine Anmeldung möglich, weil die Dev-URL in Entra nicht registriert ist.
+Axora IAM (`/api/iam/v1`) und das Plattform-Repository mit der
+Keycloak-Konfiguration existieren noch nicht.
+
+**Entscheidung:**
+
+1. **`AUTH_MODE`** (`entra` | `keycloak`) in Backend und Frontend
+   (Runtime-Config). Ohne Angabe gilt `entra`, damit bestehende Cluster ohne
+   neue Helm-Werte unverändert laufen. Docker Compose setzt `keycloak`.
+2. **BFF im `app-hub-backend`** (`src/auth/bff/`, `openid-client`):
+   Authorization Code + PKCE (S256) mit vertraulichem Client
+   `ai-app-hub-bff`; `state`, `nonce`, `iss` und ID-Token werden geprüft.
+   Routen: `GET /auth/login`, `GET /auth/callback`, `GET /auth/session`,
+   `POST /auth/logout`.
+3. **Sitzungen in der Hub-DB** (`auth_sessions`, `auth_login_transactions`).
+   Der Browser bekommt nur `__Host-hub_session` (`Secure; HttpOnly;
+   SameSite=Strict`); in der DB liegt nur der SHA-256-Hash des Cookie-Werts.
+   Absolute Laufzeit 10 h, Leerlauf 1 h (wie die Realm-Einstellungen).
+   Tokens verlassen das Backend nie.
+4. **CSRF:** Schreibende Requests brauchen das CSRF-Token der Sitzung im
+   Header `X-CSRF-Token` und, falls vorhanden, `Origin` = `FRONTEND_URL`.
+5. **Übergangs-Autorisierung:** Bis Axora IAM existiert, kommen die Rollen
+   aus den Client-Rollen von `ai-app-hub-bff` (Claim `roles`, Werte
+   `Administrator`/`User`). Ohne eine dieser Rollen endet der Login mit
+   `not_entitled` (Default Deny). Abgelöst durch die IAM-Policy-Abfrage.
+6. **Dev-Realm als Code in diesem Repo** (`infra/keycloak/dev/axora-realm.json`,
+   Import beim Start von `quay.io/keycloak/keycloak:26.8` in Compose).
+   Secrets kommen als `${ENV}`-Platzhalter aus der `.env`. Default-Admin
+   `admin@axora.local` mit beiden Client-Rollen. Abweichung von
+   `platform-architecture.mdc` (Keycloak-Konfiguration gehört ins
+   Plattform-Repo) – bewusst nur für die lokale Entwicklung, wird beim
+   Aufbau des Plattform-Repos dorthin verschoben.
+7. **Frontend:** `AuthService` ist eine abstrakte Fassade;
+   `MsalAuthService` (Bestand) oder `BffAuthService` wird in
+   `createAppConfig` nach `authMode` gebunden. Im Keycloak-Modus gibt es kein
+   MSAL, keinen Ausweis-/PIN-Login (ROPC, ADR-12) und keine Graph-
+   Benutzerverwaltung (ADR-6).
+8. **Keine eigene Login-Seite im Keycloak-Modus:** `authGuard` leitet ohne
+   Sitzung direkt zu Keycloak weiter (Top-Level-Redirect mit `returnTo`).
+   `/login` zeigt nur noch Fehler aus dem Callback (`?error=`) mit
+   „Erneut anmelden“; ohne Fehler (z. B. nach dem Logout) leitet sie sofort
+   weiter.
+9. **Login-Theme `axora`** (`infra/keycloak/themes/axora/`, Parent
+   `keycloak.v2`): Login-Card im Stil von `ai-axora-portal` (Tokens 1:1,
+   dunkel). Kopfzeile mit Axora-Logo, App-Glyph und App-Name. Die App wählt
+   ihr Branding über das Client-Attribut `axora.brand.app` (z. B.
+   `ai-app-hub`); dazu gehören `img/apps/<slug>/glyph.svg`, `icon.svg` und
+   ein Farbblock `.axora-app--<slug>` in `css/axora.css`. Ohne Attribut gilt
+   Axora-Orange. Wie der Realm wandert das Theme später ins Plattform-Repo.
+
+**Konsequenz:** Lokal läuft die Anmeldung nach dem Zielbild. Cluster bleiben
+bei `entra`, bis dort ein Keycloak-Realm betrieben wird (`deployment.mdc`);
+für `keycloak` braucht das Backend dann `FRONTEND_URL` und `OIDC_*`.
+Offen: Axora-IAM-Anbindung statt Token-Rollen, Benutzerverwaltung über IAM,
+Ersatz für den Tablet-Login, Back-Channel-Logout von Keycloak.
