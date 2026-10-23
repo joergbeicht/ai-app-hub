@@ -1,5 +1,5 @@
 ---
-description: "Plattform-Architektur: Bausteine vs. Fachapplikationen, SSO, API-Kapselung, iFrame-Embedding, API-Versionierung"
+description: "Plattform-Architektur: Bausteine vs. Fachapplikationen, IAM/SSO (Keycloak + Axora IAM), Mandantentrennung, API-Kapselung, iFrame-Embedding, API-Versionierung"
 alwaysApply: true
 ---
 
@@ -19,10 +19,9 @@ alwaysApply: true
      Baustein-Frontend, z. B. als iFrame.
 - Beide Kompositionsarten können im selben Projekt parallel vorkommen.
 - **`ai-app-hub` ist eine Fachapplikation** (kein reiner statischer
-  Launcher) – gilt ebenfalls mit voller Architektur (eigenes Backend,
-  eigene DB für fachspezifische Daten wie Nutzer-Präferenzen, Favoriten,
-  Berechtigungen je Fachapplikation), sofern nicht projektspezifisch
-  bewusst anders entschieden und dokumentiert.
+  Launcher) mit voller Architektur (eigenes Backend, eigene DB) **und das
+  Verwaltungsfrontend von Axora IAM** (Benutzer, Gruppen, Rollen, Apps &
+  Lizenzen, Einladungen, Audit – IAM-Konzept §15).
 
 # Strikte Kapselung (Database per Service)
 
@@ -33,6 +32,8 @@ alwaysApply: true
   detail und darf nicht nach außen durchsickern.
 - Umgekehrt greift auch ein Baustein nie direkt auf die DB einer
   Fachapplikation oder eines anderen Bausteins zu.
+- Das gilt ausdrücklich auch für **Keycloak**: kein Service liest oder
+  schreibt die Keycloak-Datenbank; Keycloak-DB und IAM-DB sind getrennt.
 - Jede Kommunikation zwischen Baustein und Fachapplikation (oder zwischen
   zwei Bausteinen) läuft über klar definierte, versionierte APIs – nie über
   gemeinsame Tabellen, Views auf Infrastrukturebene oder Shared-Schema-
@@ -41,41 +42,42 @@ alwaysApply: true
   wenn explizit im jeweiligen Projekt so entschieden und dokumentiert –
   niemals als impliziter Standardweg vorschlagen.
 
-# Authentifizierung & Autorisierung (SSO)
+# Identität, SSO & Berechtigungen (Axora IAM)
 
-- Auth läuft über einen **zentralen Identity Provider (OIDC/SSO)** – nicht
-  über bausteinspezifische oder app-spezifische Auth-Mechanismen. Jeder
-  Baustein und jede Fachapplikation akzeptiert und validiert dasselbe
-  Access Token (JWT) unabhängig, statt einer anderen Komponente "blind" zu
-  vertrauen.
-- **Standard-IdP der Axora-Plattform ist Microsoft Azure:**
-  - Intern/Tests: **Microsoft Entra ID** (Firmen-Tenant).
-  - Echte Endkunden: **Microsoft Entra External ID** (CIAM), sobald der
-    erste externe Kunde ansteht.
-  - Angular-Frontends: Anbindung über **MSAL** (`@azure/msal-browser` /
-    `@azure/msal-angular`), nicht über selbst gebaute OIDC-Clients.
-  - Backends (NestJS): JWT selbst validieren (Issuer, Audience, Signatur,
-    Expiry; App Roles / Claims für Autorisierung) – kein „Trust“ nur weil
-    der Hub oder ein anderer Service das Token schon geprüft hat.
-- **Nicht als Standard vorschlagen oder einführen:** Keycloak, Auth0 oder
-  andere selbst betriebene / Drittanbieter-IdPs. Die Plattform läuft auf
-  Azure (AKS/ACR); ein zweiter Identity-Stack wäre zusätzlicher Betrieb
-  ohne Mehrwert gegenüber Entra ID.
-- **Ausnahme `authenticator`:** nur für Kunden mit strikter
-  Deutschland-only-Datenresidenz für Identitätsdaten und nur wenn im
-  jeweiligen Projekt explizit so entschieden und dokumentiert (ADR). Kein
-  Default für neue Fachapplikationen oder Bausteine.
-- Kein Nutzer soll sich beim Wechsel zwischen Fachapplikation und
-  eingebettetem Baustein-Frontend erneut einloggen müssen – Silent-SSO
-  (Session/Cookie mit dem IdP / MSAL silent acquire) ist der Zielzustand,
-  kein manuelles Weiterreichen von Credentials.
-- Bei iFrame-Embedding: **Token niemals als URL-Query-Parameter**
-  übergeben (landet in Logs/Browser-History/Referrer). Stattdessen
-  entweder der eingebettete Baustein holt sein Token selbst über den
-  Silent-SSO-Flow, oder die Übergabe erfolgt kontrolliert über
-  `postMessage` nach dem Laden des iFrames – nie über die iFrame-`src`-URL.
-- Jeder Baustein validiert eingehende Tokens selbst (Signatur, Audience,
-  Expiry) – Trust wird nicht implizit vom aufrufenden System übernommen.
+Verbindliche Quelle: `docs/konzepte/axora-iam-konzept-v1.0.md` (ADR-18).
+Details für Code siehe `iam.mdc`.
+
+- **Keycloak authentifiziert, Axora IAM autorisiert.** Keycloak (selbst
+  betrieben, cloudneutral: Azure/AWS/On-Prem) macht Login, SSO, MFA/
+  Passkeys, Föderation und Token-Signatur. Axora IAM (NestJS + eigene
+  Prisma-DB, `/api/iam/v1`) entscheidet über Organisationen, Rollen,
+  Permissions, Entitlements, Resource Grants, Einladungen und Gäste.
+- **Keine eigene Passwort- oder Login-Verwaltung pro App.** Entra ID, Okta,
+  AD/LDAP sind **externe IdPs eines Kunden**, angebunden über Keycloak –
+  nicht direkt in Apps integriert.
+- **Browser-Apps nutzen ein BFF:** Authorization Code + PKCE (S256)
+  serverseitig, Tokens bleiben im Backend, der Browser bekommt nur ein
+  `Secure; HttpOnly`-Session-Cookie mit CSRF-Schutz.
+- **Verboten:** Implicit Flow, Resource Owner Password Grant (ROPC),
+  Refresh Tokens im `localStorage`, weitreichende Access Tokens im Browser,
+  Wildcard-Redirect-URIs, Token-Weitergabe zwischen Apps.
+- **„Silent Login“** = keine erneute Eingabe von Zugangsdaten bei gültiger
+  Sitzung; ein Top-Level-Redirect zu Keycloak ist zulässig. Unsichtbare
+  iframe-Logins über Drittanbieter-Cookies werden nicht vorausgesetzt.
+- **Jeder Service validiert selbst** (`iss`, `aud`, Signatur/JWKS, `exp`,
+  `nbf`, Algorithmus) und prüft den aktiven Axora-Principal – kein Trust,
+  nur weil ein anderer Service schon geprüft hat.
+- **Default Deny, Mandantenschutz ab der Datenbankabfrage:** jede fachliche
+  Abfrage ist auf `organization_id` und Objekt gescopet. Tokenrollen oder
+  UI-Ausblendungen ersetzen nie die serverseitige Datensatzprüfung. Ein per
+  Header übergebener Tenant ist nie allein vertrauenswürdig.
+- **Begriffe nicht vermischen:** Kubernetes-Namespace ≠ Keycloak-Realm ≠
+  Axora-Organisation. Keine pauschale Regel „ein Realm pro Kunde“.
+- **Nicht vorschlagen:** Auth0, Okta o. ä. als Plattform-IdP, direkte
+  MSAL-Integration in neuen Apps, eigene OAuth-Server.
+- **Übergang:** `ai-app-hub` nutzt noch Entra/MSAL, Microsoft Graph und für
+  Tablets ROPC (ADR-2/6/12/14). Dieser Code läuft bis zur Migration weiter,
+  bekommt aber **keine neuen Features**; neue Auth-Arbeit folgt dem Konzept.
 
 # iFrame-Embedding (UI-Komposition)
 
@@ -84,6 +86,9 @@ alwaysApply: true
   (`frame-ancestors`) auf Baustein-Seite, die nur bekannte
   Fachapplikations-Origins erlaubt – kein offenes Embedding von beliebigen
   Origins.
+- **Keine Tokens über Frame-Grenzen** – weder als URL-Parameter in der
+  iFrame-`src` noch per `postMessage`. Das eingebettete Frontend hat sein
+  eigenes BFF und seine eigene Session.
 - Kommunikation zwischen Fachapplikation und eingebettetem Baustein
   (Höhe/Resize, Navigation, Locale-Wechsel, Theme) ausschließlich über
   `postMessage` mit geprüftem `origin`, nie über globale
@@ -96,9 +101,8 @@ alwaysApply: true
 # API-Versionierung (Bausteine)
 
 - Jede Baustein-API ist **semantisch versioniert** (SemVer) und über einen
-  klaren, maschinenlesbaren Contract beschrieben (OpenAPI/Swagger,
-  automatisch aus den NestJS-DTOs/Decorators generiert, nicht manuell
-  gepflegt).
+  klaren, maschinenlesbaren Contract beschrieben (OpenAPI 3.1, automatisch
+  aus den NestJS-DTOs/Decorators generiert, nicht manuell gepflegt).
 - Breaking Changes an einer Baustein-API erfordern eine neue Major-Version
   bzw. einen parallel weiterlaufenden alten Endpunkt-Pfad
   (`/v1/...`, `/v2/...`) für eine Übergangszeit – Fachapplikationen dürfen
@@ -121,6 +125,10 @@ alwaysApply: true
   – in einem gemeinsamen Monorepo liegen. In letzterem Fall gelten die
   bereits generalisierten `apps/*/`-Konventionen aus `i18n.mdc` /
   `angular-material.mdc` unverändert weiter.
+- Axora IAM (`axora-iam-api`, `axora-iam-worker`), die geteilten Pakete
+  (`@axora/iam-contracts`, `@axora/iam-nestjs`, `@axora/iam-angular`) und die
+  Keycloak-Konfiguration als Code leben im Plattform-Repository – nicht in
+  Fachapplikationen kopieren.
 - Fachapplikationen binden Bausteine über eine explizite, gepinnte
   Versionsangabe ein (z. B. API-Version im Config/Env, nicht "immer
   neueste Version automatisch") – Upgrades sind ein bewusster Schritt, kein

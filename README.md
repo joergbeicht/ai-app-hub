@@ -6,11 +6,16 @@ Zentrale Übersicht aller Apps als Cards. Klick auf eine Card öffnet die jeweil
 
 - **Docker First:** Entwicklung und Laufzeit bevorzugt mit Docker (laut Dev-Rules)
 - **Frontend:** Angular (Standalone), Signal First, Material First
-- **Backend:** NestJS (`app-hub-backend`), nur für die Rollenverwaltung über Microsoft Graph (siehe ADR-6) – keine eigene DB
+- **Backend:** NestJS (`app-hub-backend`): zentraler App-Katalog (ADR-17), Rollenverwaltung über Microsoft Graph (ADR-6), Tablet-Login (ADR-12)
+- **Datenbank:** PostgreSQL 16 mit Prisma (`backend/prisma/`), Migrationen beim Containerstart
 - **Theme:** Custom Material Dark Theme (Referenz: ai-berichtgenerator)
-- **Port:** 6054 (Frontend), 6055 (Backend)
+- **Ports:** 6054 (Frontend), 6055 (Backend, per `BACKEND_HOST_PORT` überschreibbar), 6056 (Postgres)
 - **PWA:** Installierbar als Standalone-App (`@angular/service-worker`, Manifest unter `frontend/public/`). Service Worker nur im Production-Build.
-- **Konfiguration:** `frontend/src/assets/konfiguration.json`; Einstellungen optional in localStorage
+- **App-Katalog:** zentral in der DB (`GET/PUT /hub-apps`); `frontend/src/assets/konfiguration.json` ist nur Seed-Quelle; localStorage hält nur persönliche Reihenfolge/Sichtbarkeit
+
+> **Zielbild Identität & Berechtigungen:** Keycloak + Axora IAM mit BFF/Session-Cookie, der Hub
+> wird IAM-Admin-Frontend – siehe `docs/konzepte/axora-iam-konzept-v1.0.md` und ADR-18. Die unten
+> beschriebenen Entra/MSAL/Graph/ROPC-Mechanismen sind Bestand bis zur Migration.
 
 ## Start (Docker First – empfohlen)
 
@@ -21,9 +26,12 @@ Zentrale Übersicht aller Apps als Cards. Klick auf eine Card öffnet die jeweil
 # einmalig: brew install mkcert && mkcert -install
 ./start-docker.sh
 ```
-`start-docker.sh` liest den Git-Tag, legt bei Bedarf lokale TLS-Zertifikate an und startet Docker.  
+`start-docker.sh` legt bei Bedarf lokale TLS-Zertifikate an und startet Docker. Die Versionsnummer
+löst der Frontend-Container selbst aus dem (read-only) gemounteten `.git`-Verzeichnis auf – kein
+Host-Skript nötig, `docker compose up` direkt funktioniert genauso.  
 App: **https://localhost:6054** (PWA-Install-Icon in Chrome wie bei ai-service-intelligence)  
-Backend: **https://localhost:6055** (nur nötig für den Settings-Tab „Benutzerverwaltung“, siehe unten).  
+Backend: **https://localhost:6055** (bzw. `BACKEND_HOST_PORT` aus `.env`) – liefert den App-Katalog, ohne Backend bleibt das Card-Grid leer.  
+Postgres: `localhost:6056` (Container `app-hub-postgres`, DB `ai_app_hub`).  
 Änderungen unter `frontend/` (src, public, angular.json) bzw. `backend/` (src) werden übernommen.
 
 ### Tablet-Demo (iPad – Heim-WLAN + iPhone-Hotspot)
@@ -199,21 +207,31 @@ Passwort/MFA, ADR-6/ADR-7) ist davon unberührt.
 
 ## Struktur
 
-- **Startseite:** Card-Grid mit allen konfigurierten Apps (responsive, Mobile First)
-- **Einstellungen:** Apps bearbeiten, hinzufügen, entfernen; Speichern in localStorage; „Auf Standard zurücksetzen“ lädt wieder `konfiguration.json`
+- **Startseite:** Card-Grid mit allen Apps aus dem zentralen Katalog (responsive, Mobile First)
+- **Einstellungen:** Administratoren bearbeiten den zentralen Katalog (`PUT /hub-apps`); alle anderen sehen ihn schreibgeschützt und passen nur die persönliche Reihenfolge/Sichtbarkeit an („Eigene Anpassungen zurücksetzen“)
 - **Card:** App-Icon (Bild oder Material-Icon), Name, Beschreibung, URL; Klick → `window.open(url, '_blank')`
-- **Icons:** `iconType: "image"` mit Pfad (z. B. `app-icons/xyz.svg`) oder `iconType: "mat-icon"` mit Icon-Namen; bei Fehler wird das Default-Icon (`defaultIcon` in Config) angezeigt
+- **Icons:** `iconType: "image"` mit Pfad (z. B. `app-icons/xyz.svg`) oder `iconType: "mat-icon"` mit Icon-Namen; bei Fehler wird das Default-Icon angezeigt
 
-## Konfiguration
+## App-Katalog (ADR-17)
 
-Siehe `frontend/src/assets/konfiguration.json` und `docs/IMPLEMENTIERUNG-CHECKLISTE.md`.
+Erstbestand bzw. neue Apps aus `frontend/src/assets/konfiguration.json` in die DB schreiben – vom
+Host aus, nicht im Container (der Backend-Container mountet `frontend/` nicht):
+
+```bash
+cd backend
+DATABASE_URL=postgresql://postgres:password@localhost:6056/ai_app_hub npm run seed:hub-apps
+```
+
+Der Seed ist ein idempotenter Upsert nach ID und **überschreibt Admin-Änderungen** an denselben
+Einträgen. In bereits deployten Clustern neue Apps bevorzugt per Settings (Administrator) pflegen.
 
 ## i18n
 
 UI-Texte laufen über [Transloco](https://jsverse.gitbook.io/transloco), pro
 Feature ein Übersetzungs-Scope unter `frontend/src/assets/i18n/<scope>/`.
-Standard-/aktive Sprache ist Deutsch (`de`), `en` liegt für einen späteren
-Sprachumschalter bereits vollständig übersetzt vor.
+Standardsprache ist Deutsch (`de`); unterstützt werden `de`, `en`, `es`, `fr`,
+`tr`, `it` (Quelle: `locale.model.ts`). App-Namen/-Beschreibungen sind
+`LocalizedText`-Maps im Katalog, keine Transloco-Keys.
 
 ## Qualitätssicherung
 
@@ -246,15 +264,17 @@ Die GitHub-Actions-Pipelines (`.github/workflows/frontend-ci.yml`,
 `.github/workflows/backend-ci.yml`) führen Lint, Unit-Tests und Build bei
 jedem Push/PR auf `frontend/**` bzw. `backend/**` aus.
 
-## Architektur-Entscheidungen
+## Dokumentation & Architektur-Entscheidungen
 
-Bewusste, dokumentierte Abweichungen von den Standard-Rules (kein eigenes
-Backend/DB, kein AKS-Deployment) siehe `docs/ARCHITEKTUR-ENTSCHEIDUNGEN.md`.
+Einstieg: `docs/README.md`. Architektur-Entscheidungen inkl. Statusübersicht:
+`docs/ARCHITEKTUR-ENTSCHEIDUNGEN.md`. Verbindliches IAM-Zielbild:
+`docs/konzepte/axora-iam-konzept-v1.0.md`. Arbeitsanweisungen für Cursor-Agents:
+`AGENTS.md`.
 
 ## Login
 
-Anmeldung über **Azure Entra ID** (Microsoft-Konto, MSAL Redirect-Flow) –
-siehe ADR-2. In Azure ist aktuell nur `http://localhost:6054` als
+Anmeldung aktuell über **Azure Entra ID** (Microsoft-Konto, MSAL Redirect-Flow) –
+siehe ADR-2 (Bestand; Zielbild Keycloak + BFF, siehe ADR-18). In Azure ist aktuell nur `http://localhost:6054` als
 Redirect-URI registriert; die HTTPS-Dev-/LAN-URLs der Tablet-Demo oben
 funktionieren beim Login erst, sobald das Azure-Team dort weitere
 Redirect-URIs ergänzt hat.

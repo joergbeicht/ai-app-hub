@@ -1,5 +1,9 @@
 # Browser-Tools aktivieren – damit der Agent das Frontend sehen kann
 
+> **Archiviert (23.10.2026):** Der verbindliche Ablauf steht jetzt in
+> `.cursor/rules/01-browser-tools.mdc` und `AGENTS.md`. Tool-Namen in diesem Dokument
+> (`browser_unlock`, Port 6040) sind veraltet.
+
 Damit ich (der Agent) das Frontend in Cursor mit den Browser-Tools ansehen und bedienen kann, müssen folgende Schritte erfüllt sein.
 
 ---

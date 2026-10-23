@@ -24,8 +24,9 @@ alwaysApply: true
 # Architektur
 
 - Business-Logik unabhängig von Framework/DB/HTTP halten (Ports & Adapters
-  / Hexagonal-Gedanke): Domain-Logik nicht direkt an TypeORM-Entities
-  koppeln, sondern über Repository-Interfaces entkoppeln.
+  / Hexagonal-Gedanke): Domain-Logik nicht direkt an generierte
+  Prisma-Typen/den Prisma-Client koppeln, sondern über Services bzw.
+  Repository-Interfaces entkoppeln, wo die Domäne es rechtfertigt.
 - Leichte DDD-Konzepte dort nutzen, wo sie Klarheit bringen (Value Objects,
   klar benannte Aggregates, einheitliche fachliche Sprache in Code und
   Doku). Bounded Contexts dort, wo die Domäne es verlangt – nicht als

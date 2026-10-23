@@ -15,7 +15,7 @@ alwaysApply: false
   Beobachtung nebenbei. Kein Deploy, kein Merge, kein Übergang "trotzdem",
   auch nicht bei Zeitdruck.
 - Diese Kette gilt für **jedes Projekt** (Bausteine, Fachapplikationen,
-  z. B. auch `authenticator`, `provisioning-service`) einheitlich – kein
+  z. B. auch `axora-iam-api`, `provisioning-service`) einheitlich – kein
   Projekt bekommt eine Abkürzung "Push → direkt Deploy" ohne Gate
   dazwischen.
 
@@ -49,9 +49,16 @@ alwaysApply: false
 - Ab hier: **keine Mocks mehr**, alles läuft gegen reale, deployte
   Infrastruktur (echte DB, echtes Netzwerk, echte Service-zu-Service-
   Kommunikation zwischen Bausteinen und Fachapplikationen).
-- Frontend: Browser-E2E-Tests gegen die echte Staging-URL (z. B.
-  Playwright/Cypress), inklusive Login-Flow über den echten IdP
-  (Microsoft Entra ID / MSAL – siehe `platform-architecture.mdc`).
+- Frontend: Browser-E2E-Tests gegen die echte Staging-URL (Playwright),
+  inklusive Login-Flow über den echten IdP (Keycloak über das BFF; im
+  Bestand von `ai-app-hub` noch Entra ID/MSAL – siehe
+  `platform-architecture.mdc`). Testidentitäten und Issuer der
+  Test-Umgebung sind von Prod getrennt, keine produktiven Konten in Tests.
+- IAM-relevante Features: zusätzlich Multi-Tenant-Negativtests (fremde
+  Organisation, fehlendes Entitlement, abgelaufene Session, gesperrter
+  User) und die zutreffenden Abnahmekriterien AC-01 … AC-24 aus
+  `docs/konzepte/axora-iam-konzept-v1.0.md` §22 (Go-Live-Gate B2B-Kern:
+  AC-01–06, AC-18, AC-20–22).
 - Backend: API-Tests gegen das echte, deployte Backend (nicht gegen einen
   lokalen Testserver).
 - Schlägt diese Stufe fehl, gilt der Merge/Deploy-Stand als **nicht

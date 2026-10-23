@@ -7,7 +7,9 @@ alwaysApply: true
 
 - Frontend: Angular (Standalone Components, Angular Material)
 - Backend: NestJS
-- Datenbank: PostgreSQL
+- Datenbank: PostgreSQL mit Prisma
+- Identität & Berechtigungen: Keycloak + Axora IAM, BFF mit Session-Cookie
+  (Zielbild, siehe `docs/konzepte/axora-iam-konzept-v1.0.md`)
 - Entwicklungsumgebung: Docker Compose (Docker First)
 
 # Sprache
@@ -39,11 +41,15 @@ alwaysApply: true
   Logik in Services.
 - Vor größeren Refactorings: bestehende Struktur kurz zusammenfassen und
   Vorschlag machen, statt sofort querbeet umzubauen.
+- Architekturentscheidungen und bewusste Abweichungen von diesen Rules
+  werden als ADR in `docs/ARCHITEKTUR-ENTSCHEIDUNGEN.md` festgehalten
+  (Nummern stabil, überholte ADRs nur im Status markieren).
 
 # Weitere Regeln
 
-Detailregeln für Plattform-Architektur (Bausteine/Fachapplikationen,
-SSO über Azure Entra ID / MSAL, API-Kapselung), Test-Pipeline
+Projektüberblick und Arbeitsweise für Agents: `AGENTS.md`. Detailregeln für
+Plattform-Architektur (Bausteine/Fachapplikationen, IAM/SSO,
+API-Kapselung), IAM-Umsetzung (`iam.mdc`), Test-Pipeline
 (4-Stufen-Gate-Modell), Clean Code/SOLID, Angular/Material, i18n, NestJS,
-PostgreSQL, Docker und Deployment (Azure/AKS/GitHub Actions) liegen als
-eigene, kontextabhängig geladene Dateien in `.cursor/rules/`.
+PostgreSQL/Prisma, Docker und Deployment (Kubernetes/Helm/GitHub Actions)
+liegen als eigene, kontextabhängig geladene Dateien in `.cursor/rules/`.

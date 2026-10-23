@@ -1,145 +1,81 @@
-# Leistungsbeschreibung: App Hub
+# Leistungsbeschreibung: Axora AI App Hub
 
 **Dokumenttyp:** Business-orientierte Beschreibung des Systems  
 **Zielgruppe:** Fachbereiche, Entscheider, Partner  
-**Stand:** Februar 2026  
+**Stand:** 23.10.2026  
 **Projekt:** ai-app-hub
 
 ---
 
 ## Projektziel
 
-Der App Hub ist die **zentrale Einstiegsseite** für alle Apps der Plattform: Eine Übersicht aller Anwendungen als Cards – ein Klick öffnet die gewählte App in einem neuen Tab. Keine verstreuten Bookmarks, keine getrennten Ports im Kopf; eine Adresse, alle Apps.
+Der App Hub ist die **zentrale Einstiegsseite** für alle Axora-Apps: alle Anwendungen als Cards auf einer Seite – ein Klick öffnet die gewählte App in einem neuen Tab. Eine Adresse, alle Apps, keine verstreuten Bookmarks.
+
+Mit dem **Axora IAM-Konzept v1.0** (`docs/konzepte/axora-iam-konzept-v1.0.md`) bekommt der Hub eine zweite Rolle: Er wird das **Verwaltungsfrontend für Benutzer, Gruppen, Rollen, App-Lizenzen und Einladungen** der gesamten Plattform.
 
 ---
 
-## Schritt 1: Wichtigster Einstieg – die Konfiguration
-
-Der App Hub hat ein schlankes Backend-API (`app-hub-backend`), das ausschließlich die Benutzer-Rollenverwaltung übernimmt (siehe unten) – keine eigene Datenbank. Der zentrale Einstieg für die restliche Geschäftslogik bleibt die **Konfigurationsdatei**, die das Frontend beim Start lädt:
-
-**Datei:** `frontend/src/assets/konfiguration.json`
-
-- **Bedeutung:** Definiert, welche Apps angezeigt werden – pro App: Name, Kurzbeschreibung, Ziel-URL und Icon.
-- **Struktur:** Liste von App-Einträgen mit `id`, `name`, `description`, `url`, `iconType` (z. B. `mat-icon` oder `image`) und `icon` (Icon-Name oder Bildpfad). Optional ein `defaultIcon` für den Fall, dass ein Icon fehlt.
-
-Über diese Datei (oder die in den Einstellungen gespeicherte Variante in localStorage) steuert ihr, welche Apps im Hub erscheinen und wohin der Nutzer beim Klick geführt wird.
-
----
-
-## Schritt 2: Response / Konfigurationsstruktur interpretieren
-
-**Beispiel-Auszug aus konfiguration.json:**
-
-```json
-{
-  "defaultIcon": "apps",
-  "apps": [
-    {
-      "id": "ai-berichtgenerator",
-      "name": "AI Berichtgenerator",
-      "description": "Aus chronologischen Notizen professionelle Berichte erzeugen – KI-generiert, einheitlicher Stil, weniger manuelle Schreibtischarbeit.",
-      "url": "http://localhost:4202/notes",
-      "iconType": "mat-icon",
-      "icon": "menu_book"
-    },
-    {
-      "id": "ai-firmenwissen",
-      "name": "AI Firmenwissen",
-      "description": "Ihr intelligenter Wissens-Assistent: Richtlinien, Prozesse und Unternehmenswissen auf Abruf …",
-      "url": "http://localhost:4200/chat",
-      "iconType": "mat-icon",
-      "icon": "psychology"
-    }
-  ]
-}
-```
-
-| Feld | Bedeutung |
-|------|-----------|
-| **defaultIcon** | Fallback-Icon (z. B. Material `apps`), wenn für eine App kein Icon angegeben ist oder das Bild nicht geladen werden kann. |
-| **apps** | Liste aller sichtbaren Apps. Jeder Eintrag = eine Card auf der Startseite. |
-| **id** | Eindeutige Kennung der App (technisch, z. B. für Einstellungen). |
-| **name** | Anzeigename auf der Card. |
-| **description** | Kurzbeschreibung unter dem Namen – erklärt in einem Satz, wofür die App da ist. |
-| **url** | Ziel-URL; Klick auf die Card öffnet diese URL in einem neuen Tab. |
-| **iconType** | `mat-icon` = Material-Icon-Name in `icon`; `image` = Bild (Pfad oder URL in `icon`). |
-| **icon** | Material-Icon-Name (z. B. `menu_book`, `insights`) oder Bildpfad/URL. |
-
-**Kurz:** Die Konfiguration beschreibt die komplette sichtbare App-Übersicht – welche Apps es gibt, wie sie heißen, was sie tun und wohin sie führen.
-
----
-
-## Schritt 3: Was das System anhand dieser Konfiguration tut
-
-1. **Startseite anzeigen**  
-   Das Frontend lädt die Konfiguration (aus der Datei oder aus localStorage, falls in den Einstellungen gespeichert) und rendert pro Eintrag eine Card mit Icon, Name, Beschreibung und URL.
-
-2. **Einheitlicher Einstieg**  
-   Der Nutzer sieht alle verfügbaren Apps an einem Ort – Berichtgenerator, Analytics, Formulare, Flows, Data Hub, Firmenwissen, Liquiditätsmanagement, Event-/Time Machine usw. Kein Merken von Ports oder einzelnen URLs.
-
-3. **Direkt in die App**  
-   Klick auf eine Card → `window.open(url, '_blank')` – die gewählte App öffnet sich in einem neuen Tab. Der Hub bleibt im bisherigen Tab erhalten.
-
-4. **Anpassung ohne Code-Änderung (Einstellungen)**  
-   In den Einstellungen können Anwender mit Berechtigung Apps bearbeiten, hinzufügen oder entfernen. Gespeichert wird optional in localStorage; „Auf Standard zurücksetzen“ lädt wieder die ursprüngliche `konfiguration.json`.
-
-**Kurz:** Der App Hub **bündelt die Sichtbarkeit und den Zugang** zu allen Plattform-Apps über eine Konfiguration und eine Oberfläche – zentral, übersichtlich, anpassbar.
-
----
-
-## Schritt 4: Technologie-Stack, Integration, Stand
-
-### Technologie-Stack
-
-| Bereich | Technologie |
-|---------|-------------|
-| **Frontend** | Angular (Standalone), Angular Material, Signals, TypeScript |
-| **Backend** | NestJS (`app-hub-backend`), nur Benutzer-Rollenverwaltung über Microsoft Graph |
-| **Anmeldung** | Microsoft Entra ID (Azure AD), MSAL |
-| **Theme** | Custom Material Dark Theme (Referenz: ai-berichtgenerator) |
-| **Konfiguration** | `konfiguration.json` (Assets), optional Persistenz in localStorage |
-| **Laufzeit/Deployment** | Docker, Docker Compose; Production-Build mit nginx |
-| **Port** | 6054 (Frontend), 6055 (Backend) |
-
-### Integration – wer nutzt den App Hub?
-
-- **Mitarbeitende und Fachbereiche:** Täglicher Einstieg, um die richtige App (Berichte, Analytics, Formulare, Flows, WissensKI, etc.) zu öffnen.
-- **Entscheider/Demos:** Zentrale Übersicht der Plattform-Komponenten für Präsentationen und Demos.
-- **Betrieb:** Konfiguration über Datei oder Einstellungen, ohne Code-Deployment neue Apps sichtbar machen oder URLs anpassen.
-
-### Aktueller Stand
-
-| Feature | Status |
-|--------|--------|
-| Card-Grid (Startseite), responsive, Mobile First | ✅ produktiv |
-| Konfiguration aus konfiguration.json, Config-Service (Signals) | ✅ produktiv |
-| Einstellungen: Apps bearbeiten, hinzufügen, entfernen; localStorage; Zurücksetzen | ✅ produktiv |
-| Icons: Material-Icon und Bild, Default bei Fehler | ✅ produktiv |
-| Docker First, Hotreload in der Entwicklung | ✅ produktiv |
-| Anmeldung über Microsoft Entra ID (MSAL) | ✅ produktiv |
-| Benutzerverwaltung (Rollen zuweisen ohne Azure Portal) | ✅ produktiv |
-
----
-
-## Schritt 5: Was leistet das Frontend für den Anwender?
+## Was der App Hub heute leistet
 
 ### Startseite
 
-- **Card-Grid:** Alle konfigurierten Apps als Karten mit Icon, Name, Kurzbeschreibung und URL.
-- **Klick auf eine Card:** Öffnet die zugehörige App in einem neuen Tab; Hinweis „Öffnen in neuem Tab“.
-- **Responsive:** Nutzbar auf Desktop und mobil (Mobile First).
+- **Card-Grid** mit allen freigegebenen Apps: Icon, Name, Kurzbeschreibung, Ziel-URL.
+- **Klick auf eine Card** öffnet die App in einem neuen Tab, der Hub bleibt offen.
+- **Responsive / Mobile First**, installierbar als PWA (auch auf Tablets).
+- **Mehrsprachig:** Deutsch (Standard), Englisch, Spanisch, Französisch, Türkisch, Italienisch – UI und App-Texte wechseln gemeinsam.
 
-### Einstellungen
+### Zentraler App-Katalog (ADR-17)
 
-- **Apps verwalten:** Bestehende Apps bearbeiten (Name, Beschreibung, URL, Icon), neue Apps anlegen, Apps entfernen.
-- **Speichern:** Änderungen in localStorage ablegen (oder nur in der Session nutzen).
-- **Auf Standard zurücksetzen:** Lädt wieder die ursprüngliche `konfiguration.json` und überschreibt die lokalen Anpassungen.
+- Der Katalog liegt **zentral in der Datenbank** des App Hub und ist für alle Benutzer und Geräte gleich.
+- **Administratoren** pflegen ihn in den Einstellungen: Apps anlegen, bearbeiten (Name und Beschreibung je Sprache, URL, Icon), entfernen, Reihenfolge festlegen.
+- **Alle anderen Benutzer** sehen die Inhalte schreibgeschützt und können sich die Übersicht **persönlich** anpassen: eigene Reihenfolge, Apps ausblenden, „Eigene Anpassungen zurücksetzen“. Diese persönlichen Einstellungen gelten nur im jeweiligen Browser.
+- In einem Kunden-Cluster ersetzt der Hub die hinterlegte URL automatisch durch die tatsächlich erreichbare Adresse der dort laufenden App.
 
-### Was der Anwender nicht tun muss
+### Anmeldung und Benutzerverwaltung (heutiger Stand)
 
-- Keine einzelnen URLs oder Ports merken.
-- Keine manuelle Anpassung von Code, um eine neue App in der Übersicht zu haben (wenn die Konfiguration bzw. Einstellungen genutzt werden).
+- Anmeldung über **Microsoft Entra ID**; auf Tablets zusätzlich per **Mitarbeiterausweis + PIN**.
+- **Benutzerverwaltung** im Hub: Administratoren weisen Rollen (`User`, `Administrator`, `Guest`) zu, ohne das Azure-Portal öffnen zu müssen.
+
+Dieser Stand wird mit dem IAM-Konzept abgelöst (siehe unten). Bis zur Umstellung bleibt er unverändert in Betrieb.
 
 ---
 
-*Diese Leistungsbeschreibung beschreibt den App Hub in produktionsnaher Form. Die Konfiguration ist stabil; neue Apps werden über konfiguration.json oder die Einstellungen ergänzt.*
+## Zielbild nach IAM-Konzept v1.0 (ADR-18)
+
+| Bereich | Heute | Zielbild |
+|---|---|---|
+| Anmeldung | Microsoft Entra ID direkt in jeder App | **Keycloak** als zentrale Anmeldung; Entra ID, Okta oder AD des Kunden werden angebunden |
+| Wechsel zwischen Apps | Silent-SSO, wenn der Browser es zulässt | ohne erneute Eingabe von Zugangsdaten, solange eine gültige Sitzung besteht |
+| Rechte | Rollen pro App in Entra ID | **Axora IAM**: Organisationen, Gruppen, Rollen je App, Lizenzen, Freigaben auf einzelne Fachobjekte |
+| Tablet-Login | Ausweis + PIN (technisch über Passwort-Grant) | sichere, gerätegebundene Sitzung nach einmaliger Aktivierung (Lösung wird noch entschieden) |
+| Externe Personen | – | Einladung per QR-Code (einmalig, kein Dauer-Zugang) |
+| Privatkunden | – | eingeschränktes Gastkonto, später ohne Datenverlust aufwertbar |
+| Betrieb | Azure (AKS) | Azure, AWS oder On-Premises |
+
+### Der App Hub als Verwaltungsoberfläche (IAM-Konzept §15)
+
+Organisationen · Benutzer · Gruppen · Rollen & Rechte · Apps & Lizenzen · Identity Provider · Einladungen & externe Zugriffe · Sessions & Sicherheit · Audit & Compliance · Service Accounts.
+
+Ein Organisations-Administrator verwaltet ausschließlich seine eigene Organisation und kann sich keine höheren Rechte verschaffen.
+
+---
+
+## Technologie
+
+| Bereich | Technologie |
+|---|---|
+| Frontend | Angular (Standalone, Signals), Angular Material, Transloco |
+| Backend | NestJS (`app-hub-backend`) |
+| Datenbank | PostgreSQL 16 mit Prisma |
+| Anmeldung heute | Microsoft Entra ID (MSAL) |
+| Anmeldung Ziel | Keycloak + Axora IAM, Backend-for-Frontend mit Session-Cookie |
+| Betrieb | Docker, Kubernetes (Helm), GitHub Actions; Referenzcluster `confessio-test` auf Azure AKS |
+
+---
+
+## Wer nutzt den App Hub?
+
+- **Mitarbeitende:** täglicher Einstieg in Berichte, Analytics, Formulare, Service, Steuerung und weitere Apps.
+- **Administratoren beim Kunden:** pflegen App-Katalog und Benutzer, künftig auch Gruppen, Rollen und Lizenzen.
+- **Entscheider / Demos:** zentrale Übersicht der Plattform.
+- **Betrieb:** neue Apps sichtbar machen oder URLs ändern, ohne Code-Deployment.

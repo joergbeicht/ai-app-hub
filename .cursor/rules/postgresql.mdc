@@ -1,31 +1,54 @@
 ---
-description: "PostgreSQL-Konventionen: Migrationen, Schema, Queries"
-globs: ["**/*.entity.ts", "**/migrations/**", "**/*.repository.ts"]
+description: "PostgreSQL-Konventionen mit Prisma: Schema, Migrationen, Mandantenfilter, Seeds"
+globs: ["**/prisma/**", "**/*.prisma", "**/prisma.config.ts", "**/migrations/**", "**/*.repository.ts", "**/scripts/seed-*.ts", "**/docker-entrypoint*.sh"]
 alwaysApply: false
 ---
 
-# Schema & Migrationen
+# ORM & Schema
 
-- Schemaänderungen immer über Migrationen (nicht `synchronize: true` in
-  Produktionsnähe), Migrationen sind atomar und benannt nach ihrer Wirkung
-  (`add_index_users_email`, nicht `update_1`).
-- Neue Spalten: sinnvolle Constraints (NOT NULL wo passend, Foreign Keys,
-  sinnvolle Default-Werte) direkt mitdenken statt später nachzuziehen.
-- Indizes für alle Foreign Keys und häufig gefilterte/sortierte Spalten
-  vorschlagen, wenn plausibel.
+- Standard-ORM ist **Prisma** (aktuell Prisma 7 mit `@prisma/adapter-pg` +
+  `pg`-Pool). Kein TypeORM neu einführen.
+- Schema in `prisma/schema.prisma`: Modelle in PascalCase, Tabellen per
+  `@@map("snake_case")`, Spalten englisch. Fachtexte in mehreren Sprachen
+  als `Json` (`LocalizedText`, siehe `i18n.mdc`).
+- Constraints direkt mitdenken: `NOT NULL`, sinnvolle Defaults, Foreign
+  Keys, `@@index` für Fremdschlüssel und häufig gefilterte/sortierte Spalten.
+- Prisma-Modelle nie direkt als API-Response herausgeben – auf DTOs mappen
+  (siehe `nestjs.mdc`).
+
+# Migrationen
+
+- Schemaänderungen nur über `prisma migrate dev --name <wirkung>` (z. B.
+  `add_hub_apps`, `add_index_users_email`) – nie `prisma db push` gegen
+  geteilte, Test- oder Prod-Datenbanken.
+- Migrationen werden eingecheckt und beim Containerstart per
+  `prisma migrate deploy` angewendet (`docker-entrypoint*.sh`).
+- Destruktive Operationen (DROP, TRUNCATE, DELETE ohne WHERE, Spalten
+  entfernen) nie ohne ausdrücklichen Hinweis vorschlagen.
+
+# Mandantentrennung (IAM-Konzept §1, §17)
+
+- Sobald Daten organisationsbezogen sind: `organization_id` als Pflichtspalte
+  mit Index, und **jede** Abfrage filtert serverseitig darauf – auch Updates
+  und Deletes (`where: { id, organizationId }`), nicht nur Listen.
+- Die Organisation kommt aus dem validierten Sicherheitskontext, nie aus
+  Request-Body oder Header.
+- Eine Datenbank pro Service: keine Zugriffe auf fremde Service-DBs und nie
+  auf die Keycloak-DB.
 
 # Queries
 
-- Bei Query Builder/ORM: N+1-Problem vermeiden, Relationen gezielt laden
-  (`relations`/`join`), nicht pauschal alles eager laden.
-- Für komplexere Auswertungen lieber eine klar lesbare Query mit Kommentar
-  als verschachtelte ORM-Methodenketten, die schwer nachvollziehbar sind.
-- Destruktive Operationen (DROP, TRUNCATE, DELETE ohne WHERE) nie ohne
-  ausdrücklichen Hinweis vorschlagen.
+- N+1 vermeiden: Relationen gezielt per `include`/`select` laden, nicht
+  pauschal alles.
+- Mehrschrittige Schreibvorgänge in `$transaction`.
+- Für komplexe Auswertungen lieber `$queryRaw` mit Tagged Template
+  (parametrisiert) und Kommentar als unlesbare Ketten – nie
+  `$queryRawUnsafe` mit zusammengesetzten Strings.
 
-# Docker First
+# Docker First & Seeds
 
-- Lokale DB läuft im Docker-Compose-Service; Verbindungsdaten kommen aus
-  ENV-Variablen, keine hart codierten Connection Strings.
-- Seed-/Migrationsbefehle so gestalten, dass sie im Container ausführbar
-  sind (z. B. via `docker compose exec`).
+- Lokale DB läuft im Docker-Compose-Service; Verbindung ausschließlich über
+  `DATABASE_URL` aus ENV, keine hart codierten Connection Strings im Code.
+- Seed-Skripte sind idempotent (Upsert) und dokumentieren, ob sie
+  bestehende Daten überschreiben und von wo sie laufen müssen (Host vs.
+  Container).

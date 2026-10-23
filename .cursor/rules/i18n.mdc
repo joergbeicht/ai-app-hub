@@ -64,7 +64,8 @@ fachliche Texte. Dafür strikt trennen:
    persistiert werden (z. B. App-Name und -Beschreibung im Hub-Katalog,
    konfigurierbare Entitäts-Titel) → **nicht** in Transloco-Dateien,
    sondern als **`LocalizedText`** (`Record<AppLocale, string>`) im
-   Datenmodell / in der Config (z. B. `konfiguration.json`).
+   Datenmodell – in der DB als `Json`-Spalte (z. B. `hub_apps.name`, ADR-17),
+   in Seed-Dateien wie `konfiguration.json` als Map.
    Unterstützte Locales liegen zentral in `APP_LOCALES` /
    `locale.model.ts` (aktuell: `de`, `en`, `es`, `fr`, `tr`, `it`) –
    neue Sprachen dort, in Transloco `availableLangs`, in allen
@@ -85,10 +86,10 @@ fachliche Texte. Dafür strikt trennen:
   **aktuell gewählte Sprache**; andere Locales bleiben erhalten.
   Speichern schreibt die volle `LocalizedText`-Map, nicht nur den
   sichtbaren Slice.
-- Beim Laden aus Persistenz (z. B. `localStorage`) Legacy-Plain-Strings
-  als nur-`de` normalisieren und **leere Locale-Slots aus dem gebündelten
-  Asset nachziehen** (Merge nach ID) – sonst bleiben alte Speichereinträge
-  nach einem Sprachwechsel deutsch.
+- Beim Laden aus Persistenz (API/DB) Legacy-Plain-Strings als nur-`de`
+  normalisieren (z. B. `normalizeHubAppContent`). Fachtexte nie zusätzlich
+  in `localStorage` spiegeln – dort liegen nur persönliche Präferenzen,
+  sonst veralten sie gegenüber der zentralen Quelle.
 - Neue Katalog-Einträge in allen unterstützten Locales anlegen; eine Locale
   darf nicht dauerhaft fehlen (Platzhalter/TODO analog zu UI-Keys).
 - Locale-Liste nicht an mehreren Stellen hardcoden: `APP_LOCALE_CODES` für

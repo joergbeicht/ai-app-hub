@@ -1,5 +1,10 @@
 # App Hub – Implementierungs-Checkliste
 
+> **Archiviert (23.10.2026):** MVP-Checkliste vom Februar 2026, nur noch historisch. Der
+> App-Katalog liegt inzwischen in der Datenbank (ADR-17), das Zielbild für Identität und
+> Berechtigungen beschreibt `docs/konzepte/axora-iam-konzept-v1.0.md` (ADR-18). Aktueller
+> Einstieg: `docs/README.md`.
+
 ## ✅ Voraussetzungen (alles vorhanden)
 
 ### Anforderungen

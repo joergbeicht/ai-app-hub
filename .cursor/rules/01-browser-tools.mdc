@@ -7,15 +7,16 @@ alwaysApply: true
 
 ## Verwendung
 - Für Frontend-Debugging, Styling-Checks und visuelle Tests **ausschließlich** die Browser-Tools nutzen (keine Alternativen wie Screenshot-Dienste oder manuelle Beschreibungen).
-- MCP-Server: `cursor-ide-browser` oder `cursor-browser-extension`.
-- Tool-Aufruf: `call_mcp_tool` mit `server` (z. B. `cursor-ide-browser`) und `toolName` (z. B. `browser_tabs`, `browser_navigate`, `browser_snapshot`, `browser_lock`, `browser_unlock`).
+- MCP-Namespace: `cursor-ide-browser`. Schema vorher mit `GetDynamicTools` laden, Aufruf über `CallDynamicTool` (z. B. `browser_tabs`, `browser_navigate`, `browser_snapshot`, `browser_lock`, `browser_take_screenshot`).
+- Lokales Frontend: `https://localhost:6054` (Docker Compose).
 
 ## Workflow (cursor-ide-browser)
 1. Zuerst `browser_tabs` mit `action: "list"` aufrufen.
-2. Wenn ein Tab existiert: `browser_lock` → Interaktionen → `browser_unlock`.
-3. Wenn nicht: `browser_navigate` mit der URL des laufenden Frontends → dann `browser_lock` → Interaktionen → `browser_unlock`.
-4. Vor Klicks/Typen: `browser_snapshot` für Element-Refs und Struktur.
+2. Wenn ein Tab existiert: `browser_lock` (`action: "lock"`) → Interaktionen → `browser_lock` (`action: "unlock"`).
+3. Wenn nicht: `browser_navigate` mit der Frontend-URL → dann lock → Interaktionen → unlock.
+4. Vor Klicks/Eingaben: `browser_snapshot` für Element-Refs und Struktur; zur visuellen Prüfung `browser_take_screenshot`.
+5. Login-Dialoge (Entra/Keycloak, MFA, Passkeys) nicht automatisiert durchklicken – an den Nutzer übergeben.
 
 ## Wenn die Tools nicht verfügbar sind
-- Fehlermeldung „Tool … not found“ oder „available tools: “ leer bedeutet: Browser-MCP ist in dieser Session nicht verbunden.
-- Nutzer bitten, **Browser-Tools zu aktivieren** (Cursor-Einstellungen → MCP, Server verbunden lassen), dann Cursor/Composer neu starten oder einen neuen Agent-Lauf starten.
+- Fehlermeldung „Tool … not found“ oder leerer Namespace bedeutet: Browser-MCP ist in dieser Session nicht verbunden.
+- Nutzer bitten, **Browser-Tools zu aktivieren** (Cursor-Einstellungen → MCP, Server verbunden lassen), dann einen neuen Agent-Lauf starten.

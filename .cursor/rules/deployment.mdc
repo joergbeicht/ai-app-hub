@@ -1,13 +1,17 @@
 ---
-description: "Deployment-Konventionen: Azure Kubernetes Service (AKS), Helm, GitHub Actions CI/CD"
-globs: [".github/workflows/**", "**/helm/**", "**/charts/**", "**/*.helm.yaml", "**/values*.yaml", "**/Dockerfile*"]
+description: "Deployment-Konventionen: Kubernetes (AKS/EKS/On-Prem), Helm, GitHub Actions CI/CD, Keycloak-Betrieb"
+globs: [".github/workflows/**", "**/helm/**", "**/charts/**", "**/*.helm.yaml", "**/values*.yaml", "**/Dockerfile*", "**/infra/**", "**/keycloak/**"]
 alwaysApply: false
 ---
 
 # Zielinfrastruktur
 
-- Ziel ist **Azure Kubernetes Service (AKS)**, Images liegen in
-  **Azure Container Registry (ACR)**, Deploy läuft über **GitHub Actions**.
+- Die Plattform ist **cloudneutral**: Azure, AWS und On-Premises sind
+  Installationsziele (IAM-Konzept §16). Nichts so bauen, dass es nur auf
+  einer Cloud läuft (z. B. Secrets über austauschbare Provider, keine
+  Laufzeitabhängigkeit isolierter On-Prem-Installationen zur Confessio-Cloud).
+- Referenzumgebung heute: **Azure Kubernetes Service (AKS)**, Images in
+  **Azure Container Registry (ACR)**, Deploy über **GitHub Actions**.
 - Kein manuelles `kubectl apply`/`az` gegen Produktionscluster – jede
   Änderung geht über Pipeline + Git-Historie (kein Configuration Drift).
 - Die genaue Gate-Logik zwischen Lokal/CI/Staging/Prod (inkl. automatischem
@@ -68,6 +72,18 @@ alwaysApply: false
 - ENV-Variablennamen zwischen Helm-Chart, Docker-Image und Anwendungscode
   konsistent halten (siehe `docker.mdc`), damit nichts an Stellen
   auseinanderläuft.
+
+# Keycloak & IAM-Betrieb
+
+- Keycloak im Production Mode, bevorzugt über den **Keycloak Operator**,
+  versionsgepinnt (mindestens 26.8.x nach Sicherheitsprüfung), nie `latest`.
+- Realms, Clients und Flows als Config-as-Code (Plattform-Repository,
+  `infrastructure/keycloak/`), keine manuellen Klicks in der Admin-Konsole
+  als Dauerzustand.
+- Eigene PostgreSQL für Keycloak, getrennt von der IAM-DB; Backups **beider**
+  DBs plus Schlüsselmaterial und Realm-Konfiguration, Restore regelmäßig testen.
+- Test und Prod mit getrennten Issuern, Clients, Schlüsseln und Datenbanken.
+- Admin- und Management-Endpunkte von Keycloak nicht öffentlich exponieren.
 
 # Docker-Images für Produktion
 

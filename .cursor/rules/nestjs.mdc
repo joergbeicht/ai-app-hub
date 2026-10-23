@@ -1,34 +1,46 @@
 ---
-description: "NestJS-Konventionen: Struktur, Clean Code, Hot Reload"
-globs: ["apps/*/src/**/*.ts", "**/*.controller.ts", "**/*.service.ts", "**/*.module.ts", "**/*.entity.ts"]
+description: "NestJS-Konventionen: Struktur, Security, Fehlerbehandlung, Hot Reload"
+globs: ["apps/*/src/**/*.ts", "**/*.controller.ts", "**/*.service.ts", "**/*.module.ts", "**/*.dto.ts", "**/*.guard.ts", "**/*.filter.ts", "**/main.ts"]
 alwaysApply: false
 ---
 
 # Struktur
 
-- Feature-Module nach fachlicher Domäne (`user`, `order`, ...), jeweils mit
-  eigenem Controller, Service, Module, DTOs.
+- Feature-Module nach fachlicher Domäne (`hub-apps`, `users`, ...), jeweils
+  mit eigenem Controller, Service, Module, DTOs.
 - Controller bleiben dünn: Validierung via DTO + `class-validator`,
-  Business-Logik im Service.
-- Gemeinsame Cross-Cutting-Concerns (Auth, Logging, Error-Handling) als
+  Business-Logik im Service, DB-Zugriff nur über `PrismaService` im Service.
+- Cross-Cutting-Concerns (Auth, Logging, Error-Handling) als
   Guards/Interceptors/Filters, nicht dupliziert in jedem Controller.
-- DTOs für Request und Response strikt trennen, keine Entities direkt nach
-  außen geben.
+- DTOs für Request und Response strikt trennen, keine Prisma-Modelle direkt
+  nach außen geben.
+- OpenAPI wird aus DTOs/Decorators generiert (`@nestjs/swagger`), nicht von
+  Hand gepflegt (siehe `platform-architecture.mdc`).
+
+# Security
+
+- Jeder Endpunkt ist standardmäßig geschützt (Default Deny); öffentliche
+  Endpunkte (Health, Gast-Bootstrap) werden explizit markiert und
+  rate-limitiert (`@nestjs/throttler`).
+- Token-Validierung und Autorisierung nach `iam.mdc`; Organisation/Principal
+  nur aus dem validierten Sicherheitskontext.
+- Secrets nur über `ConfigService.getOrThrow` aus ENV – fail fast beim Start.
 
 # Clean Code (NestJS-spezifisch)
 
 - Dependency Injection konsequent nutzen, keine manuellen `new Service()`.
-- Aussagekräftige Fehlerbehandlung mit Nest-eigenen Exceptions
-  (`NotFoundException`, `BadRequestException`, ...) statt generischer Errors.
-- Keine Business-Logik in Entities, keine DB-Zugriffe in Controllern.
+- Fehler mit Nest-Exceptions (`NotFoundException`, `ForbiddenException`, ...)
+  statt generischer Errors. Unerwartete Fehler fängt der globale
+  `AllExceptionsFilter` (500 ohne interne Details, Log mit Stacktrace).
 - Konsistente Namensgebung: `xyz.controller.ts`, `xyz.service.ts`,
-  `xyz.module.ts`, `xyz.dto.ts`, `xyz.entity.ts`.
+  `xyz.module.ts`, `xyz.dto.ts`.
 
 # Hot Reload
 
-- Vorschläge müssen mit `--watch` (bzw. `ts-node-dev`/`nodemon` im Docker-
-  Container mit Volume-Mount) kompatibel sein.
+- Vorschläge müssen mit `nest start --watch` im Docker-Container mit
+  Volume-Mount kompatibel sein.
 - Keine Änderungen, die einen vollständigen Container-Rebuild erzwingen
-  (z. B. neue native Dependencies), ohne das explizit zu benennen.
-- Bei neuen ENV-Variablen: `.env.example` aktualisieren und Docker-Compose-
-  Service entsprechend anpassen.
+  (z. B. neue native Dependencies, Prisma-Schema-Generate im Image), ohne
+  das explizit zu benennen.
+- Bei neuen ENV-Variablen: `.env.example`, `docker-compose.yml` und das
+  Helm-Chart gemeinsam anpassen.

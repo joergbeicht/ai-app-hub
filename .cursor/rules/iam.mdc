@@ -1,0 +1,79 @@
+---
+description: "IAM-Umsetzung: BFF/Session, Token-Validierung, Policy-Checks, Mandantentrennung, Einladungen, Gäste, Audit – nach Axora IAM-Konzept v1.0"
+globs: ["**/auth/**", "**/iam/**", "**/*auth*.ts", "**/*guard*.ts", "**/*session*.ts", "**/*msal*.ts", "**/*role*.ts", "**/*permission*.ts", "**/*invitation*.ts", "**/users/**", "**/tablet-auth/**", "**/badge-login/**", "**/graph/**"]
+alwaysApply: false
+---
+
+# Quelle
+
+`docs/konzepte/axora-iam-konzept-v1.0.md`. Bei Widerspruch gilt das Konzept;
+Abweichungen nur per ADR. Grundsätze siehe `platform-architecture.mdc`.
+
+# Bestandscode in `ai-app-hub` (Übergang, ADR-18)
+
+- `msal-config.ts`, `AzureJwtGuard`, `GraphService`, `tablet-auth/`
+  (ROPC), `ssoSilent()` sind **Bestand**: Bugfixes ja, neue Features nein.
+- Keine neuen Endpunkte auf ROPC, keine neuen MSAL-Scopes für neue
+  Features, keine neue Rollenlogik in Entra-App-Roles. Stattdessen den
+  Bedarf als IAM-Permission (`app.resource.action`) beschreiben.
+
+# BFF & Session (Zielbild)
+
+- Angular spricht nur mit dem eigenen NestJS-BFF; kein Token im
+  Browser-Speicher. `@axora/iam-angular` hilft nur bei Session-/Org-Kontext.
+- Cookie: `Secure; HttpOnly`, restriktives `SameSite`, Rotation nach Login
+  und Rechteänderung. CSRF-Schutz (Token oder Origin-Prüfung) für jeden
+  ändernden Request; CORS nur per Allowlist.
+- Redirect-URIs exakt registrieren, keine Wildcards.
+- Service-zu-Service: Keycloak Client Credentials, ein Client pro Service,
+  eigene Audience.
+
+# Token-Validierung & Autorisierung (NestJS)
+
+- Prüfen: `iss`, `aud`, Signatur via JWKS (mit Key-Rotation), `exp`, `nbf`,
+  erlaubter Algorithmus, Client/Scope, aktiver Axora-Principal. `sub`
+  allein ist kein Freibrief; die stabile Identität ist `principal_id`.
+- Autorisierung über `@axora/iam-nestjs`-Guard bzw.
+  `POST /api/iam/v1/authorization/decisions`. Der Principal-Kontext kommt
+  aus dem serverseitigen Sicherheitskontext, **nie** als `principalId` oder
+  Tenant aus Request-Body/Header.
+- `ALLOW` nur bei: gültiger Session + Auth-Niveau, aktiver Mitgliedschaft,
+  Entitlement der Organisation, passender Permission, erfüllten
+  Ressourcenbedingungen und keiner Sperre. Explizite Sperre schlägt Rolle.
+- Bei Einzelobjekten (Akte, Reparatur, Dokument): Rolle allein reicht nie.
+  Das Host-Backend liest das Objekt tenant-gescopet und prüft selbst bzw.
+  übergibt verifizierte Fakten.
+- Fällt IAM/Keycloak aus: **Fail Closed** für geschützte Mutationen,
+  Einladungen und Admin-Aktionen.
+- Policy-Caches max. 30 s; Sperren und Freigabe-Widerrufe bei sensiblen
+  Endpunkten online prüfen.
+
+# Fehler, Audit, Logging
+
+- Strukturierte Fehler (RFC 9457) mit Codes wie `UNAUTHENTICATED`,
+  `FORBIDDEN`, `TENANT_MISMATCH`, `ENTITLEMENT_REQUIRED`,
+  `INVITATION_EXPIRED`, `ALREADY_CONSUMED`, `STEP_UP_REQUIRED`.
+- Jeder Request trägt `x-correlation-id`; Erstellungen unterstützen
+  `Idempotency-Key`.
+- Rechteänderungen, Sperren, Einladungen und Cross-Tenant-Versuche werden
+  auditiert. Nie Tokens, Credentials, Transkripte oder Mandatsinhalte loggen.
+
+# Einladungen, Gäste, Identitätsverknüpfung
+
+- QR-Code = einmalige Einladung, kein Login-Nachweis: keine PII im QR,
+  Hash at rest, atomares Einlösen, generischer Fehler bei ungültigen Codes.
+- Gastkonten (`GUEST_B2C`) sehen nur eigene Daten; Upgrade nur mit Gast-
+  Session **und** verifiziertem OIDC-Login.
+- Konten nie allein über gleiche E-Mail verknüpfen.
+
+# Admin-UI (`ai-app-hub`)
+
+- Nur über die IAM-API, nie direkt gegen die Keycloak-Admin-API.
+- Ein `org-admin` verwaltet nur seine Organisation und kann keine eigenen
+  Plattformrechte erhöhen; kritische Änderungen mit Step-up-MFA.
+
+# Tests
+
+- Pflicht neben Positivtests: Multi-Tenant-Negativtests (fremde
+  Organisation, fehlendes Entitlement, abgelaufene Session, gesperrter
+  User). Abnahme gegen AC-01 … AC-24 aus dem Konzept (§22).

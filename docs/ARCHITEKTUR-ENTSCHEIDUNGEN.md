@@ -6,6 +6,40 @@ entschieden wurden. Ziel: Nachvollziehbarkeit statt stillschweigender
 Abweichung – siehe `platform-architecture.mdc` ("Ausnahmen ... nur zulässig,
 wenn explizit im jeweiligen Projekt so entschieden und dokumentiert").
 
+ADR-Nummern sind stabil und werden im Code zitiert (`siehe ADR-12`) – nie
+umnummerieren, überholte ADRs nicht löschen, sondern im Status markieren.
+Die im IAM-Konzept geplanten Plattform-ADRs (`ADR-001` … `ADR-005`, Phase 0)
+gehören in das künftige Plattform-Repository (`axora-platform/docs/adr/`),
+nicht in diese Datei.
+
+## Statusübersicht (Stand 23.10.2026)
+
+Seit ADR-18 ist `docs/konzepte/axora-iam-konzept-v1.0.md` das verbindliche
+Zielbild für Identität, SSO und Berechtigungen. **„Bestand, Ziel abgelöst“**
+heißt: Der Code läuft so weiter, bis die Migration auf Keycloak/Axora IAM
+erfolgt ist. Er wird aber nicht mehr funktional ausgebaut.
+
+| ADR | Thema | Status |
+|---|---|---|
+| ADR-1 | Kein eigenes Backend/keine DB | überholt durch ADR-6 und ADR-17 |
+| ADR-2 | Entra ID / MSAL im Frontend | Bestand, Ziel abgelöst durch ADR-18 (BFF + Keycloak) |
+| ADR-3 | CI nur Lint/Test/Build | überholt durch ADR-10 (Deployment per GitHub Actions + Helm) |
+| ADR-4 | LocalizedText in `konfiguration.json` | LocalizedText gilt; Speicherort überholt durch ADR-17 (DB) |
+| ADR-5 | PWA via Angular Service Worker | gilt (ergänzt durch ADR-13, ADR-15) |
+| ADR-6 | Rollenverwaltung über Microsoft Graph | Bestand, Ziel abgelöst durch ADR-18 (Axora IAM) |
+| ADR-7 | Self-Service-Sign-up (Entra External ID) | Bestand, Ziel abgelöst durch ADR-18 (Einladung/Gast über Keycloak + IAM) |
+| ADR-8 | Tenant-Provisionierung per Graph | Bestand, Ziel abgelöst durch ADR-18 (Keycloak Config-as-Code) |
+| ADR-9 | Cluster pro Kunde, keine Mandantenfähigkeit | gilt für Infrastruktur; IAM-Mandantenmodell offen (IAM-Konzept §4, offene ADR 1) |
+| ADR-10 | Helm-Deployment `confessio-test` | gilt |
+| ADR-11 | Öffentlicher Ingress + cert-manager | gilt |
+| ADR-12 | PIN + ROPC für Tablet-Benutzer | Bestand, **widerspricht IAM-Konzept** (ROPC verboten) – Ablösung vor B2B-Go-Live |
+| ADR-13 | `version.json` + `activateUpdate()` | gilt |
+| ADR-14 | Silent-SSO per `ssoSilent()` | Bestand, Ziel abgelöst durch ADR-18 (Top-Level-Redirect, kein iframe-Login) |
+| ADR-15 | `navigationUrls`-Allowlist | gilt |
+| ADR-16 | Retry für `runtime-config.json` | gilt |
+| ADR-17 | Zentraler App-Katalog in PostgreSQL | gilt |
+| ADR-18 | IAM-Konzept v1.0 als Zielbild | gilt |
+
 ## ADR-1: Kein eigenes PostgreSQL-DB, `app-hub-backend` nur für Rollenverwaltung (Stand: seit ADR-6 teilweise überholt)
 
 **Kontext:** `platform-architecture.mdc` fordert für jede Fachapplikation
@@ -16,7 +50,7 @@ Favoriten, Berechtigungen).
 Angular-Client ohne eigenes Backend. Die Konfiguration
 (`konfiguration.json`) liegt als statisches Asset vor, Nutzeränderungen
 werden per `ConfigService` weiterhin in `localStorage` persistiert (siehe
-`docs/IMPLEMENTIERUNG-CHECKLISTE.md`, Optionen A/B wurden bewusst gewählt,
+`docs/archiv/IMPLEMENTIERUNG-CHECKLISTE.md`, Optionen A/B wurden bewusst gewählt,
 Option C – eigenes Backend – wurde zurückgestellt).
 
 **Update:** Mit ADR-6 gibt es jetzt ein `app-hub-backend` (NestJS) – aber
@@ -39,6 +73,11 @@ Bis dahin: bewusste, dokumentierte Abweichung, kein impliziter Standardweg
 für andere Projekte.
 
 ## ADR-2: Azure Entra ID / MSAL statt Login-Fake (Stand: MVP, Frontend-Login umgesetzt)
+
+> **Status (23.10.2026):** Bestand, Ziel abgelöst durch ADR-18. Künftig
+> BFF mit Authorization Code + PKCE gegen Keycloak, Tokens nur serverseitig,
+> Browser nur mit HttpOnly-Session-Cookie. Entra ID bleibt als optionaler
+> externer IdP eines Kunden (Föderation über Keycloak) erhalten.
 
 **Kontext:** `platform-architecture.mdc` fordert einen zentralen Identity
 Provider (OIDC/SSO) mit JWT-Validierung und Silent-SSO. Plattformweite
@@ -161,6 +200,12 @@ brauchen einen Production-Build (z. B. Prod-Dockerfile).
 
 ## ADR-6: In-App-Rollenverwaltung über `app-hub-backend` + Microsoft Graph (statt Azure Portal)
 
+> **Status (23.10.2026):** Bestand, Ziel abgelöst durch ADR-18. Rollen,
+> Gruppen und Rechte verwaltet künftig Axora IAM (`/api/iam/v1`); der App
+> Hub wird dessen Admin-Frontend (IAM-Konzept §15). Microsoft Graph ist
+> dann nur noch Quelle für Kunden-Föderation/SCIM, nicht mehr
+> Rollenspeicher.
+
 **Kontext:** Rollen-Zuweisung lief bisher ausschließlich über das Azure
 Portal (Entra ID → Enterprise-Anwendungen → ai-app-hub → Benutzer und
 Gruppen, siehe ADR-2) – das setzt Azure-Admin-Kenntnisse voraus, die ein
@@ -222,6 +267,11 @@ siehe `.env.example` im Backend):**
   Rollenzuweisungen mehr nötig – das war genau das Ziel dieser ADR.
 
 ## ADR-7: Mitarbeiter-Onboarding je Kunden-Tenant über Self-Service-Sign-up (Entra External ID), keine Admin-Anlage/ERP-Sync
+
+> **Status (23.10.2026):** Bestand, Ziel abgelöst durch ADR-18. Onboarding
+> läuft künftig über Axora-IAM-Einladungen, Kunden-IdP-Föderation/SCIM über
+> Keycloak bzw. Gastkonten (IAM-Konzept §10–12). Keine Kontoverknüpfung
+> allein über die E-Mail-Adresse.
 
 **Kontext:** Zielbild der Plattform: Axora-Apps werden über die Homepage per
 1-Klick verkauft, pro Kunde entsteht ein eigener, isolierter
@@ -498,6 +548,10 @@ Skript `backend/scripts/delete-test-user.ts` (`npm run delete-test-user --
 
 ## ADR-8: `backend/scripts/provision-customer-tenant.ts` – automatisierte App-Registrierung pro Kunden-Tenant
 
+> **Status (23.10.2026):** Bestand, Ziel abgelöst durch ADR-18. Clients,
+> Realms und Flows werden künftig als Keycloak-Config-as-Code gepflegt
+> (IAM-Konzept §1 Prinzip 10, §20 `infrastructure/keycloak/`).
+
 **Kontext:** ADR-7 verlangt pro Kunde einen eigenen, isolierten Tenant. Die
 dafür nötige App-Registrierung (App Roles, "Expose an API"-Scope,
 Microsoft-Graph-Berechtigungen + Admin-Consent, Client-Secret) manuell im
@@ -556,6 +610,13 @@ dieser ADR):**
 - Lösung für das Bootstrap-Admin-Problem oben.
 
 ## ADR-9: Zwei Vertriebsmodelle ("Fall 1"/"Fall 2"), aber ein einheitliches Cluster-pro-Kunde-Modell – bewusst keine Mandantenfähigkeit
+
+> **Status (23.10.2026):** Gilt für die Infrastruktur. Das IAM-Konzept (§4)
+> sieht für „Confessio SaaS“ jedoch gemeinsam betriebene Realms mit
+> mehreren Organisationen vor und verlangt Mandantenfilter über
+> `organization_id` in jeder fachlichen Abfrage – unabhängig vom
+> Cluster-Modell. Ob Fall 1 dadurch künftig geteilte IAM-Instanzen nutzt,
+> ist offene ADR 1 des IAM-Konzepts.
 
 **Kontext:** Axora verkauft seine AI-Apps (`ai-app-hub` und n weitere, siehe
 `frontend/src/assets/konfiguration.json`, z. B. AI Datenorchestrator, AI
@@ -839,6 +900,12 @@ dieser ADR):**
 
 ## ADR-12: PIN+ROPC-Login **nur für Tablet-Benutzer** statt Entra-Passwort bei jedem Login
 
+> **Status (23.10.2026):** Bestand, **widerspricht dem IAM-Konzept**
+> (§7.1: „Resource Owner Password Grant“ verboten). Der Tablet-Login darf
+> nicht erweitert werden und muss vor dem B2B-Go-Live abgelöst werden. Der
+> Ersatz (z. B. gerätegebundene BFF-Session nach einmaliger
+> Passkey-/Einladungsaktivierung) braucht eine eigene ADR.
+
 **Kontext:** ADR-7 "Weg A" verlangt bei jedem Login ein echtes, Entra-
 konformes Passwort (mind. 8 Zeichen, 3 von 4 Komplexitätsklassen) – das
 wurde beim `tablet-user`-Test (11.08.) explizit als **nicht akzeptabel**
@@ -1015,6 +1082,17 @@ Versions-Resolution für `write-app-version.cjs` und neues
 + `forceUpdateNow()` + proaktives `activateUpdate()` bei jedem Zyklus) inkl.
 Unit-Tests (`pwa-update.service.spec.ts`).
 
+**Nachtrag (19.08.):** In lokaler Entwicklung (`ng serve` / `start:docker`)
+lief nie ein `ng build`, also existierte `version.json` dort nie – jeder
+Check-Zyklus produzierte einen `404` in der Konsole. Da der Service Worker
+in `isDevMode()` ohnehin deaktiviert ist (`app.config.ts`), besteht dort
+keine Cache-Manifest-Gefahr wie im `postbuild`-Fall; `version.json` kann in
+Dev daher gefahrlos schon **vor** dem Start geschrieben werden. Neues
+`scripts/write-dev-version-json.cjs` (nutzt ebenfalls
+`resolve-app-version.cjs`), per `prestart`/`prestart:docker` erzeugt –
+analog zu `write-runtime-config.cjs` nach `frontend/public/version.json`,
+git-ignored, nie eingecheckt.
+
 ## ADR-14: Silent-SSO zwischen mehreren Axora-Apps im selben Entra-Tenant + Provisioning-Skript für weitere App-Registrierungen
 
 **Kontext:** `ai-app-hub` ist der Startpunkt für n weitere Axora-Apps
@@ -1081,6 +1159,11 @@ Login-Seite zurück – kein Regressionsrisiko.
   Helm-Values der neuen App ist weiterhin ein manueller Schritt in deren
   eigenem Repo (siehe `platform-architecture.mdc`, „gepinnte
   Versionsangabe“, kein automatischer Nebeneffekt).
+
+> **Status (23.10.2026):** Bestand, Ziel abgelöst durch ADR-18. Das
+> IAM-Konzept setzt unsichtbare iframe-Logins bewusst **nicht** voraus
+> (§1.1); SSO zwischen Apps läuft künftig über einen Top-Level-Redirect zu
+> Keycloak aus dem BFF der jeweiligen App.
 
 **Umsetzung (16.08.):** `app.config.ts` (`ssoSilent()`-Versuch in
 `initializeMsal()`), `backend/scripts/lib/app-registration-graph.ts` (neu,
@@ -1150,3 +1233,137 @@ sich genommen beide unauffällig, zusammen aber inkompatibel. Jede
 weitere App mit eigenem Service Worker auf demselben Host bräuchte
 dieselbe Allowlist-Behandlung (bisher hat außer dem Hub keine Axora-App
 einen Service Worker).
+
+## ADR-16: Retry + Fallback-UI für `runtime-config.json`-Fetch vor dem Bootstrap
+
+**Bug (23.08.2026):** `https://confessio-test.westeurope.cloudapp.azure.com/`
+zeigte gelegentlich eine komplett **weiße** (nicht Hub-dunkle) Seite – nur
+der statische `<title>` aus `index.html` erschien, sonst nichts. Ein
+zweiter Versuch über `/login` funktionierte dann. Erste Vermutung war ein
+abgelaufenes Azure-Token; das passt aber nicht zum Symptom: `authGuard`
+prüft nur, ob lokal ein zwischengespeicherter MSAL-Account existiert
+(kein Live-Check gegen Azure), und selbst ein ungültiges Ergebnis dort
+würde per `router.createUrlTree(['/login'])` zur (funktionierenden)
+Login-Seite umleiten – nicht zu einer leeren Seite.
+
+**Ursache:** `main.ts` ruft `loadRuntimeConfig()` (Fetch auf
+`runtime-config.json`) **vor** `bootstrapApplication()` auf – Angular
+existiert zu diesem Zeitpunkt noch gar nicht. Schlug dieser eine Fetch
+fehl (kurzer Netzwerk-Hänger, kalter Pod, Ingress-Hickup – bei einer
+Test-Cluster-Single-Replica nicht ungewöhnlich), landete der Fehler nur in
+`console.error(err)`, `bootstrapApplication` wurde **nie** aufgerufen und
+blieb für immer aus – daher die permanent weiße Seite ohne jede
+Rückmeldung. Ein erneutes Laden (z. B. durch Eingabe von `/login`) ist
+schlicht ein neuer Versuch, der meist einfach klappt – kein Bezug zu MSAL/
+Azure-Tokens.
+
+**Entscheidung:**
+1. `loadRuntimeConfig()` (`core/runtime-config.ts`) versucht den Fetch bis
+   zu dreimal mit kurzer Verzögerung (500 ms, 1000 ms), bevor es endgültig
+   aufgibt – deckt genau die transienten Fälle ab, die einen manuellen
+   zweiten Versuch bisher "gefixt" haben.
+2. Schlagen alle Versuche fehl (oder wirft `bootstrapApplication` selbst),
+   rendert `main.ts` eine minimale, gerahmte Fallback-Meldung
+   (`renderBootstrapErrorFallback()`) direkt per DOM/Inline-Styles statt
+   nichts zu tun – bewusste Ausnahme von "Texte immer über i18n"
+   (`00-general.mdc`): Transloco kann hier naturgemäß nicht laufen, weil
+   Angular nie gestartet ist. Zweisprachig (DE/EN) hart codiert, kein
+   Freitext-Wildwuchs.
+
+**Konsequenz:** Kein Kunde/Tester sieht mehr eine dauerhaft leere weiße
+Seite ohne jede Erklärung – entweder erholt sich der Start selbst
+(Retry) oder es gibt einen sichtbaren "Neu laden"-Button.
+
+**Umsetzung (23.08.):** `core/runtime-config.ts` (Retry-Loop +
+`runtime-config.spec.ts`-Tests dafür), `main.ts`
+(`renderBootstrapErrorFallback()`).
+
+## ADR-17: Zentraler App-Katalog in PostgreSQL (Prisma) – die DB ist die einzige Wahrheit
+
+**Kontext:** Bis hierhin lag der App-Katalog als `konfiguration.json` im
+Frontend-Bundle. Änderungen in den Einstellungen landeten pro Browser in
+`localStorage` (ADR-1, ADR-4). Folge: Jeder Browser sah einen anderen
+Katalog, neue Apps erschienen erst nach „Auf Standard zurücksetzen“, und ein
+Administrator konnte den Katalog nicht zentral für alle pflegen.
+
+**Entscheidung:**
+1. `app-hub-backend` bekommt seine erste eigene Datenbank: PostgreSQL 16 mit
+   **Prisma 7** (`@prisma/adapter-pg`, Schema in `backend/prisma/schema.prisma`,
+   Tabelle `hub_apps`). Migrationen laufen beim Containerstart per
+   `prisma migrate deploy` (`docker-entrypoint*.sh`).
+2. `GET /hub-apps` lesen alle eingeloggten Benutzer, `PUT /hub-apps` nur die
+   Rolle `Administrator`. Der PUT ersetzt den gesamten Katalog transaktional:
+   Upsert nach ID, `sortOrder` = Position im Array, fehlende IDs werden gelöscht.
+3. Im Frontend speichert `localStorage` nur noch **persönliche Präferenzen**
+   (`{ order, disabledIds }`, Key `app-hub-personal-preferences`), niemals
+   Katalog-Inhalte. Nicht-Admins sehen Name, URL und Icon schreibgeschützt.
+4. `frontend/src/assets/konfiguration.json` ist nur noch **Seed-Quelle** für den
+   Erstbestand: `npm run seed:hub-apps` in `backend/` (vom Host aus, mit
+   `DATABASE_URL` auf die Ziel-DB). Der Seed ist ein idempotenter Upsert und
+   **überschreibt Admin-Änderungen** an denselben IDs.
+5. Live-URLs aus der Cluster-Discovery (`GET /hub-catalog-urls`) überlagern die
+   gespeicherten URLs nur zur Anzeige, sie werden nicht zurückgeschrieben.
+
+**Konsequenz:** Ein Katalog für alle Benutzer und Geräte. Eine neue App-Card
+braucht in jedem bereits deployten Cluster einen `PUT /hub-apps` durch einen
+Administrator oder einen Seed-Lauf gegen dessen DB.
+
+**Cluster-Betrieb (23.10.):** Helm-Chart `helm/ai-app-hub-postgres` (PostgreSQL 16,
+eine Replica, PVC mit `helm.sh/resource-policy: keep`). Die Deploy-Workflows rollen
+Postgres vor dem Backend aus und übergeben `DATABASE_URL` als Secret. Danach läuft
+`seed:hub-apps --if-empty` per Port-Forward: Eine neue Umgebung bekommt den
+Startbestand, eine befüllte DB bleibt unangetastet. Prod hat eine eigene DB mit
+eigenem Passwort (GitHub-Environment-Secret `POSTGRES_PASSWORD`), der Katalog wird
+nicht aus Test kopiert. Backups der Cluster-DB sind noch nicht eingerichtet.
+
+Im IAM-Zielbild werden aus Katalog-Einträgen die „Apps & Lizenzen“
+(Entitlements je Organisation, IAM-Konzept §15) – das Katalogmodell muss
+dann um den Organisationsbezug erweitert werden.
+
+**Umsetzung (27.08.):** `backend/prisma/` (Schema + Migration
+`20260827062619_add_hub_apps`), `backend/src/prisma/`, `backend/src/hub-apps/`,
+`backend/scripts/seed-hub-apps.ts`, `docker-compose.yml` (Service `postgres`),
+Frontend `core/models/app-config.model.ts`, `core/services/config.service.ts`,
+`features/settings/settings-page.component.ts`.
+
+## ADR-18: Axora IAM-Konzept v1.0 als verbindliches Zielbild – Keycloak authentifiziert, Axora IAM autorisiert, App Hub wird IAM-Admin-Frontend
+
+**Kontext:** Bisher war Microsoft Entra ID der Plattform-Standard
+(`platform-architecture.mdc`, ADR-2/6/7/8/12/14), Keycloak war ausdrücklich
+ausgeschlossen. Das Konzept
+`docs/konzepte/axora-iam-konzept-v1.0.md` (Stand 23.10.2026) legt die
+Plattform neu fest: cloudneutral (Azure, AWS, On-Prem), Kunden mit eigenem
+führenden Verzeichnis (Entra, Okta, AD), B2B-SSO, QR-Einladungen und
+B2C-Gastkonten.
+
+**Entscheidung:**
+1. **Keycloak** (selbst betrieben, Operator, Version ≥ 26.8.x gepinnt) ist die
+   Identity Engine: Login, SSO, MFA/Passkeys, Föderation, Token-Signatur.
+2. **Axora IAM** (eigenständiger NestJS-Dienst mit eigener Prisma-DB) ist die
+   Autorisierung: Principals, Organisationen, Mitgliedschaften, Gruppen,
+   Rollen, Permissions (`app.resource.action`), Entitlements, Resource Grants,
+   Einladungen, Gast-Sessions, Audit. API unter `/api/iam/v1`, geteilte Pakete
+   `@axora/iam-contracts` und `@axora/iam-nestjs`.
+3. **Browser-Apps nutzen ein BFF**: Authorization Code + PKCE serverseitig,
+   Tokens bleiben im Backend, der Browser bekommt nur ein
+   `Secure; HttpOnly`-Session-Cookie. **Verboten:** Implicit Flow, ROPC,
+   Refresh Tokens im `localStorage`, weitreichende Access Tokens im Browser,
+   Wildcard-Redirect-URIs.
+4. **`ai-app-hub` wird das Admin-Frontend von Axora IAM** (IAM-Konzept §15) und
+   greift nie direkt auf die Keycloak-Admin-API zu.
+5. **Übergangsregel:** Der bestehende Entra/MSAL/Graph/ROPC-Code läuft weiter,
+   bis die jeweilige Migration umgesetzt ist. Er bekommt keine neuen Features
+   mehr. Neue Auth- und Berechtigungsarbeit folgt ausschließlich dem
+   IAM-Konzept.
+
+**Konsequenz:** ADR-2, -6, -7, -8 und -14 sind im Zielbild abgelöst. ADR-12
+(ROPC) widerspricht dem Konzept direkt und braucht vor dem B2B-Go-Live einen
+Ersatz. ADR-9 bleibt für die Infrastruktur gültig, das IAM-Mandantenmodell
+ist dort offen. Die Cursor-Rules (`platform-architecture.mdc`, `iam.mdc`)
+sind auf das Konzept umgestellt. Die acht offenen Konzept-ADRs (§23) und die
+Plattform-ADRs 001–005 (Phase 0) werden im Plattform-Repository entschieden,
+nicht hier.
+
+**Nächste Schritte für dieses Repo:** Ablöse-ADR für den Tablet-Login
+(ADR-12), BFF-Umbau von `app-hub-backend` (sobald `@axora/iam-nestjs` und ein
+Keycloak-Realm bereitstehen), App-Hub-Admin-Module gemäß IAM-Konzept §15.
