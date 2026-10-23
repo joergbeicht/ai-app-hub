@@ -1,4 +1,4 @@
-import { DestroyRef, Injectable, inject } from '@angular/core';
+import { DestroyRef, Injectable, InjectionToken, inject } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { SwUpdate, VersionReadyEvent } from '@angular/service-worker';
@@ -16,6 +16,12 @@ const FORCE_RELOAD_FALLBACK_MS = 8_000;
 interface VersionFile {
   version?: string;
 }
+
+/** `location.reload` is non-configurable in current browsers and cannot be spied on in tests. */
+export const PAGE_RELOAD = new InjectionToken<() => void>('PAGE_RELOAD', {
+  providedIn: 'root',
+  factory: () => () => document.location.reload(),
+});
 
 /**
  * Registers PWA update checks (production service worker only).
@@ -38,6 +44,7 @@ export class PwaUpdateService {
   private readonly snackBar = inject(MatSnackBar);
   private readonly transloco = inject(TranslocoService);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly reloadPage = inject(PAGE_RELOAD);
 
   private updateReloadInProgress = false;
 
@@ -160,6 +167,6 @@ export class PwaUpdateService {
     this.snackBar.open(this.transloco.translate('shell.pwa.updating'), undefined, {
       duration: 4000,
     });
-    document.location.reload();
+    this.reloadPage();
   }
 }

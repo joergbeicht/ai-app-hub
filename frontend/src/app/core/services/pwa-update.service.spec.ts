@@ -4,7 +4,17 @@ import { SwUpdate, VersionReadyEvent } from '@angular/service-worker';
 import { TranslocoService } from '@jsverse/transloco';
 import { Subject } from 'rxjs';
 import { APP_VERSION } from '../app-version';
-import { PwaUpdateService } from './pwa-update.service';
+import { PAGE_RELOAD, PwaUpdateService } from './pwa-update.service';
+
+/** Lets every pending promise chain (fetch -> json -> SwUpdate calls) settle. */
+function settle(): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve));
+}
+
+/** A native `Response` reads its body via streams, which may need more than one task to resolve. */
+function versionResponse(version: string): Response {
+  return { ok: true, json: () => Promise.resolve({ version }) } as Response;
+}
 
 describe('PwaUpdateService', () => {
   let service: PwaUpdateService;
@@ -20,6 +30,7 @@ describe('PwaUpdateService', () => {
     checkForUpdateSpy = jasmine.createSpy('checkForUpdate').and.resolveTo(false);
     activateUpdateSpy = jasmine.createSpy('activateUpdate').and.resolveTo(false);
     snackBarSpy = jasmine.createSpyObj<MatSnackBar>('MatSnackBar', ['open']);
+    reloadSpy = jasmine.createSpy('reloadPage');
 
     const swUpdateStub: Partial<SwUpdate> = {
       isEnabled: options.swEnabled,
@@ -32,6 +43,7 @@ describe('PwaUpdateService', () => {
       providers: [
         { provide: SwUpdate, useValue: swUpdateStub },
         { provide: MatSnackBar, useValue: snackBarSpy },
+        { provide: PAGE_RELOAD, useValue: reloadSpy },
         {
           provide: TranslocoService,
           useValue: { translate: (key: string) => key } as Partial<TranslocoService>,
@@ -41,24 +53,16 @@ describe('PwaUpdateService', () => {
     service = TestBed.inject(PwaUpdateService);
   }
 
-  beforeEach(() => {
-    reloadSpy = spyOn(document.location, 'reload').and.stub();
-  });
-
   afterEach(() => {
     versionUpdates.complete();
   });
 
   it('does nothing when version.json matches the running APP_VERSION', async () => {
     configure({ swEnabled: true });
-    fetchSpy = spyOn(window, 'fetch').and.resolveTo(
-      new Response(JSON.stringify({ version: APP_VERSION }), { status: 200 }),
-    );
+    fetchSpy = spyOn(window, 'fetch').and.resolveTo(versionResponse(APP_VERSION));
 
     service.init();
-    await Promise.resolve();
-    await Promise.resolve();
-    await Promise.resolve();
+    await settle();
 
     expect(fetchSpy).toHaveBeenCalledWith('/version.json', { cache: 'no-store' });
     expect(reloadSpy).not.toHaveBeenCalled();
@@ -66,16 +70,11 @@ describe('PwaUpdateService', () => {
 
   it('reloads once an update is already activatable when version.json reports a newer build', async () => {
     configure({ swEnabled: true });
-    fetchSpy = spyOn(window, 'fetch').and.resolveTo(
-      new Response(JSON.stringify({ version: '999.0.0' }), { status: 200 }),
-    );
+    fetchSpy = spyOn(window, 'fetch').and.resolveTo(versionResponse('999.0.0'));
     activateUpdateSpy.and.resolveTo(true);
 
     service.init();
-    await Promise.resolve();
-    await Promise.resolve();
-    await Promise.resolve();
-    await Promise.resolve();
+    await settle();
 
     expect(reloadSpy).toHaveBeenCalledTimes(1);
     expect(snackBarSpy.open).toHaveBeenCalled();
@@ -83,35 +82,28 @@ describe('PwaUpdateService', () => {
 
   it('reloads directly when the service worker is disabled but version.json is stale', async () => {
     configure({ swEnabled: false });
-    fetchSpy = spyOn(window, 'fetch').and.resolveTo(
-      new Response(JSON.stringify({ version: '999.0.0' }), { status: 200 }),
-    );
+    fetchSpy = spyOn(window, 'fetch').and.resolveTo(versionResponse('999.0.0'));
 
     service.init();
-    await Promise.resolve();
-    await Promise.resolve();
-    await Promise.resolve();
+    await settle();
 
     expect(reloadSpy).toHaveBeenCalledTimes(1);
   });
 
   it('reloads when the service worker reports VERSION_READY', async () => {
     configure({ swEnabled: true });
-    fetchSpy = spyOn(window, 'fetch').and.resolveTo(
-      new Response(JSON.stringify({ version: APP_VERSION }), { status: 200 }),
-    );
-    activateUpdateSpy.and.resolveTo(true);
+    fetchSpy = spyOn(window, 'fetch').and.resolveTo(versionResponse(APP_VERSION));
 
     service.init();
-    await Promise.resolve();
+    await settle();
+    activateUpdateSpy.and.resolveTo(true);
 
     versionUpdates.next({
       type: 'VERSION_READY',
       currentVersion: { hash: 'old' },
       latestVersion: { hash: 'new' },
     });
-    await Promise.resolve();
-    await Promise.resolve();
+    await settle();
 
     expect(reloadSpy).toHaveBeenCalledTimes(1);
   });
@@ -121,8 +113,7 @@ describe('PwaUpdateService', () => {
     fetchSpy = spyOn(window, 'fetch').and.rejectWith(new Error('network error'));
 
     expect(() => service.init()).not.toThrow();
-    await Promise.resolve();
-    await Promise.resolve();
+    await settle();
 
     expect(reloadSpy).not.toHaveBeenCalled();
   });
