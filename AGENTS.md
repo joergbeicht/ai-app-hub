@@ -28,7 +28,8 @@ Arbeitsanweisungen für Coding-Agents (Cursor). Verbindliche Detailregeln stehen
 | Backend | NestJS 10 (`backend/`) | https://localhost:6055 (Host-Port per `BACKEND_HOST_PORT` in `.env`, hier oft 6059) |
 | DB | PostgreSQL 16 + Prisma 7 (`backend/prisma/`) | `localhost:6056`, DB `ai_app_hub` |
 | Keycloak | 26.8, Dev-Realm `axora` aus `infra/keycloak/dev/` (ADR-19) | https://localhost:6057 |
-| Mailpit | fängt Keycloak-Mails ab (Einladungen) | http://localhost:6060 |
+| Mailversand | `../send-mail-with-azure`, SMTP-Eingang für Keycloak (ADR-22) | `127.0.0.1:6004` (SMTP), http://localhost:6003 |
+| Mailpit | optionale Mailfalle (`KEYCLOAK_SMTP_HOST=mailpit`) | http://localhost:6060 |
 | Axora IAM API | Repo `../axora-platform` (ADR-20) | http://localhost:6061/api/iam/v1/docs |
 | IAM-DB | PostgreSQL 16, DB `axora_iam` | `localhost:6062` |
 
@@ -37,14 +38,16 @@ Arbeitsanweisungen für Coding-Agents (Cursor). Verbindliche Detailregeln stehen
 derselbe `IAM_KEYCLOAK_CLIENT_SECRET`. Erst den Hub starten, dann `docker compose up -d` in
 `axora-platform`; die Plattform hängt sich an das Netz `ai-app-hub_default`. Ohne laufende IAM
 endet jeder Login mit `unavailable`. Danach https://localhost:6054 öffnen und mit
-`admin@axora.local` sowie dem Passwort aus `HUB_DEV_ADMIN_PASSWORD` anmelden. Den 6-stelligen
-E-Mail-Code zeigt Mailpit (ADR-21). Passkeys richtet man unter
+`joergbeicht@outlook.de` sowie dem Passwort aus `HUB_DEV_ADMIN_PASSWORD` anmelden. Den 6-stelligen
+E-Mail-Code (ADR-21) verschickt `send-mail-with-azure` über Microsoft Graph (ADR-22); der Dienst muss
+laufen (`docker compose up -d` in `../send-mail-with-azure`). Kommt nichts an, Logs von
+`send-mail-with-azure-smtp` prüfen oder per `.env` auf Mailpit umstellen. Passkeys richtet man unter
 https://localhost:6057/realms/axora/account → Kontosicherheit ein; sie ersetzen Passwort und Code. Der Realm wird nur beim ersten Start
 importiert. Das Login-Theme liegt in `infra/keycloak/themes/axora/` und wirkt ohne Neustart.
 Nach Änderungen an `axora-realm.json` oder den Secrets:
 `docker compose rm -sf keycloak && docker volume rm ai-app-hub_keycloak_data && docker compose up -d keycloak`.
 Danach die IAM-API neu starten (`docker restart axora-iam-api`), damit der Seed den neuen
-Keycloak-Benutzer `admin@axora.local` verknüpft. Keycloak läuft aus einem eigenen Image mit der
+Keycloak-Benutzer `joergbeicht@outlook.de` verknüpft. Keycloak läuft aus einem eigenen Image mit der
 E-Mail-OTP-Erweiterung (`infra/keycloak/Dockerfile`); bei einem Keycloak-Update den passenden
 Erweiterungs-Build mitziehen (ADR-21).
 
@@ -96,7 +99,7 @@ docs/                 Konzepte, ADRs, Leistungsbeschreibung – Einstieg docs/RE
  `hub.catalog.manage`/`hub.catalog.read` abgeleitet. Neue IAM-Verwaltungsaufrufe laufen über den
  Proxy `/iam/v1/*`, nie direkt vom Browser zur IAM oder zur Keycloak-Admin-API.
 - **IAM-Seed** (`axora-platform`): läuft bei jedem Start der IAM-API, ist idempotent und
- verknüpft `admin@axora.local` als Admin der Organisation `axora`.
+ verknüpft `joergbeicht@outlook.de` als Admin der Organisation `axora`.
 - **localStorage** enthält nur persönliche Präferenzen (`app-hub-personal-preferences`), nie
   Katalog- oder Fachdaten, nie Tokens.
 - **Fehlerbehandlung im Backend:** Der globale `AllExceptionsFilter` fängt Nicht-HTTP-Fehler

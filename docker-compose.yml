@@ -129,8 +129,14 @@ services:
       - HUB_DEV_ADMIN_PASSWORD=${HUB_DEV_ADMIN_PASSWORD:?HUB_DEV_ADMIN_PASSWORD fehlt in .env (siehe .env.example)}
       # Service-Account der Axora IAM API (axora-platform) für Benutzeranlage und Einladungen.
       - IAM_KEYCLOAK_CLIENT_SECRET=${IAM_KEYCLOAK_CLIENT_SECRET:?IAM_KEYCLOAK_CLIENT_SECRET fehlt in .env (siehe .env.example)}
+      # Mailversand (ADR-22): SMTP-Eingang von send-mail-with-azure, versendet über Microsoft Graph.
+      # Nur abfangen statt versenden: KEYCLOAK_SMTP_HOST=mailpit, KEYCLOAK_SMTP_PORT=1025.
+      - KEYCLOAK_SMTP_HOST=${KEYCLOAK_SMTP_HOST:-host.docker.internal}
+      - KEYCLOAK_SMTP_PORT=${KEYCLOAK_SMTP_PORT:-6004}
+    extra_hosts:
+      - 'host.docker.internal:host-gateway'
 
-  # Fängt alle Mails von Keycloak ab (Einladungen, Passwort setzen). Oberfläche: http://localhost:6060
+  # Optionale Mailfalle für Keycloak-Mails (siehe KEYCLOAK_SMTP_HOST). Oberfläche: http://localhost:6060
   mailpit:
     image: axllent/mailpit:v1.32.0
     container_name: app-hub-mailpit

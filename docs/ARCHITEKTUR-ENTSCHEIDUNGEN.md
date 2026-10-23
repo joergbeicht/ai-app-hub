@@ -1507,14 +1507,14 @@ E-Mail-OTP.
 1. **E-Mail ist der Benutzername** (`registrationEmailAsUsername`). Die
    Login-Seite fragt nur „E-Mail“ und „Passwort“ ab. Die IAM legt eingeladene
    Benutzer ohnehin mit der E-Mail als Benutzernamen an. Der Dev-Admin heißt
-   jetzt `admin@axora.local` (IAM-Seed `SEED_ADMIN_USERNAME`).
+   jetzt `joergbeicht@outlook.de` (IAM-Seed `SEED_ADMIN_USERNAME`).
 2. **E-Mail-OTP als Pflicht für alle**, über die Erweiterung
    [`mesutpiskin/keycloak-2fa-email-authenticator`](https://github.com/mesutpiskin/keycloak-2fa-email-authenticator)
    (Apache 2.0), Schritt „Email OTP (No Enrollment)“: jeder Benutzer mit
    E-Mail bekommt den Code ohne vorherige Einrichtung. Einstellungen: 6
    Stellen, 5 Minuten gültig, 5 Fehlversuche, 30 s bis zum erneuten Senden,
-   maskierte Adresse im Formular, Versand über das Realm-SMTP (lokal
-   Mailpit). Benutzer ohne E-Mail können sich nicht anmelden.
+   maskierte Adresse im Formular, Versand über das Realm-SMTP (siehe
+   ADR-22). Benutzer ohne E-Mail können sich nicht anmelden.
 3. **Passkeys als Option** (Windows Hello, Touch ID, Handy, Sicherheitsschlüssel):
    im Realm aktiviert (`webAuthnPolicyPasswordlessPasskeysEnabled`, Mediation
    `conditional`). Die Login-Seite zeigt „Anmelden mit Passkey“; ein Passkey
@@ -1543,3 +1543,45 @@ SMTP muss in jeder Umgebung zuverlässig funktionieren. Realm-Änderungen
 greifen lokal erst nach dem Keycloak-Reset (siehe `AGENTS.md`). Für einen
 Cluster-Keycloak braucht es dasselbe Image. Offen: Wiederherstellung bei
 verlorenem Postfach-Zugang (Admin).
+
+## ADR-22: Keycloak-Mails über den SMTP-Eingang von `send-mail-with-azure`
+
+**Kontext:** Seit ADR-21 verschickt jede Anmeldung ohne Passkey eine Mail,
+dazu kommen die Einladungen aus der IAM (ADR-20). Bisher fing Mailpit alles
+ab; echte Benutzer bekamen nichts. Plattformstandard für Login-, OTP- und
+Einladungsmails ist `send-mail-with-azure` (Microsoft Graph, Absender
+`SENDER_ADDRESS`). Keycloak kann aber nur SMTP, der Dienst nur HTTP.
+
+**Entscheidung:**
+
+1. `send-mail-with-azure` bekommt einen **SMTP-Eingang** (`smtp_intake.py`,
+   `aiosmtpd`) als zweiten Compose-Dienst `smtp-intake` aus demselben Image.
+   Er nimmt Mails ohne Anmeldung an und reicht sie pro Empfänger über
+   dieselbe Graph-Funktion weiter wie `POST /send-email`. HTML hat Vorrang
+   vor Klartext (Graph `contentType: HTML`). Schlägt Graph fehl, antwortet
+   er mit `451`, damit der Absender den Fehler sieht. Inhalte werden nicht
+   geloggt, weil darin OTP-Codes stehen.
+2. **Nur lokal erreichbar:** Der Port ist nur auf `127.0.0.1:6004` des Hosts
+   veröffentlicht. Keycloak erreicht ihn über `host.docker.internal`, wie die
+   anderen Apps die HTTP-API auf Port 6003. Keine gemeinsamen Docker-Netze,
+   damit der Hub auch ohne den Mail-Dienst startet.
+3. Der Realm liest Host und Port aus `KEYCLOAK_SMTP_HOST` /
+   `KEYCLOAK_SMTP_PORT` (Standard `host.docker.internal:6004`). Mailpit
+   bleibt als Mailfalle: `KEYCLOAK_SMTP_HOST=mailpit`, `KEYCLOAK_SMTP_PORT=1025`.
+4. Absender ist immer `SENDER_ADDRESS` des Mail-Diensts; der From-Eintrag im
+   Realm (`no-reply@axora.local`) wird von Graph ignoriert.
+
+**Abgewogen:** XOAUTH2-SMTP direkt von Keycloak zu Office 365 (neue
+Azure-Konfiguration pro Umgebung, umgeht den Plattformdienst); ein eigener
+Keycloak-Email-Provider gegen die HTTP-API (Java-Erweiterung, mehr Pflege);
+Mailpit beibehalten (keine echte Zustellung).
+
+**Konsequenz:** Ohne laufendes `send-mail-with-azure` scheitert jede
+Anmeldung ohne Passkey am OTP-Versand. Der SMTP-Eingang hat keine
+Anmeldung; er darf nie öffentlich oder in geteilten Netzen erreichbar sein.
+Für einen Cluster-Keycloak braucht es denselben Eingang als internen
+Service. **Bekanntes Risiko:** Die Absender-Domain `confessio-management.de`
+hat zwei SPF-Einträge, kein DKIM und kein DMARC (geprüft am 23.10.2026).
+Microsoft-Consumer-Postfächer (`outlook.*`, `hotmail.*`) verwerfen solche
+Mails laut `send-mail-with-azure/docs/HANDOFF.md` lautlos, obwohl Graph sie
+annimmt. Das DNS muss vor dem produktiven Einsatz korrigiert werden.

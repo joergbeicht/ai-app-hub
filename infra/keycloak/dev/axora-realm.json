@@ -79,8 +79,8 @@
     }
   ],
   "smtpServer": {
-    "host": "mailpit",
-    "port": "1025",
+    "host": "${KEYCLOAK_SMTP_HOST}",
+    "port": "${KEYCLOAK_SMTP_PORT}",
     "from": "no-reply@axora.local",
     "fromDisplayName": "Axora"
   },
@@ -142,8 +142,8 @@
   ],
   "users": [
     {
-      "username": "admin@axora.local",
-      "email": "admin@axora.local",
+      "username": "joergbeicht@outlook.de",
+      "email": "joergbeicht@outlook.de",
       "emailVerified": true,
       "firstName": "Hub",
       "lastName": "Administrator",
