@@ -19,16 +19,19 @@ import {
   MsalInterceptor,
   MsalService,
 } from '@azure/msal-angular';
+import { InteractionRequiredAuthError } from '@azure/msal-browser';
 import { firstValueFrom } from 'rxjs';
 import { routes } from './app.routes';
 import { TranslocoHttpLoader } from './core/i18n/transloco-loader';
 import { APP_LOCALE_CODES, DEFAULT_APP_LOCALE } from './core/models/locale.model';
 import { LocalePreferencesService } from './core/services/locale-preferences.service';
 import {
+  backendApiScope,
   msalGuardConfigFactory,
   msalInstanceFactory,
   msalInterceptorConfigFactory,
 } from './core/auth/msal-config';
+import { RUNTIME_CONFIG } from './core/runtime-config';
 import { TabletSessionInterceptor } from './core/auth/tablet-session.interceptor';
 
 function initializeLocale(): () => void {
@@ -42,14 +45,40 @@ function initializeLocale(): () => void {
  * Processes the Azure AD redirect response (the `#code=...` hash after a login/logout redirect) on
  * every page load, before the router's initial navigation runs `authGuard`. Mandatory per MSAL docs
  * because this app uses standalone components (no `MsalRedirectComponent`/`NgModule` bootstrap).
+ *
+ * Anschließend, falls noch kein Account im lokalen MSAL-Cache liegt, ein `ssoSilent()`-Versuch: Wenn
+ * im Browser bereits eine aktive Entra-Session existiert (z. B. weil sich die Person kurz zuvor bei
+ * einer anderen Axora-App im selben Tenant angemeldet hat, siehe ADR-14), meldet dieser Aufruf die
+ * Person über ein verstecktes iFrame an - ohne Redirect, ohne Login-Seite, ohne Klick. Schlägt er fehl
+ * (kein Consent/Session, Drittanbieter-Cookies blockiert, ...), wird das bewusst verschluckt: Die
+ * Person landet einfach auf der normalen Login-Seite und klickt dort wie gewohnt auf "Anmelden".
  */
 function initializeMsal(): () => Promise<void> {
   const msalService = inject(MsalService);
+  const { azureClientId } = inject(RUNTIME_CONFIG);
   return async () => {
     try {
       await firstValueFrom(msalService.handleRedirectObservable());
     } catch (error) {
       console.error('[MSAL] handleRedirectObservable failed', error);
+      return;
+    }
+
+    if (msalService.instance.getAllAccounts().length > 0) {
+      return;
+    }
+
+    try {
+      const result = await firstValueFrom(
+        msalService.ssoSilent({
+          scopes: ['openid', 'profile', backendApiScope(azureClientId)],
+        }),
+      );
+      msalService.instance.setActiveAccount(result.account);
+    } catch (error) {
+      if (!(error instanceof InteractionRequiredAuthError)) {
+        console.warn('[MSAL] ssoSilent failed (falling back to interactive login)', error);
+      }
     }
   };
 }
