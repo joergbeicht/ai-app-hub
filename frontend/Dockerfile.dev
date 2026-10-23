@@ -1,4 +1,4 @@
-FROM node:20-alpine
+FROM node:26-alpine
 
 # git is needed so write-app-version.cjs can read the SemVer tag from the bind-mounted repo .git
 # (APP_VERSION_GIT_DIR=/git in docker-compose.yml).

@@ -1,6 +1,6 @@
 # Production Dockerfile (Dev-Rules: Production mit Dockerfile)
 # Stage 1: Build
-FROM node:20-alpine AS build
+FROM node:26-alpine AS build
 WORKDIR /app
 
 # Real SemVer from git tag / CI – no package.json fake version.
