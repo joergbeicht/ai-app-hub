@@ -14,23 +14,17 @@
   "ssoSessionIdleTimeout": 3600,
   "ssoSessionMaxLifespan": 36000,
   "accessTokenLifespan": 300,
+  "actionTokenGeneratedByAdminLifespan": 259200,
   "internationalizationEnabled": true,
   "supportedLocales": ["de", "en", "es", "fr", "tr", "it"],
   "defaultLocale": "de",
   "loginTheme": "axora",
-  "roles": {
-    "client": {
-      "ai-app-hub-bff": [
-        {
-          "name": "Administrator",
-          "description": "Pflegt den zentralen App-Katalog des AI App Hub."
-        },
-        {
-          "name": "User",
-          "description": "Nutzt den AI App Hub lesend."
-        }
-      ]
-    }
+  "emailTheme": "keycloak",
+  "smtpServer": {
+    "host": "mailpit",
+    "port": "1025",
+    "from": "no-reply@axora.local",
+    "fromDisplayName": "Axora"
   },
   "clients": [
     {
@@ -57,22 +51,35 @@
       },
       "protocolMappers": [
         {
-          "name": "hub roles",
+          "name": "axora-iam-api audience",
           "protocol": "openid-connect",
-          "protocolMapper": "oidc-usermodel-client-role-mapper",
+          "protocolMapper": "oidc-audience-mapper",
           "consentRequired": false,
           "config": {
-            "usermodel.clientRoleMapping.clientId": "ai-app-hub-bff",
-            "claim.name": "roles",
-            "jsonType.label": "String",
-            "multivalued": "true",
-            "id.token.claim": "true",
+            "included.client.audience": "axora-iam-api",
+            "id.token.claim": "false",
             "access.token.claim": "true",
-            "userinfo.token.claim": "true",
             "introspection.token.claim": "true"
           }
         }
       ]
+    },
+    {
+      "clientId": "axora-iam-api",
+      "name": "Axora IAM API",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "${IAM_KEYCLOAK_CLIENT_SECRET}",
+      "standardFlowEnabled": false,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": true,
+      "frontchannelLogout": false,
+      "fullScopeAllowed": true,
+      "redirectUris": [],
+      "webOrigins": []
     }
   ],
   "users": [
@@ -89,9 +96,14 @@
           "value": "${HUB_DEV_ADMIN_PASSWORD}",
           "temporary": false
         }
-      ],
+      ]
+    },
+    {
+      "username": "service-account-axora-iam-api",
+      "enabled": true,
+      "serviceAccountClientId": "axora-iam-api",
       "clientRoles": {
-        "ai-app-hub-bff": ["Administrator", "User"]
+        "realm-management": ["view-users", "query-users", "manage-users"]
       }
     }
   ]

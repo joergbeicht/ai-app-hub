@@ -21,7 +21,8 @@ resources:
 env:
   corsOrigin: ""
   # ADR-19: `entra` (MSAL-Bestand) bis der Cluster einen Keycloak-Realm hat. Für `keycloak`
-  # braucht das Backend zusätzlich FRONTEND_URL und OIDC_* (siehe .env.example).
+  # braucht das Backend zusätzlich FRONTEND_URL, OIDC_*, IAM_API_URL und das Secret
+  # SESSION_TOKEN_KEY (ADR-20, siehe .env.example).
   authMode: "entra"
   # Nur für den Tablet-PIN-Login nötig (siehe ADR-12) - leer lassen, solange für den Kunden-
   # Cluster noch kein Key Vault/keine Tablet-Gruppe existiert; `POST /tablet-auth/*` antwortet
