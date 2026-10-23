@@ -1,7 +1,13 @@
 import type { IncomingMessage } from 'node:http';
 import { Inject, Injectable } from '@nestjs/common';
+import {
+  IamAccessDeniedError,
+  IamClientService,
+  IamUnavailableError,
+  type IamMe,
+} from '../../iam/iam-client.service';
+import { resolveHubAccess, type HubAccess } from '../../iam/hub-access';
 import { BFF_CONFIG, type BffConfig } from './bff-config';
-import { HUB_ENTITLED_ROLES } from './bff.constants';
 import { sanitizeReturnTo } from './return-to';
 import { AuthSessionService, type ActiveSession } from './auth-session.service';
 import { OidcClientService } from './oidc-client.service';
@@ -36,6 +42,7 @@ export class BffAuthService {
   constructor(
     private readonly oidc: OidcClientService,
     private readonly sessions: AuthSessionService,
+    private readonly iam: IamClientService,
     @Inject(BFF_CONFIG) private readonly config: BffConfig,
   ) {}
 
@@ -54,12 +61,9 @@ export class BffAuthService {
       throw new LoginFlowError('session_expired');
     }
 
-    const identity = await this.oidc.exchangeCode(callbackRequest, transaction);
-    if (!identity.roles.some((role) => isEntitledRole(role))) {
-      throw new LoginFlowError('not_entitled');
-    }
-
-    const session = await this.sessions.createSession(identity);
+    const { identity, tokens } = await this.oidc.exchangeCode(callbackRequest, transaction);
+    const access = await this.loadHubAccess(tokens.accessToken);
+    const session = await this.sessions.createSession(identity, tokens, access);
     return {
       sessionHandle: session.handle,
       expiresAt: session.expiresAt,
@@ -85,11 +89,30 @@ export class BffAuthService {
         email: session.email,
         roles: session.roles,
       },
+      organization: { id: session.organizationId, name: session.organizationName },
+      permissions: session.permissions,
       csrfToken: session.csrfToken,
     };
   }
-}
 
-function isEntitledRole(role: string): boolean {
-  return HUB_ENTITLED_ROLES.some((entitled) => entitled === role);
+  /** Ohne aktive Mitgliedschaft, Entitlement und `hub.catalog.read` gibt es keine Sitzung (Default Deny). */
+  private async loadHubAccess(accessToken: string): Promise<HubAccess> {
+    let me: IamMe;
+    try {
+      me = await this.iam.getMe(accessToken);
+    } catch (error) {
+      if (error instanceof IamAccessDeniedError) {
+        throw new LoginFlowError('not_entitled');
+      }
+      if (error instanceof IamUnavailableError) {
+        throw new LoginFlowError('unavailable');
+      }
+      throw error;
+    }
+    const access = resolveHubAccess(me);
+    if (!access) {
+      throw new LoginFlowError('not_entitled');
+    }
+    return access;
+  }
 }

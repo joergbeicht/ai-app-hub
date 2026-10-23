@@ -1,9 +1,28 @@
 import type { IncomingMessage } from 'node:http';
 import { Inject, Injectable } from '@nestjs/common';
-import { Issuer, custom, generators, type Client, type IdTokenClaims } from 'openid-client';
+import {
+  Issuer,
+  custom,
+  errors,
+  generators,
+  type Client,
+  type IdTokenClaims,
+  type TokenSet,
+} from 'openid-client';
 import { BFF_CONFIG, type BffConfig } from './bff-config';
 import { OIDC_CLOCK_TOLERANCE_SECONDS, OIDC_SCOPES } from './bff.constants';
-import type { LoginTransaction, SessionIdentity } from './auth-session.service';
+import type { LoginTransaction, SessionIdentity, SessionTokens } from './auth-session.service';
+
+export interface ExchangedCode {
+  identity: SessionIdentity;
+  tokens: SessionTokens;
+}
+
+export class OidcSessionEndedError extends Error {
+  constructor(readonly reason: string) {
+    super(`Keycloak session ended: ${reason}`);
+  }
+}
 
 /**
  * OIDC-Client des BFF gegen Keycloak: Authorization Code + PKCE (S256), vertraulicher Client.
@@ -33,7 +52,7 @@ export class OidcClientService {
   async exchangeCode(
     callbackRequest: IncomingMessage,
     transaction: LoginTransaction,
-  ): Promise<SessionIdentity> {
+  ): Promise<ExchangedCode> {
     const client = await this.client();
     const params = client.callbackParams(callbackRequest);
     const tokenSet = await client.callback(this.config.redirectUri, params, {
@@ -45,7 +64,26 @@ export class OidcClientService {
     if (!tokenSet.id_token) {
       throw new Error('Token response contains no ID token');
     }
-    return toSessionIdentity(tokenSet.claims(), tokenSet.id_token);
+    return {
+      identity: toSessionIdentity(tokenSet.claims(), tokenSet.id_token),
+      tokens: toSessionTokens(tokenSet),
+    };
+  }
+
+  /**
+   * Erneuert das Access-Token. Ein `OidcSessionEndedError` bedeutet, dass Keycloak die Sitzung
+   * beendet hat (Logout, Sperre, Ablauf); andere Fehler sind technische Störungen.
+   */
+  async refresh(refreshToken: string): Promise<SessionTokens> {
+    const client = await this.client();
+    try {
+      return toSessionTokens(await client.refresh(refreshToken));
+    } catch (error) {
+      if (error instanceof errors.OPError) {
+        throw new OidcSessionEndedError(error.error ?? 'unknown');
+      }
+      throw error;
+    }
   }
 
   async endSessionUrl(idToken: string | null): Promise<string> {
@@ -90,19 +128,21 @@ function toSessionIdentity(claims: IdTokenClaims, idToken: string): SessionIdent
   const email = typeof claims.email === 'string' ? claims.email : null;
   const displayName =
     stringClaim(claims.name) ?? stringClaim(claims.preferred_username) ?? email ?? claims.sub;
+  return { subject: claims.sub, displayName, email, idToken };
+}
+
+function toSessionTokens(tokenSet: TokenSet): SessionTokens {
+  if (!tokenSet.access_token || !tokenSet.refresh_token || tokenSet.expires_at === undefined) {
+    throw new Error('Token response lacks access token, refresh token or expiry');
+  }
   return {
-    subject: claims.sub,
-    displayName,
-    email,
-    roles: stringArrayClaim(claims['roles']),
-    idToken,
+    accessToken: tokenSet.access_token,
+    accessTokenExpiresAt: new Date(tokenSet.expires_at * 1000),
+    refreshToken: tokenSet.refresh_token,
+    ...(tokenSet.id_token ? { idToken: tokenSet.id_token } : {}),
   };
 }
 
 function stringClaim(value: unknown): string | undefined {
   return typeof value === 'string' && value.length > 0 ? value : undefined;
-}
-
-function stringArrayClaim(value: unknown): string[] {
-  return Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string') : [];
 }

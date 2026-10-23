@@ -13,7 +13,7 @@ import {
 import type { Request, Response } from 'express';
 import { LOGIN_TRANSACTION_COOKIE, SESSION_COOKIE } from './bff.constants';
 import { BffAuthService, LoginFlowError } from './bff-auth.service';
-import { SessionAuthGuard, type SessionRequest } from './session-auth.guard';
+import { SessionAuthGuard, SessionCookieGuard, type SessionRequest } from './session-auth.guard';
 import {
   clearedCookieOptions,
   loginTransactionCookieOptions,
@@ -67,7 +67,7 @@ export class BffAuthController {
 
   @Post('logout')
   @HttpCode(HttpStatus.OK)
-  @UseGuards(SessionAuthGuard)
+  @UseGuards(SessionCookieGuard)
   async logout(
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,

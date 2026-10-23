@@ -1,4 +1,8 @@
-/** Antwort von `GET /auth/session`: wer angemeldet ist und welches CSRF-Token mitzusenden ist. */
+/**
+ * Antwort von `GET /auth/session`: wer angemeldet ist, in welcher Organisation, mit welchen
+ * Axora-IAM-Permissions (`hub.*`, `iam.*`) und welches CSRF-Token mitzusenden ist. Die
+ * Permissions steuern nur die Oberfläche; entschieden wird serverseitig (Hub bzw. IAM).
+ */
 export interface SessionViewDto {
   user: {
     id: string;
@@ -6,6 +10,8 @@ export interface SessionViewDto {
     email: string | null;
     roles: string[];
   };
+  organization: { id: string; name: string };
+  permissions: string[];
   csrfToken: string;
 }
 

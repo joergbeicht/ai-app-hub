@@ -16,7 +16,10 @@ export const LOGIN_TRANSACTION_LIFETIME_MS = 10 * 60 * 1000;
 export const OIDC_SCOPES = 'openid profile email';
 export const OIDC_CLOCK_TOLERANCE_SECONDS = 5;
 
-/** Ohne eine dieser Client-Rollen gibt es keine Sitzung (Default Deny, fehlendes Entitlement). */
-export const HUB_ENTITLED_ROLES = ['Administrator', 'User'] as const;
+/** Vorlauf, mit dem das Access-Token vor Ablauf erneuert wird (Uhrabweichung, Laufzeit zur IAM). */
+export const ACCESS_TOKEN_REFRESH_MARGIN_MS = 30 * 1000;
+
+/** So lange gelten die IAM-Rechte einer Sitzung, bevor sie neu abgefragt werden (ADR-20). */
+export const ACCESS_RECHECK_INTERVAL_MS = 30 * 1000;
 
 export const SAFE_HTTP_METHODS: ReadonlySet<string> = new Set(['GET', 'HEAD', 'OPTIONS']);

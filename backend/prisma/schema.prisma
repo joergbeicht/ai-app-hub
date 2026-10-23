@@ -28,19 +28,29 @@ model HubApp {
 
 /// Browser-Sitzung des BFF-Logins (ADR-19). Der Browser hält nur den zufälligen Cookie-Wert;
 /// gespeichert wird ausschließlich dessen SHA-256-Hash, damit ein DB-Leak keine gültigen
-/// Cookies preisgibt. Access-/Refresh-Tokens werden nicht gespeichert.
+/// Cookies preisgibt. Access- und Refresh-Token liegen nur AES-256-GCM-verschlüsselt hier
+/// (Schlüssel `SESSION_TOKEN_KEY`, ADR-20).
 model AuthSession {
-  id          String   @id
-  subject     String
-  displayName String
-  email       String?
-  roles       String[]
+  id                   String   @id
+  subject              String
+  displayName          String
+  email                String?
+  /// Aus den IAM-Permissions abgeleitet (`Administrator`/`User`), siehe `hub-access.ts`.
+  roles                String[]
+  /// Effektive Permissions in `organizationId` laut Axora IAM, Stand `accessCheckedAt`.
+  permissions          String[]
+  organizationId       String
+  organizationName     String
+  accessCheckedAt      DateTime
   /// Nur als `id_token_hint` für den Keycloak-Logout.
-  idToken     String
-  csrfToken   String
-  expiresAt   DateTime
-  lastSeenAt  DateTime @default(now())
-  createdAt   DateTime @default(now())
+  idToken              String
+  accessToken          String
+  accessTokenExpiresAt DateTime
+  refreshToken         String
+  csrfToken            String
+  expiresAt            DateTime
+  lastSeenAt           DateTime @default(now())
+  createdAt            DateTime @default(now())
 
   @@index([expiresAt])
   @@map("auth_sessions")

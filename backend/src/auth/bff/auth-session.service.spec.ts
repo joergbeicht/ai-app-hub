@@ -1,5 +1,7 @@
+import { randomBytes } from 'node:crypto';
 import type { PrismaService } from '../../prisma/prisma.service';
-import { AuthSessionService, type SessionIdentity } from './auth-session.service';
+import type { HubAccess } from '../../iam/hub-access';
+import { AuthSessionService, type SessionIdentity, type SessionTokens } from './auth-session.service';
 import {
   LOGIN_TRANSACTION_LIFETIME_MS,
   SESSION_ABSOLUTE_LIFETIME_MS,
@@ -7,15 +9,27 @@ import {
   SESSION_TOUCH_INTERVAL_MS,
 } from './bff.constants';
 import { hashToken } from './secure-token';
+import { TokenCipher } from './token-cipher';
 
 const NOW = new Date('2026-10-23T12:00:00Z');
+const cipher = new TokenCipher(randomBytes(32));
 
 const identity: SessionIdentity = {
   subject: 'kc-user-1',
   displayName: 'Hub Administrator',
   email: 'admin@axora.local',
-  roles: ['Administrator'],
   idToken: 'id-token',
+};
+const tokens: SessionTokens = {
+  accessToken: 'access-token',
+  accessTokenExpiresAt: new Date(NOW.getTime() + 300_000),
+  refreshToken: 'refresh-token',
+};
+const access: HubAccess = {
+  organizationId: 'org-1',
+  organizationName: 'Axora',
+  permissions: ['hub.catalog.manage', 'hub.catalog.read'],
+  roles: ['Administrator'],
 };
 
 function sessionRow(overrides: Partial<{ expiresAt: Date; lastSeenAt: Date }> = {}) {
@@ -24,8 +38,15 @@ function sessionRow(overrides: Partial<{ expiresAt: Date; lastSeenAt: Date }> = 
     subject: identity.subject,
     displayName: identity.displayName,
     email: identity.email,
-    roles: identity.roles,
+    roles: access.roles,
+    permissions: access.permissions,
+    organizationId: access.organizationId,
+    organizationName: access.organizationName,
+    accessCheckedAt: NOW,
     idToken: identity.idToken,
+    accessToken: cipher.encrypt(tokens.accessToken),
+    accessTokenExpiresAt: tokens.accessTokenExpiresAt,
+    refreshToken: cipher.encrypt(tokens.refreshToken),
     csrfToken: 'csrf',
     expiresAt: new Date(NOW.getTime() + SESSION_ABSOLUTE_LIFETIME_MS),
     lastSeenAt: NOW,
@@ -39,7 +60,7 @@ function createService() {
     authSession: {
       create: jest.fn().mockResolvedValue(undefined),
       findUnique: jest.fn(),
-      update: jest.fn().mockResolvedValue(undefined),
+      update: jest.fn().mockResolvedValue(sessionRow()),
       deleteMany: jest.fn().mockResolvedValue({ count: 1 }),
     },
     authLoginTransaction: {
@@ -48,7 +69,7 @@ function createService() {
       deleteMany: jest.fn().mockResolvedValue({ count: 1 }),
     },
   };
-  const service = new AuthSessionService(prisma as unknown as PrismaService);
+  const service = new AuthSessionService(prisma as unknown as PrismaService, cipher);
   return { service, prisma };
 }
 
@@ -110,18 +131,31 @@ describe('AuthSessionService', () => {
   });
 
   describe('sessions', () => {
-    it('creates a session with absolute lifetime and a hashed id', async () => {
+    it('creates a session with absolute lifetime, a hashed id and the IAM access', async () => {
       const { service, prisma } = createService();
 
-      const created = await service.createSession(identity);
+      const created = await service.createSession(identity, tokens, access);
 
       const stored = prisma.authSession.create.mock.calls[0][0].data;
       expect(stored.id).toBe(hashToken(created.handle));
       expect(created.expiresAt).toEqual(new Date(NOW.getTime() + SESSION_ABSOLUTE_LIFETIME_MS));
       expect(stored.csrfToken).toEqual(expect.any(String));
+      expect(stored).toMatchObject({ ...access, accessCheckedAt: NOW });
     });
 
-    it('returns an active session without the ID token', async () => {
+    it('stores tokens only encrypted', async () => {
+      const { service, prisma } = createService();
+
+      await service.createSession(identity, tokens, access);
+
+      const stored = prisma.authSession.create.mock.calls[0][0].data;
+      expect(stored.accessToken).not.toContain('access-token');
+      expect(stored.refreshToken).not.toContain('refresh-token');
+      expect(cipher.decrypt(stored.accessToken)).toBe('access-token');
+      expect(cipher.decrypt(stored.refreshToken)).toBe('refresh-token');
+    });
+
+    it('returns an active session with decrypted tokens and without the ID token', async () => {
       const { service, prisma } = createService();
       prisma.authSession.findUnique.mockResolvedValue(sessionRow());
 
@@ -131,11 +165,16 @@ describe('AuthSessionService', () => {
         where: { id: hashToken('session-handle') },
       });
       expect(session).toEqual({
+        id: hashToken('session-handle'),
         subject: identity.subject,
         displayName: identity.displayName,
         email: identity.email,
-        roles: identity.roles,
         csrfToken: 'csrf',
+        ...access,
+        accessCheckedAt: NOW,
+        accessToken: 'access-token',
+        accessTokenExpiresAt: tokens.accessTokenExpiresAt,
+        refreshToken: 'refresh-token',
       });
       expect(prisma.authSession.update).not.toHaveBeenCalled();
     });
@@ -164,6 +203,18 @@ describe('AuthSessionService', () => {
       expect(prisma.authSession.deleteMany).toHaveBeenCalledWith({
         where: { id: hashToken('session-handle') },
       });
+    });
+
+    it('replaces the logout hint when the refresh brings a new ID token', async () => {
+      const { service, prisma } = createService();
+      prisma.authSession.findUnique.mockResolvedValue(sessionRow());
+      const session = await service.findActiveSession('session-handle');
+
+      await service.storeTokens(session!, { ...tokens, accessToken: 'new-access', idToken: 'new-id' });
+
+      const data = prisma.authSession.update.mock.calls[0][0].data;
+      expect(cipher.decrypt(data.accessToken)).toBe('new-access');
+      expect(data.idToken).toBe('new-id');
     });
 
     it('returns the ID token when ending a session for the Keycloak logout', async () => {

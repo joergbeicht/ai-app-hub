@@ -1,5 +1,11 @@
 import type { IncomingMessage } from 'node:http';
-import type { AuthSessionService, SessionIdentity } from './auth-session.service';
+import {
+  IamAccessDeniedError,
+  IamUnavailableError,
+  type IamClientService,
+  type IamMe,
+} from '../../iam/iam-client.service';
+import type { AuthSessionService, SessionIdentity, SessionTokens } from './auth-session.service';
 import type { BffConfig } from './bff-config';
 import { BffAuthService, LoginFlowError } from './bff-auth.service';
 import type { OidcClientService } from './oidc-client.service';
@@ -8,14 +14,38 @@ const FRONTEND_URL = 'https://localhost:6054';
 const callbackRequest = {} as IncomingMessage;
 const transaction = { state: 's', nonce: 'n', codeVerifier: 'v', returnTo: '/settings' };
 
-function identityWith(roles: string[]): SessionIdentity {
-  return { subject: 'kc-user-1', displayName: 'Hub Admin', email: null, roles, idToken: 'id-token' };
+const identity: SessionIdentity = {
+  subject: 'kc-user-1',
+  displayName: 'Hub Admin',
+  email: null,
+  idToken: 'id-token',
+};
+const tokens: SessionTokens = {
+  accessToken: 'access-token',
+  accessTokenExpiresAt: new Date(0),
+  refreshToken: 'refresh-token',
+};
+
+function meWith(permissions: string[]): IamMe {
+  return {
+    principal: { id: 'p-1', displayName: 'Hub Admin', email: null },
+    organizations: [
+      {
+        id: 'org-1',
+        slug: 'axora',
+        name: 'Axora',
+        membershipStatus: 'ACTIVE',
+        applications: ['ai-app-hub'],
+        permissions,
+      },
+    ],
+  };
 }
 
 function createService() {
   const oidc = {
     authorizationUrl: jest.fn().mockResolvedValue('https://kc/auth?x=1'),
-    exchangeCode: jest.fn(),
+    exchangeCode: jest.fn().mockResolvedValue({ identity, tokens }),
     endSessionUrl: jest.fn().mockResolvedValue('https://kc/logout'),
   };
   const sessions = {
@@ -24,13 +54,15 @@ function createService() {
     createSession: jest.fn().mockResolvedValue({ handle: 'session-handle', expiresAt: new Date(0) }),
     endSession: jest.fn().mockResolvedValue('id-token'),
   };
+  const iam = { getMe: jest.fn().mockResolvedValue(meWith(['hub.catalog.read'])) };
   const config = { frontendUrl: FRONTEND_URL } as BffConfig;
   const service = new BffAuthService(
     oidc as unknown as OidcClientService,
     sessions as unknown as AuthSessionService,
+    iam as unknown as IamClientService,
     config,
   );
-  return { service, oidc, sessions };
+  return { service, oidc, sessions, iam };
 }
 
 async function expectLoginError(promise: Promise<unknown>, code: string): Promise<void> {
@@ -48,14 +80,19 @@ describe('BffAuthService', () => {
     expect(started).toEqual({ redirectUrl: 'https://kc/auth?x=1', transactionHandle: 'tx-handle' });
   });
 
-  it('creates a session and returns to the requested page for entitled users', async () => {
-    const { service, oidc, sessions } = createService();
-    oidc.exchangeCode.mockResolvedValue(identityWith(['User']));
+  it('creates a session with the IAM access and returns to the requested page', async () => {
+    const { service, oidc, sessions, iam } = createService();
 
     const completed = await service.completeLogin('tx-handle', callbackRequest);
 
     expect(oidc.exchangeCode).toHaveBeenCalledWith(callbackRequest, transaction);
-    expect(sessions.createSession).toHaveBeenCalledWith(identityWith(['User']));
+    expect(iam.getMe).toHaveBeenCalledWith('access-token');
+    expect(sessions.createSession).toHaveBeenCalledWith(identity, tokens, {
+      organizationId: 'org-1',
+      organizationName: 'Axora',
+      permissions: ['hub.catalog.read'],
+      roles: ['User'],
+    });
     expect(completed.redirectUrl).toBe(`${FRONTEND_URL}/settings`);
     expect(completed.sessionHandle).toBe('session-handle');
   });
@@ -68,11 +105,27 @@ describe('BffAuthService', () => {
     expect(oidc.exchangeCode).not.toHaveBeenCalled();
   });
 
-  it('denies users without a hub role (default deny)', async () => {
-    const { service, oidc, sessions } = createService();
-    oidc.exchangeCode.mockResolvedValue(identityWith(['offline_access']));
+  it('denies users without hub permission in IAM (default deny)', async () => {
+    const { service, iam, sessions } = createService();
+    iam.getMe.mockResolvedValue(meWith(['iam.user.read']));
 
     await expectLoginError(service.completeLogin('tx-handle', callbackRequest), 'not_entitled');
+    expect(sessions.createSession).not.toHaveBeenCalled();
+  });
+
+  it('denies users that IAM does not know or has suspended', async () => {
+    const { service, iam, sessions } = createService();
+    iam.getMe.mockRejectedValue(new IamAccessDeniedError(403));
+
+    await expectLoginError(service.completeLogin('tx-handle', callbackRequest), 'not_entitled');
+    expect(sessions.createSession).not.toHaveBeenCalled();
+  });
+
+  it('fails closed when IAM is unavailable', async () => {
+    const { service, iam, sessions } = createService();
+    iam.getMe.mockRejectedValue(new IamUnavailableError('connect ECONNREFUSED'));
+
+    await expectLoginError(service.completeLogin('tx-handle', callbackRequest), 'unavailable');
     expect(sessions.createSession).not.toHaveBeenCalled();
   });
 

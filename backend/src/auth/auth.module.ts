@@ -8,12 +8,20 @@ import { AuthSessionService } from './bff/auth-session.service';
 import { BffAuthController } from './bff/bff-auth.controller';
 import { BffAuthService } from './bff/bff-auth.service';
 import { OidcClientService } from './bff/oidc-client.service';
-import { SessionAuthGuard } from './bff/session-auth.guard';
+import { SessionAccessService } from './bff/session-access.service';
+import { SessionAuthGuard, SessionCookieGuard } from './bff/session-auth.guard';
+import { TOKEN_CIPHER, createTokenCipher } from './bff/token-cipher';
+import {
+  IAM_CLIENT_CONFIG,
+  IamClientService,
+  createIamClientConfig,
+} from '../iam/iam-client.service';
+import { IamProxyController } from '../iam/iam-proxy.controller';
 
 /**
  * Wählt den Anmeldeweg anhand von `AUTH_MODE` (ADR-19). Im Keycloak-Modus werden die
  * Entra-Guards gar nicht erst erzeugt (und umgekehrt), damit jeder Modus nur seine eigene
- * Konfiguration braucht.
+ * Konfiguration braucht. Die Axora IAM (ADR-20) gibt es nur im Keycloak-Modus.
  */
 @Module({})
 export class AuthModule {
@@ -28,12 +36,17 @@ function keycloakAuthModule(): DynamicModule {
   return {
     module: AuthModule,
     global: true,
-    controllers: [BffAuthController],
+    controllers: [BffAuthController, IamProxyController],
     providers: [
       { provide: BFF_CONFIG, useFactory: createBffConfig, inject: [ConfigService] },
+      { provide: TOKEN_CIPHER, useFactory: createTokenCipher, inject: [ConfigService] },
+      { provide: IAM_CLIENT_CONFIG, useFactory: createIamClientConfig, inject: [ConfigService] },
+      IamClientService,
       AuthSessionService,
       OidcClientService,
       BffAuthService,
+      SessionAccessService,
+      SessionCookieGuard,
       SessionAuthGuard,
       { provide: REQUEST_AUTHENTICATOR, useExisting: SessionAuthGuard },
       HubAuthGuard,

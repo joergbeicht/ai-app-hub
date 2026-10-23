@@ -1,5 +1,7 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
+import type { AuthSession } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
+import { isHubRole, type HubAccess } from '../../iam/hub-access';
 import {
   LOGIN_TRANSACTION_LIFETIME_MS,
   SESSION_ABSOLUTE_LIFETIME_MS,
@@ -7,22 +9,36 @@ import {
   SESSION_TOUCH_INTERVAL_MS,
 } from './bff.constants';
 import { hashToken, randomToken } from './secure-token';
+import { TOKEN_CIPHER, type TokenCipher } from './token-cipher';
 
 /** Was nach dem Login über die Person gespeichert wird (aus dem geprüften ID-Token). */
 export interface SessionIdentity {
   subject: string;
   displayName: string;
   email: string | null;
-  roles: string[];
   idToken: string;
 }
 
-export interface ActiveSession {
+/** Keycloak-Tokens der Sitzung; bleiben im Backend und liegen nur verschlüsselt in der DB. */
+export interface SessionTokens {
+  accessToken: string;
+  accessTokenExpiresAt: Date;
+  refreshToken: string;
+  /** Keycloak liefert beim Refresh ein neues ID-Token; es ersetzt dann den Logout-Hint. */
+  idToken?: string;
+}
+
+export interface ActiveSession extends HubAccess {
+  /** Hash des Cookie-Werts, Schlüssel für Updates der Sitzung. */
+  id: string;
   subject: string;
   displayName: string;
   email: string | null;
-  roles: string[];
   csrfToken: string;
+  accessCheckedAt: Date;
+  accessToken: string;
+  accessTokenExpiresAt: Date;
+  refreshToken: string;
 }
 
 export interface LoginTransaction {
@@ -43,13 +59,16 @@ export interface CreatedSession {
 }
 
 /**
- * Serverseitige Sitzungen des Keycloak-BFF (ADR-19). Cookie-Werte werden nur gehasht
- * gespeichert; abgelaufene Sitzungen (absolut oder durch Inaktivität) gelten als nicht vorhanden
- * und werden beim Zugriff gelöscht.
+ * Serverseitige Sitzungen des Keycloak-BFF (ADR-19, ADR-20). Cookie-Werte werden nur gehasht
+ * gespeichert, Tokens nur verschlüsselt; abgelaufene Sitzungen (absolut oder durch Inaktivität)
+ * gelten als nicht vorhanden und werden beim Zugriff gelöscht.
  */
 @Injectable()
 export class AuthSessionService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    @Inject(TOKEN_CIPHER) private readonly cipher: TokenCipher,
+  ) {}
 
   async startLoginTransaction(returnTo: string): Promise<StartedLoginTransaction> {
     const now = Date.now();
@@ -97,7 +116,11 @@ export class AuthSessionService {
     };
   }
 
-  async createSession(identity: SessionIdentity): Promise<CreatedSession> {
+  async createSession(
+    identity: SessionIdentity,
+    tokens: SessionTokens,
+    access: HubAccess,
+  ): Promise<CreatedSession> {
     const now = Date.now();
     await this.prisma.authSession.deleteMany({ where: { expiresAt: { lte: new Date(now) } } });
 
@@ -109,8 +132,9 @@ export class AuthSessionService {
         subject: identity.subject,
         displayName: identity.displayName,
         email: identity.email,
-        roles: identity.roles,
         idToken: identity.idToken,
+        ...this.sealTokens(tokens),
+        ...accessColumns(access, new Date(now)),
         csrfToken: randomToken(),
         expiresAt,
         lastSeenAt: new Date(now),
@@ -132,20 +156,34 @@ export class AuthSessionService {
     const now = Date.now();
     const idleSince = now - session.lastSeenAt.getTime();
     if (session.expiresAt.getTime() <= now || idleSince >= SESSION_IDLE_TIMEOUT_MS) {
-      await this.prisma.authSession.deleteMany({ where: { id } });
+      await this.deleteSession(id);
       return null;
     }
     if (idleSince >= SESSION_TOUCH_INTERVAL_MS) {
       await this.prisma.authSession.update({ where: { id }, data: { lastSeenAt: new Date(now) } });
     }
+    return this.toActiveSession(session);
+  }
 
-    return {
-      subject: session.subject,
-      displayName: session.displayName,
-      email: session.email,
-      roles: session.roles,
-      csrfToken: session.csrfToken,
-    };
+  async storeTokens(session: ActiveSession, tokens: SessionTokens): Promise<ActiveSession> {
+    const updated = await this.prisma.authSession.update({
+      where: { id: session.id },
+      data: this.sealTokens(tokens),
+    });
+    return this.toActiveSession(updated);
+  }
+
+  async storeAccess(session: ActiveSession, access: HubAccess): Promise<ActiveSession> {
+    const updated = await this.prisma.authSession.update({
+      where: { id: session.id },
+      data: accessColumns(access, new Date()),
+    });
+    return this.toActiveSession(updated);
+  }
+
+  /** Beendet eine Sitzung serverseitig, z. B. wenn Keycloak oder die IAM den Zugriff entzogen haben. */
+  async deleteSession(id: string): Promise<void> {
+    await this.prisma.authSession.deleteMany({ where: { id } });
   }
 
   /** Liefert das ID-Token für den Keycloak-Logout (`id_token_hint`), falls die Sitzung existierte. */
@@ -158,7 +196,44 @@ export class AuthSessionService {
     if (!session) {
       return null;
     }
-    await this.prisma.authSession.deleteMany({ where: { id } });
+    await this.deleteSession(id);
     return session.idToken;
   }
+
+  private sealTokens(tokens: SessionTokens) {
+    return {
+      accessToken: this.cipher.encrypt(tokens.accessToken),
+      accessTokenExpiresAt: tokens.accessTokenExpiresAt,
+      refreshToken: this.cipher.encrypt(tokens.refreshToken),
+      ...(tokens.idToken ? { idToken: tokens.idToken } : {}),
+    };
+  }
+
+  private toActiveSession(session: AuthSession): ActiveSession {
+    return {
+      id: session.id,
+      subject: session.subject,
+      displayName: session.displayName,
+      email: session.email,
+      csrfToken: session.csrfToken,
+      organizationId: session.organizationId,
+      organizationName: session.organizationName,
+      permissions: session.permissions,
+      roles: session.roles.filter(isHubRole),
+      accessCheckedAt: session.accessCheckedAt,
+      accessToken: this.cipher.decrypt(session.accessToken),
+      accessTokenExpiresAt: session.accessTokenExpiresAt,
+      refreshToken: this.cipher.decrypt(session.refreshToken),
+    };
+  }
+}
+
+function accessColumns(access: HubAccess, checkedAt: Date) {
+  return {
+    organizationId: access.organizationId,
+    organizationName: access.organizationName,
+    permissions: access.permissions,
+    roles: access.roles,
+    accessCheckedAt: checkedAt,
+  };
 }
