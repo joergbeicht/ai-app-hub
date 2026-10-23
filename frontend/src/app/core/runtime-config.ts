@@ -20,15 +20,43 @@ export interface RuntimeConfig {
 
 export const RUNTIME_CONFIG = new InjectionToken<RuntimeConfig>('RUNTIME_CONFIG');
 
+const MAX_ATTEMPTS = 3;
+const RETRY_DELAY_MS = 500;
+
 /**
  * Fetches `runtime-config.json` before Angular bootstraps. Must resolve before `bootstrapApplication`
  * is called (see `main.ts`) because the MSAL instance factory (`msalInstanceFactory`) needs
  * `azureTenantId`/`azureClientId` synchronously the first time `MsalService` is injected.
+ *
+ * Retries transient failures (cold pod, brief ingress hiccup, ...): before this existed, a single
+ * failed fetch here meant `bootstrapApplication` was never even called - a permanently blank white
+ * page with zero user-facing feedback, only a `console.error` (see ADR-16). A second page load
+ * (e.g. navigating to `/login`) then "fixed" it by simply retrying, which looked like a real bug
+ * (misread as an expired Azure session) but was really just a missing retry here.
  */
 export async function loadRuntimeConfig(): Promise<RuntimeConfig> {
+  let lastError: unknown;
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+    try {
+      return await fetchRuntimeConfig();
+    } catch (error) {
+      lastError = error;
+      if (attempt < MAX_ATTEMPTS) {
+        await sleep(RETRY_DELAY_MS * attempt);
+      }
+    }
+  }
+  throw lastError;
+}
+
+async function fetchRuntimeConfig(): Promise<RuntimeConfig> {
   const res = await fetch(`runtime-config.json?v=${Date.now()}`, { cache: 'no-store' });
   if (!res.ok) {
     throw new Error(`Failed to load runtime-config.json: ${res.status}`);
   }
   return (await res.json()) as RuntimeConfig;
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
