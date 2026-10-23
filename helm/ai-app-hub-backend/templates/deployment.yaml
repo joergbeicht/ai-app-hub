@@ -30,6 +30,8 @@ spec:
               value: "{{ .Values.service.port }}"
             - name: CORS_ORIGIN
               value: "{{ .Values.env.corsOrigin }}"
+            - name: AUTH_MODE
+              value: "{{ .Values.env.authMode }}"
             - name: AZURE_TENANT_ID
               valueFrom:
                 secretKeyRef:

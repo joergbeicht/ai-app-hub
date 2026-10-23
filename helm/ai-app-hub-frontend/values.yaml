@@ -25,3 +25,5 @@ env:
   azureTenantId: ""
   azureClientId: ""
   backendApiUrl: ""
+  # ADR-19: `entra` (MSAL-Bestand) bis der Cluster einen Keycloak-Realm hat, dann `keycloak`.
+  authMode: "entra"
