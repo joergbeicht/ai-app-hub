@@ -1,6 +1,6 @@
 # Production Dockerfile (Dev-Rules: Production mit Dockerfile)
 # Stage 1: Build
-FROM node:20-alpine AS build
+FROM node:26-alpine AS build
 WORKDIR /app
 
 COPY package*.json ./
@@ -13,7 +13,7 @@ RUN npx prisma generate
 RUN npm run build
 
 # Stage 2: Laufzeit ohne Dev-Dependencies/Build-Tools
-FROM node:20-alpine
+FROM node:26-alpine
 WORKDIR /app
 RUN apk update && apk upgrade --no-cache
 

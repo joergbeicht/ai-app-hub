@@ -1,4 +1,4 @@
-FROM node:20-alpine
+FROM node:26-alpine
 
 # postgresql-client für pg_isready im Entrypoint (siehe ADR-17: erste eigene DB dieses Backends).
 RUN apk add --no-cache postgresql-client
