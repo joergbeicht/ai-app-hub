@@ -12,12 +12,13 @@
     "defaultLanguageHint": "Riutilizzata al prossimo avvio dell'app."
   },
   "apps": {
-    "subtitle": "Modifica le app, riordinalle con il drag & drop e attiva/disattiva la visualizzazione nel hub. Tutte le modifiche vengono salvate subito in locale. Nome e descrizione si applicano alla lingua selezionata.",
+    "subtitleAdmin": "Catalogo app centrale per tutti gli utenti: modifica nome, descrizione, URL e icona, oppure aggiungi/rimuovi app – le modifiche si applicano subito a tutti. Ordine e visibilità qui sotto sono inoltre la tua vista personale per questo browser.",
+    "subtitleReadonly": "Nome, descrizione, URL e icona sono gestiti centralmente da un amministratore. Qui puoi personalizzare ordine e visibilità (solo per questo browser).",
     "enabled": "Mostra nel hub",
     "reorder": "Cambia ordine"
   },
   "addApp": "Aggiungi app",
-  "resetToDefault": "Ripristina predefinito",
+  "resetToDefault": "Ripristina le mie personalizzazioni",
   "field": {
     "name": "Nome",
     "description": "Descrizione",
@@ -33,9 +34,10 @@
   "cancel": "Annulla",
   "newAppName": "Nuova app",
   "toast": {
-    "saved": "Impostazioni salvate.",
+    "saved": "Catalogo salvato.",
+    "catalogSaveError": "Impossibile salvare il catalogo.",
     "generalSaved": "Impostazioni generali salvate.",
-    "resetDone": "Ripristinato ai valori predefiniti."
+    "resetDone": "Personalizzazioni ripristinate."
   },
   "users": {
     "subtitle": "Assegna i ruoli agli utenti (Utente, Amministratore, Ospite) – senza il portale Azure.",

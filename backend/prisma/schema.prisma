@@ -1,0 +1,27 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+/// Der zentral von einem Administrator gepflegte App-Katalog (siehe ADR-17 in
+/// docs/ARCHITEKTUR-ENTSCHEIDUNGEN.md) - die "Wahrheit" für alle Benutzer des Hubs.
+/// `name`/`description` sind je Locale befüllt (siehe LocalizedText im Frontend), `sortOrder`
+/// ist die von einem Administrator vorgegebene Basis-Reihenfolge. Persönliche Präferenzen
+/// (Reihenfolge/Sichtbarkeit je Benutzer) bleiben bewusst im Frontend-localStorage, nicht hier.
+model HubApp {
+  id          String   @id
+  name        Json
+  description Json
+  url         String
+  iconType    String   @default("mat-icon")
+  icon        String
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([sortOrder])
+  @@map("hub_apps")
+}

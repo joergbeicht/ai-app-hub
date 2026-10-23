@@ -1,5 +1,8 @@
 FROM node:20-alpine
 
+# postgresql-client für pg_isready im Entrypoint (siehe ADR-17: erste eigene DB dieses Backends).
+RUN apk add --no-cache postgresql-client
+
 WORKDIR /app
 
 COPY package*.json ./
@@ -7,7 +10,12 @@ RUN npm install
 
 COPY . .
 
+COPY docker-entrypoint.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+
 EXPOSE 6055
+
+ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
 
 # --watch: Hot Reload bei Volume-Mount aus docker-compose (siehe nestjs.mdc/docker.mdc).
 CMD ["npm", "run", "start:docker"]

@@ -12,12 +12,13 @@
     "defaultLanguageHint": "Reused the next time you open the app."
   },
   "apps": {
-    "subtitle": "Edit apps, drag to reorder, and show/hide them on the hub. All changes are saved locally immediately. Name and description apply to the currently selected language.",
+    "subtitleAdmin": "Central app catalog for all users: edit name, description, URL and icon, or add/remove apps – changes apply immediately for everyone. Order and visibility below are additionally your personal view for this browser.",
+    "subtitleReadonly": "Name, description, URL and icon are maintained centrally by an administrator. You can personalize order and visibility here (this browser only).",
     "enabled": "Show on hub",
     "reorder": "Change order"
   },
   "addApp": "Add app",
-  "resetToDefault": "Reset to default",
+  "resetToDefault": "Reset my customizations",
   "field": {
     "name": "Name",
     "description": "Description",
@@ -33,9 +34,10 @@
   "cancel": "Cancel",
   "newAppName": "New app",
   "toast": {
-    "saved": "Settings saved.",
+    "saved": "Catalog saved.",
+    "catalogSaveError": "Could not save the catalog.",
     "generalSaved": "General settings saved.",
-    "resetDone": "Reset to default."
+    "resetDone": "Customizations reset."
   },
   "users": {
     "subtitle": "Assign roles to users (User, Administrator, Guest) – no Azure Portal needed.",

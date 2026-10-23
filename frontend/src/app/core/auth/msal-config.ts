@@ -91,6 +91,9 @@ export function msalInterceptorConfigFactory(): MsalInterceptorConfiguration {
     protectedResourceMap: new Map([
       [`${backendApiUrl}/users`, scopes],
       [`${backendApiUrl}/users/*`, scopes],
+      // Zentraler App-Katalog (siehe ADR-17) - `GET` brauchen alle eingeloggten Personen (Hub-
+      // Seite), `PUT` nur Administrator (serverseitig per `RolesGuard` erzwungen).
+      [`${backendApiUrl}/hub-apps`, scopes],
     ]),
   };
 }

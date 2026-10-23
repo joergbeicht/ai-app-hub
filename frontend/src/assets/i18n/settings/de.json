@@ -12,12 +12,13 @@
     "defaultLanguageHint": "Wird beim nächsten Öffnen der App wiederverwendet."
   },
   "apps": {
-    "subtitle": "Apps bearbeiten, per Drag & Drop sortieren und für den Hub ein-/ausschalten. Alle Änderungen werden sofort lokal gespeichert. Name und Beschreibung gelten für die aktuell gewählte Sprache.",
+    "subtitleAdmin": "Zentraler App-Katalog für alle Benutzer: Name, Beschreibung, URL und Icon bearbeiten oder Apps hinzufügen/entfernen – Änderungen wirken sofort für alle. Reihenfolge und Sichtbarkeit unten sind zusätzlich Ihre persönliche Ansicht für diesen Browser.",
+    "subtitleReadonly": "Name, Beschreibung, URL und Icon werden zentral von einem Administrator gepflegt. Reihenfolge und Sichtbarkeit können Sie hier persönlich anpassen (nur für diesen Browser).",
     "enabled": "Im Hub anzeigen",
     "reorder": "Reihenfolge ändern"
   },
   "addApp": "App hinzufügen",
-  "resetToDefault": "Auf Standard zurücksetzen",
+  "resetToDefault": "Eigene Anpassungen zurücksetzen",
   "field": {
     "name": "Name",
     "description": "Beschreibung",
@@ -33,9 +34,10 @@
   "cancel": "Abbrechen",
   "newAppName": "Neue App",
   "toast": {
-    "saved": "Einstellungen gespeichert.",
+    "saved": "Katalog gespeichert.",
+    "catalogSaveError": "Katalog konnte nicht gespeichert werden.",
     "generalSaved": "Allgemeine Einstellungen gespeichert.",
-    "resetDone": "Auf Standard zurückgesetzt."
+    "resetDone": "Eigene Anpassungen zurückgesetzt."
   },
   "users": {
     "subtitle": "Weist Nutzern ihre Rolle zu (Benutzer, Administrator, Gast) – ohne Azure Portal.",

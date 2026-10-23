@@ -96,18 +96,24 @@ type AppFormGroup = FormGroup<{
           (selectedIndexChange)="onTabIndexChange($event)"
         >
           <mat-tab>
-            <ng-template mat-tab-label>{{ 'settings.tabs.general' | transloco: {} : lang }}</ng-template>
+            <ng-template mat-tab-label>{{
+              'settings.tabs.general' | transloco: {} : lang
+            }}</ng-template>
             <div class="tab-panel">
               <p class="tab-subtitle">{{ 'settings.general.subtitle' | transloco: {} : lang }}</p>
               <form [formGroup]="generalForm" class="general-form" (ngSubmit)="saveGeneral()">
                 <mat-form-field appearance="outline" class="field-language">
-                  <mat-label>{{ 'settings.general.defaultLanguage' | transloco: {} : lang }}</mat-label>
+                  <mat-label>{{
+                    'settings.general.defaultLanguage' | transloco: {} : lang
+                  }}</mat-label>
                   <mat-select formControlName="defaultLanguage">
                     @for (locale of locales; track locale.code) {
                       <mat-option [value]="locale.code">{{ locale.nativeLabel }}</mat-option>
                     }
                   </mat-select>
-                  <mat-hint>{{ 'settings.general.defaultLanguageHint' | transloco: {} : lang }}</mat-hint>
+                  <mat-hint>{{
+                    'settings.general.defaultLanguageHint' | transloco: {} : lang
+                  }}</mat-hint>
                 </mat-form-field>
                 <div class="tab-actions">
                   <button mat-raised-button color="primary" type="submit">
@@ -121,15 +127,24 @@ type AppFormGroup = FormGroup<{
           </mat-tab>
 
           <mat-tab>
-            <ng-template mat-tab-label>{{ 'settings.tabs.apps' | transloco: {} : lang }}</ng-template>
+            <ng-template mat-tab-label>{{
+              'settings.tabs.apps' | transloco: {} : lang
+            }}</ng-template>
             <div class="tab-panel">
-              <p class="tab-subtitle">{{ 'settings.apps.subtitle' | transloco: {} : lang }}</p>
+              <p class="tab-subtitle">
+                {{
+                  (isAdmin() ? 'settings.apps.subtitleAdmin' : 'settings.apps.subtitleReadonly')
+                    | transloco: {} : lang
+                }}
+              </p>
               <div class="actions">
-                <button mat-raised-button color="primary" type="button" (click)="addApp()">
-                  <mat-icon>add</mat-icon>
-                  {{ 'settings.addApp' | transloco: {} : lang }}
-                </button>
-                <button mat-stroked-button type="button" (click)="resetToAsset()">
+                @if (isAdmin()) {
+                  <button mat-raised-button color="primary" type="button" (click)="addApp()">
+                    <mat-icon>add</mat-icon>
+                    {{ 'settings.addApp' | transloco: {} : lang }}
+                  </button>
+                }
+                <button mat-stroked-button type="button" (click)="resetPersonalPreferences()">
                   <mat-icon>restore</mat-icon>
                   {{ 'settings.resetToDefault' | transloco: {} : lang }}
                 </button>
@@ -170,15 +185,17 @@ type AppFormGroup = FormGroup<{
                         {{ 'settings.apps.enabled' | transloco: {} : lang }}
                       </mat-slide-toggle>
                       <span class="app-row-spacer"></span>
-                      <button
-                        mat-icon-button
-                        color="warn"
-                        type="button"
-                        (click)="removeApp(i)"
-                        [attr.aria-label]="'settings.remove' | transloco: {} : lang"
-                      >
-                        <mat-icon>delete</mat-icon>
-                      </button>
+                      @if (isAdmin()) {
+                        <button
+                          mat-icon-button
+                          color="warn"
+                          type="button"
+                          (click)="removeApp(i)"
+                          [attr.aria-label]="'settings.remove' | transloco: {} : lang"
+                        >
+                          <mat-icon>delete</mat-icon>
+                        </button>
+                      }
                     </div>
                     <div class="app-row-fields">
                       <mat-form-field appearance="outline" class="field-name">
@@ -228,7 +245,9 @@ type AppFormGroup = FormGroup<{
 
           @if (isAdmin()) {
             <mat-tab>
-              <ng-template mat-tab-label>{{ 'settings.tabs.users' | transloco: {} : lang }}</ng-template>
+              <ng-template mat-tab-label>{{
+                'settings.tabs.users' | transloco: {} : lang
+              }}</ng-template>
               <div class="tab-panel">
                 <app-user-management></app-user-management>
               </div>
@@ -544,20 +563,31 @@ export class SettingsPageComponent implements OnInit {
     this.cdr.markForCheck();
   }
 
-  resetToAsset(): void {
-    this.configService.resetToAsset();
-    void this.configService.load(true).then(() => {
-      this.setApps(this.configService.apps());
-      this.snackBar.open(this.transloco.translate('settings.toast.resetDone'), undefined, {
-        duration: 2000,
-      });
+  /** Wirkt nur auf diesen Browser - der zentrale Katalog (Name/Beschreibung/URL/Icon,
+   * gepflegt von einem Administrator) bleibt unverändert (siehe ADR-17). */
+  resetPersonalPreferences(): void {
+    this.configService.resetPersonalPreferences();
+    this.setApps(this.configService.apps());
+    this.snackBar.open(this.transloco.translate('settings.toast.resetDone'), undefined, {
+      duration: 2000,
     });
   }
 
-  /** Flush form → drafts → ConfigService/localStorage. */
+  /** Flush form → drafts → ConfigService (persönliche Präferenz immer, zentraler Katalog nur Admin). */
   private persistAppsDraft(): void {
     this.flushFormIntoDrafts(this.contentLocale);
-    this.configService.saveApps(this.appDrafts);
+    this.persistDrafts();
+  }
+
+  private persistDrafts(): void {
+    this.configService.savePersonalPreferences(this.appDrafts);
+    if (this.isAdmin()) {
+      this.configService.saveCentralCatalog(this.appDrafts).catch(() => {
+        this.snackBar.open(this.transloco.translate('settings.toast.catalogSaveError'), undefined, {
+          duration: 3000,
+        });
+      });
+    }
   }
 
   private syncAppsFormToLocale(lang: AppLocale): void {
@@ -569,7 +599,7 @@ export class SettingsPageComponent implements OnInit {
       return;
     }
     this.flushFormIntoDrafts(this.contentLocale);
-    this.configService.saveApps(this.appDrafts);
+    this.persistDrafts();
     this.contentLocale = lang;
     this.patchFormFromDrafts(lang);
   }
@@ -621,17 +651,26 @@ export class SettingsPageComponent implements OnInit {
     this.suppressAppsPersist = false;
   }
 
+  /** Name/Beschreibung/URL/Icon gehören zum zentralen Katalog (siehe ADR-17) - nur Administrator
+   * darf sie bearbeiten. `enabled` bleibt für alle editierbar (rein persönliche Präferenz). */
   private buildAppGroup(app: AppEntry, locale: AppLocale): AppFormGroup {
+    const disabled = !this.isAdmin();
     return this.fb.group({
       id: this.fb.control(app.id, { nonNullable: true }),
-      name: this.fb.control(appDisplayName(app, locale), {
-        nonNullable: true,
-        validators: [Validators.required],
-      }),
-      description: this.fb.control(appDisplayDescription(app, locale), { nonNullable: true }),
-      url: this.fb.control(app.url, { nonNullable: true, validators: [Validators.required] }),
-      iconType: this.fb.control(app.iconType, { nonNullable: true }),
-      icon: this.fb.control(app.icon, { nonNullable: true }),
+      name: this.fb.control(
+        { value: appDisplayName(app, locale), disabled },
+        { nonNullable: true, validators: [Validators.required] },
+      ),
+      description: this.fb.control(
+        { value: appDisplayDescription(app, locale), disabled },
+        { nonNullable: true },
+      ),
+      url: this.fb.control(
+        { value: app.url, disabled },
+        { nonNullable: true, validators: [Validators.required] },
+      ),
+      iconType: this.fb.control({ value: app.iconType, disabled }, { nonNullable: true }),
+      icon: this.fb.control({ value: app.icon, disabled }, { nonNullable: true }),
       enabled: this.fb.control(app.enabled, { nonNullable: true }),
     });
   }

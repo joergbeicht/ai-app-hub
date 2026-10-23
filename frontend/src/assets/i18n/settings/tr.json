@@ -12,12 +12,13 @@
     "defaultLanguageHint": "Uygulamayı bir sonraki açışınızda yeniden kullanılır."
   },
   "apps": {
-    "subtitle": "Uygulamaları düzenleyin, sürükleyerek sıralayın ve hub’da gösterilmelerini açıp kapatın. Tüm değişiklikler hemen yerel olarak kaydedilir. Ad ve açıklama seçili dil için geçerlidir.",
+    "subtitleAdmin": "Tüm kullanıcılar için merkezi uygulama kataloğu: ad, açıklama, URL ve simgeyi düzenleyin veya uygulama ekleyin/kaldırın – değişiklikler herkes için hemen geçerli olur. Aşağıdaki sıra ve görünürlük ayrıca bu tarayıcı için kişisel görünümünüzdür.",
+    "subtitleReadonly": "Ad, açıklama, URL ve simge bir yönetici tarafından merkezi olarak yönetilir. Sırayı ve görünürlüğü burada kişisel olarak (yalnızca bu tarayıcı için) ayarlayabilirsiniz.",
     "enabled": "Hub’da göster",
     "reorder": "Sırayı değiştir"
   },
   "addApp": "Uygulama ekle",
-  "resetToDefault": "Varsayılana sıfırla",
+  "resetToDefault": "Kişisel ayarlarımı sıfırla",
   "field": {
     "name": "Ad",
     "description": "Açıklama",
@@ -33,9 +34,10 @@
   "cancel": "İptal",
   "newAppName": "Yeni uygulama",
   "toast": {
-    "saved": "Ayarlar kaydedildi.",
+    "saved": "Katalog kaydedildi.",
+    "catalogSaveError": "Katalog kaydedilemedi.",
     "generalSaved": "Genel ayarlar kaydedildi.",
-    "resetDone": "Varsayılana sıfırlandı."
+    "resetDone": "Kişisel ayarlar sıfırlandı."
   },
   "users": {
     "subtitle": "Kullanıcılara rol atayın (Kullanıcı, Yönetici, Misafir) – Azure Portal olmadan.",

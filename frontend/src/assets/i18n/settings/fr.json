@@ -12,12 +12,13 @@
     "defaultLanguageHint": "Réutilisée lors de la prochaine ouverture de l'application."
   },
   "apps": {
-    "subtitle": "Modifiez les apps, réordonnez-les par glisser-déposer et activez/désactivez leur affichage sur le hub. Toutes les modifications sont enregistrées localement immédiatement. Le nom et la description s’appliquent à la langue sélectionnée.",
+    "subtitleAdmin": "Catalogue d’apps central pour tous les utilisateurs : modifiez nom, description, URL et icône, ou ajoutez/supprimez des apps – les changements s’appliquent immédiatement pour tout le monde. L’ordre et la visibilité ci-dessous sont en plus votre vue personnelle pour ce navigateur.",
+    "subtitleReadonly": "Le nom, la description, l’URL et l’icône sont gérés de façon centralisée par un administrateur. Vous pouvez personnaliser ici l’ordre et la visibilité (pour ce navigateur uniquement).",
     "enabled": "Afficher sur le hub",
     "reorder": "Modifier l’ordre"
   },
   "addApp": "Ajouter une app",
-  "resetToDefault": "Réinitialiser par défaut",
+  "resetToDefault": "Réinitialiser mes personnalisations",
   "field": {
     "name": "Nom",
     "description": "Description",
@@ -33,9 +34,10 @@
   "cancel": "Annuler",
   "newAppName": "Nouvelle app",
   "toast": {
-    "saved": "Paramètres enregistrés.",
+    "saved": "Catalogue enregistré.",
+    "catalogSaveError": "Le catalogue n'a pas pu être enregistré.",
     "generalSaved": "Paramètres généraux enregistrés.",
-    "resetDone": "Réinitialisation effectuée."
+    "resetDone": "Personnalisations réinitialisées."
   },
   "users": {
     "subtitle": "Attribuez des rôles aux utilisateurs (Utilisateur, Administrateur, Invité) – sans le portail Azure.",

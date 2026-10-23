@@ -6,6 +6,8 @@ import { UsersModule } from './users/users.module';
 import { BadgeLoginModule } from './badge-login/badge-login.module';
 import { TabletAuthModule } from './tablet-auth/tablet-auth.module';
 import { HubCatalogModule } from './hub-catalog/hub-catalog.module';
+import { HubAppsModule } from './hub-apps/hub-apps.module';
+import { PrismaModule } from './prisma/prisma.module';
 
 @Module({
   imports: [
@@ -15,11 +17,13 @@ import { HubCatalogModule } from './hub-catalog/hub-catalog.module';
     // ein gültiges Access Token (`AzureJwtGuard`). Der strengere Tablet-Login-Throttle wird per
     // `@Throttle()` auf `TabletAuthController` überschrieben (siehe ADR-12).
     ThrottlerModule.forRoot({ throttlers: [{ ttl: 60_000, limit: 20 }] }),
+    PrismaModule,
     HealthModule,
     UsersModule,
     BadgeLoginModule,
     TabletAuthModule,
     HubCatalogModule,
+    HubAppsModule,
   ],
 })
 export class AppModule {}

@@ -1,61 +1,69 @@
 import { TestBed } from '@angular/core/testing';
+import { provideHttpClient } from '@angular/common/http';
+import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { ConfigService } from './config.service';
-import {
-  normalizeAppConfig,
-  type AppConfig,
-  type AppEntry,
-  type RawAppConfig,
-} from '../models/app-config.model';
+import type { RawHubAppContent } from '../models/app-config.model';
 import { RUNTIME_CONFIG } from '../runtime-config';
 
-const STORAGE_KEY = 'app-hub-config';
+const STORAGE_KEY = 'app-hub-personal-preferences';
 const BACKEND_API_URL = 'https://backend.example.com';
 
-const assetConfig: RawAppConfig = {
-  defaultIcon: 'apps',
-  apps: [
-    {
-      id: 'ai-analytics',
-      name: {
-        de: 'AI Analytics',
-        en: 'AI Analytics EN',
-        es: 'AI Analytics ES',
-        fr: 'AI Analytics FR',
-        tr: 'AI Analytics TR',
-        it: 'AI Analytics IT',
-      },
-      description: {
-        de: 'Analytics DE',
-        en: 'Analytics EN',
-        es: 'Analytics ES',
-        fr: 'Analytics FR',
-        tr: 'Analytics TR',
-        it: 'Analytics IT',
-      },
-      url: 'http://localhost:4200',
-      iconType: 'mat-icon',
-      icon: 'insights',
+const catalogContent: RawHubAppContent[] = [
+  {
+    id: 'ai-analytics',
+    name: {
+      de: 'AI Analytics',
+      en: 'AI Analytics EN',
+      es: 'AI Analytics ES',
+      fr: 'AI Analytics FR',
+      tr: 'AI Analytics TR',
+      it: 'AI Analytics IT',
     },
-  ],
-};
+    description: {
+      de: 'Analytics DE',
+      en: 'Analytics EN',
+      es: 'Analytics ES',
+      fr: 'Analytics FR',
+      tr: 'Analytics TR',
+      it: 'Analytics IT',
+    },
+    url: 'http://localhost:4200',
+    iconType: 'mat-icon',
+    icon: 'insights',
+    sortOrder: 0,
+  },
+  {
+    id: 'ai-notizen',
+    name: { de: 'AI Notizen', en: 'AI Notes', es: '', fr: '', tr: '', it: '' },
+    description: { de: '', en: '', es: '', fr: '', tr: '', it: '' },
+    url: 'https://localhost:6210/notes',
+    iconType: 'mat-icon',
+    icon: 'mic',
+    sortOrder: 1,
+  },
+];
 
 describe('ConfigService', () => {
   let service: ConfigService;
+  let httpMock: HttpTestingController;
   let fetchSpy: jasmine.Spy;
   let liveUrls: Record<string, string>;
+
+  /** Answers the pending `GET /hub-apps` request and the `GET /hub-catalog-urls` fetch call. */
+  function flushCatalog(content: RawHubAppContent[] = catalogContent): void {
+    httpMock.expectOne(`${BACKEND_API_URL}/hub-apps`).flush(content);
+  }
 
   beforeEach(() => {
     localStorage.removeItem(STORAGE_KEY);
     liveUrls = {};
-    fetchSpy = spyOn(window, 'fetch').and.callFake((input: unknown) => {
-      const href = typeof input === 'string' ? input : (input as Request).url;
-      if (href.includes('hub-catalog-urls')) {
-        return Promise.resolve(new Response(JSON.stringify(liveUrls), { status: 200 }));
-      }
-      return Promise.resolve(new Response(JSON.stringify(assetConfig), { status: 200 }));
-    });
+    fetchSpy = spyOn(window, 'fetch').and.callFake(() =>
+      Promise.resolve(new Response(JSON.stringify(liveUrls), { status: 200 })),
+    );
     TestBed.configureTestingModule({
       providers: [
+        provideHttpClient(),
+        provideHttpClientTesting(),
         {
           provide: RUNTIME_CONFIG,
           useValue: {
@@ -68,156 +76,131 @@ describe('ConfigService', () => {
       ],
     });
     service = TestBed.inject(ConfigService);
+    httpMock = TestBed.inject(HttpTestingController);
   });
 
   afterEach(() => {
     localStorage.removeItem(STORAGE_KEY);
+    httpMock.verify();
   });
 
-  it('loads and normalizes the bundled asset config when nothing is stored', async () => {
-    await service.load();
+  it('loads the catalog from the backend and exposes it as apps/visibleApps', async () => {
+    const pending = service.load();
+    flushCatalog();
+    await pending;
 
     expect(fetchSpy).toHaveBeenCalled();
     expect(service.loaded()).toBe(true);
-    expect(service.apps()).toEqual(normalizeAppConfig(assetConfig).apps);
+    expect(service.apps().map((app) => app.id)).toEqual(['ai-analytics', 'ai-notizen']);
+    expect(service.visibleApps().map((app) => app.id)).toEqual(['ai-analytics', 'ai-notizen']);
+    expect(service.apps()[0].name.en).toBe('AI Analytics EN');
     expect(service.defaultIcon()).toBe('apps');
   });
 
-  it('overrides the dev URL with the real cluster URL when the backend knows it', async () => {
+  it('overrides the catalog URL with the real cluster URL when the backend knows it', async () => {
     liveUrls = { 'ai-analytics': 'https://confessio-test.westeurope.cloudapp.azure.com/analytics' };
 
-    await service.load();
+    const pending = service.load();
+    flushCatalog();
+    await pending;
 
-    expect(
-      fetchSpy.calls.allArgs().some((args) => String(args[0]).includes('hub-catalog-urls')),
-    ).toBe(true);
     expect(service.apps()[0].url).toBe(liveUrls['ai-analytics']);
   });
 
-  it('keeps the bundled dev URL when the backend has no live URL for an app', async () => {
-    liveUrls = {};
+  it('keeps the catalog URL when the backend has no live URL for an app', async () => {
+    const pending = service.load();
+    flushCatalog();
+    await pending;
 
-    await service.load();
-
-    expect(service.apps()[0].url).toBe(assetConfig.apps![0].url);
+    expect(service.apps()[0].url).toBe(catalogContent[0].url);
   });
 
   it('does not refetch when already loaded unless forced', async () => {
-    await service.load();
+    const first = service.load();
+    flushCatalog();
+    await first;
     fetchSpy.calls.reset();
 
     await service.load();
+    httpMock.expectNone(`${BACKEND_API_URL}/hub-apps`);
     expect(fetchSpy).not.toHaveBeenCalled();
 
-    await service.load(true);
+    const forced = service.load(true);
+    flushCatalog();
+    await forced;
     expect(fetchSpy).toHaveBeenCalled();
   });
 
-  it('merges stored legacy strings with asset translations', async () => {
-    const storedConfig: RawAppConfig = {
-      defaultIcon: 'star',
-      apps: [
-        {
-          id: 'ai-analytics',
-          name: 'Custom DE name',
-          description: 'Custom DE description',
-          url: 'http://localhost:9999',
-          iconType: 'mat-icon',
-          icon: 'insights',
-        },
-      ],
-    };
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(storedConfig));
+  it('applies a stored personal order/visibility preference on top of the catalog', async () => {
+    localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({ order: ['ai-notizen', 'ai-analytics'], disabledIds: ['ai-analytics'] }),
+    );
 
-    await service.load();
+    const pending = service.load();
+    flushCatalog();
+    await pending;
 
-    expect(fetchSpy).toHaveBeenCalled();
-    expect(service.defaultIcon()).toBe('star');
-    expect(service.apps()[0].url).toBe('http://localhost:9999');
-    expect(service.apps()[0].name.de).toBe('Custom DE name');
-    expect(service.apps()[0].name.en).toBe('AI Analytics EN');
-    expect(service.apps()[0].description.en).toBe('Analytics EN');
+    expect(service.apps().map((app) => app.id)).toEqual(['ai-notizen', 'ai-analytics']);
+    expect(service.visibleApps().map((app) => app.id)).toEqual(['ai-notizen']);
   });
 
-  it('overrides even a stored (localStorage) URL with the live cluster URL', async () => {
-    // Regression test: a past Settings edit (or any stored override) must never keep a stale
-    // dev URL alive once Kubernetes reports the real one - see `ConfigService.load`.
-    const storedConfig: RawAppConfig = {
-      apps: [
-        {
-          id: 'ai-analytics',
-          name: 'Custom name',
-          description: 'Custom description',
-          url: 'http://localhost:9999',
-          iconType: 'mat-icon',
-          icon: 'insights',
-        },
-      ],
-    };
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(storedConfig));
-    liveUrls = { 'ai-analytics': 'https://confessio-test.westeurope.cloudapp.azure.com/analytics' };
+  it('appends catalog apps that are missing from a stale stored order', async () => {
+    // Regression: a new app added to the central catalog after the last personal reorder must
+    // still show up on the hub instead of silently disappearing (see `applyPersonalPreferences`).
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ order: ['ai-analytics'], disabledIds: [] }));
 
-    await service.load();
+    const pending = service.load();
+    flushCatalog();
+    await pending;
 
-    expect(service.apps()[0].url).toBe(liveUrls['ai-analytics']);
+    expect(service.apps().map((app) => app.id)).toEqual(['ai-analytics', 'ai-notizen']);
   });
 
-  it('exposes only enabled apps as visibleApps', async () => {
-    await service.load();
-    service.saveApps([
-      {
-        id: 'visible',
-        name: { de: 'Visible', en: '', es: '', fr: '', tr: '', it: '' },
-        description: { de: '', en: '', es: '', fr: '', tr: '', it: '' },
-        url: 'http://localhost:1',
-        iconType: 'mat-icon',
-        icon: 'apps',
-        enabled: true,
-      },
-      {
-        id: 'hidden',
-        name: { de: 'Hidden', en: '', es: '', fr: '', tr: '', it: '' },
-        description: { de: '', en: '', es: '', fr: '', tr: '', it: '' },
-        url: 'http://localhost:2',
-        iconType: 'mat-icon',
-        icon: 'apps',
-        enabled: false,
-      },
-    ]);
+  it('savePersonalPreferences persists order/visibility to localStorage without touching the catalog', async () => {
+    const pending = service.load();
+    flushCatalog();
+    await pending;
 
-    expect(service.apps().map((app) => app.id)).toEqual(['visible', 'hidden']);
-    expect(service.visibleApps().map((app) => app.id)).toEqual(['visible']);
+    const reordered = [...service.apps()].reverse().map((app, i) => ({ ...app, enabled: i !== 0 }));
+    service.savePersonalPreferences(reordered);
+
+    expect(service.apps().map((app) => app.id)).toEqual(['ai-notizen', 'ai-analytics']);
+    expect(service.visibleApps().map((app) => app.id)).toEqual(['ai-analytics']);
+    const stored = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? 'null');
+    expect(stored).toEqual({ order: ['ai-notizen', 'ai-analytics'], disabledIds: ['ai-notizen'] });
+    httpMock.expectNone(`${BACKEND_API_URL}/hub-apps`);
   });
 
-  it('persists saved apps to localStorage', async () => {
-    await service.load();
-    const updatedApps: AppEntry[] = [
-      {
-        id: 'new-app',
-        name: { de: 'New App', en: '', es: '', fr: '', tr: '', it: '' },
-        description: { de: '', en: '', es: '', fr: '', tr: '', it: '' },
-        url: '',
-        iconType: 'mat-icon',
-        icon: 'apps',
-        enabled: true,
-      },
-    ];
+  it('resetPersonalPreferences clears localStorage and falls back to catalog order, all enabled', async () => {
+    const pending = service.load();
+    flushCatalog();
+    await pending;
 
-    service.saveApps(updatedApps);
-
-    expect(service.apps()).toEqual(updatedApps);
-    expect(service.visibleApps()).toEqual(updatedApps);
-    const stored = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? 'null') as AppConfig;
-    expect(stored.apps).toEqual(updatedApps);
-  });
-
-  it('resets to the bundled asset and clears localStorage', async () => {
-    await service.load();
-    service.saveApps([]);
-
-    service.resetToAsset();
-    await Promise.resolve();
+    service.savePersonalPreferences([...service.apps()].reverse());
+    service.resetPersonalPreferences();
 
     expect(localStorage.getItem(STORAGE_KEY)).toBeNull();
+    expect(service.apps().map((app) => app.id)).toEqual(['ai-analytics', 'ai-notizen']);
+    expect(service.visibleApps().map((app) => app.id)).toEqual(['ai-analytics', 'ai-notizen']);
+  });
+
+  it('saveCentralCatalog PUTs content only (no enabled) and updates the catalog from the response', async () => {
+    const pending = service.load();
+    flushCatalog();
+    await pending;
+
+    const edited = service.apps().map((app) => ({ ...app, url: `${app.url}?edited` }));
+    const savePromise = service.saveCentralCatalog(edited);
+
+    const req = httpMock.expectOne(`${BACKEND_API_URL}/hub-apps`);
+    expect(req.request.method).toBe('PUT');
+    expect(Object.keys(req.request.body.apps[0])).not.toContain('enabled');
+    expect(req.request.body.apps[0].url).toBe('http://localhost:4200?edited');
+    const responseContent = catalogContent.map((app) => ({ ...app, url: `${app.url}?edited` }));
+    req.flush(responseContent);
+    await savePromise;
+
+    expect(service.apps()[0].url).toBe('http://localhost:4200?edited');
   });
 });
