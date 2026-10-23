@@ -37,8 +37,14 @@ jobs:
       - name: Copy Test Hub onto Prod
         env:
           SLUG: ${{ inputs.customer_slug }}
+          # Prod has its own database (ADR-17) - never copied from test like the Azure secrets below.
+          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
         run: |
           set -euo pipefail
+          if [ -z "$POSTGRES_PASSWORD" ]; then
+            echo "::error::GitHub environment secret POSTGRES_PASSWORD is missing for confessio-prod."
+            exit 1
+          fi
           NS=ai-app-hub
           HOST="${SLUG}-prod.westeurope.cloudapp.azure.com"
           TEST_KUBE="$RUNNER_TEMP/kube-test"
@@ -76,6 +82,13 @@ jobs:
           kubectl --kubeconfig="$PROD_KUBE" create namespace "$NS" --dry-run=client -o yaml \
             | kubectl --kubeconfig="$PROD_KUBE" apply -f -
 
+          helm upgrade --install ai-app-hub-postgres ./helm/ai-app-hub-postgres \
+            --kubeconfig "$PROD_KUBE" \
+            -n "$NS" \
+            -f ./helm/ai-app-hub-postgres/values-prod.yaml \
+            --set-string secrets.postgresPassword="$POSTGRES_PASSWORD" \
+            --wait --timeout 3m
+
           helm upgrade --install ai-app-hub-backend ./helm/ai-app-hub-backend \
             --kubeconfig "$PROD_KUBE" \
             -n "$NS" \
@@ -86,6 +99,7 @@ jobs:
             --set-string secrets.azureClientId="$CLIENT_ID" \
             --set-string secrets.azureClientSecret="$CLIENT_SECRET" \
             --set-string secrets.tabletSessionJwtSecret="$TABLET_SECRET" \
+            --set-string secrets.databaseUrl="postgresql://postgres:${POSTGRES_PASSWORD}@ai-app-hub-postgres:5432/ai_app_hub" \
             --wait --timeout 5m
 
           helm upgrade --install ai-app-hub-frontend ./helm/ai-app-hub-frontend \
@@ -104,8 +118,32 @@ jobs:
             --set appVersion="$APP_VERSION" \
             --wait --timeout 3m
 
+          kubectl --kubeconfig="$PROD_KUBE" -n "$NS" rollout status deployment/ai-app-hub-postgres --timeout=180s
           kubectl --kubeconfig="$PROD_KUBE" -n "$NS" rollout status deployment/ai-app-hub-backend --timeout=180s
           kubectl --kubeconfig="$PROD_KUBE" -n "$NS" rollout status deployment/ai-app-hub-frontend --timeout=180s
 
           echo "HUB_VERSION=${APP_VERSION}"
           echo "HUB_HOST=${HOST}"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+
+      # Initial catalog for a fresh prod database only (ADR-17) - `--if-empty` never touches admin
+      # edits. The catalog is deliberately not copied from test.
+      - name: Seed hub app catalog (if empty)
+        working-directory: backend
+        env:
+          DATABASE_URL: postgresql://postgres:${{ secrets.POSTGRES_PASSWORD }}@localhost:15432/ai_app_hub
+        run: |
+          set -euo pipefail
+          PROD_KUBE="$RUNNER_TEMP/kube-prod"
+          npm ci
+          npx prisma generate
+          kubectl --kubeconfig="$PROD_KUBE" port-forward svc/ai-app-hub-postgres 15432:5432 -n ai-app-hub &
+          PF_PID=$!
+          trap 'kill $PF_PID' EXIT
+          timeout 60 sh -c 'until pg_isready -h localhost -p 15432 >/dev/null 2>&1; do sleep 1; done'
+          npm run seed:hub-apps -- --if-empty

@@ -54,6 +54,11 @@ spec:
                 secretKeyRef:
                   name: {{ .Chart.Name }}-secrets
                   key: tablet-session-jwt-secret
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Chart.Name }}-secrets
+                  key: database-url
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
           livenessProbe:

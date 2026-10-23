@@ -1,0 +1,4 @@
+replicaCount: 1
+
+persistence:
+  size: 8Gi

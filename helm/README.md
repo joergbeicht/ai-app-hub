@@ -1,7 +1,9 @@
 # Helm-Charts – ai-app-hub im Kunden-Cluster
 
-Ein Chart pro Service (`ai-app-hub-backend`, `ai-app-hub-frontend`), siehe
-`deployment.mdc`, plus ein gemeinsamer Routing-Chart (`ai-app-hub-ingress`).
+Ein Chart pro Service (`ai-app-hub-postgres`, `ai-app-hub-backend`,
+`ai-app-hub-frontend`), siehe `deployment.mdc`, plus ein gemeinsamer
+Routing-Chart (`ai-app-hub-ingress`). Reihenfolge: Postgres vor Backend
+(Migrationen beim Backend-Start, ADR-17).
 Wird in den per `infra/bicep/customer-cluster` erzeugten Kunden-Cluster
 deployed (siehe ADR-9/ADR-10/ADR-11 in
 `docs/ARCHITEKTUR-ENTSCHEIDUNGEN.md`).
@@ -78,12 +80,19 @@ scheinbar neu, läuft aber mit dem alten, gecachten Inhalt weiter.
 ## Deployen
 
 ```bash
+# Passwort nur Hex (z. B. `openssl rand -hex 24`), es steht unescaped in der DATABASE_URL.
+helm install ai-app-hub-postgres ./helm/ai-app-hub-postgres \
+  -f helm/ai-app-hub-postgres/values-test.yaml \
+  --set-string secrets.postgresPassword=<postgres-password> \
+  -n ai-app-hub --wait
+
 helm install ai-app-hub-backend ./helm/ai-app-hub-backend \
   -f helm/ai-app-hub-backend/values-test.yaml \
   --set image.tag=$GIT_SHA \
   --set-string secrets.azureTenantId=<tenant-id> \
   --set-string secrets.azureClientId=<client-id> \
   --set-string secrets.azureClientSecret=<client-secret> \
+  --set-string secrets.databaseUrl=postgresql://postgres:<postgres-password>@ai-app-hub-postgres:5432/ai_app_hub \
   -n ai-app-hub
 
 helm install ai-app-hub-frontend ./helm/ai-app-hub-frontend \

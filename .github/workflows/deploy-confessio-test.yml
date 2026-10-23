@@ -36,15 +36,28 @@ jobs:
           tenant-id: ${{ vars.AZURE_TENANT_ID }}
           subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
 
+      # Versions-Prozess (platform-architecture.mdc): "jeder Push deployt" (siehe Kommentar oben)
+      # gilt weiterhin, aber nur für Pushes, denen zuvor ein Versionstag auf genau diesem Commit
+      # gesetzt wurde (git tag vX.Y.Z && git push --tags && git push). Vorher fiel dieser Schritt
+      # ohne exakten Tag auf HEAD lautlos auf den letzten (ggf. veralteten) Tag zurueck - das liess
+      # das Operations Center faelschlich "Cluster ist neuer" melden. Jetzt: harter Fail.
+      - name: Enforce version tag on HEAD
+        run: |
+          if ! git describe --tags --exact-match HEAD >/dev/null 2>&1; then
+            echo "::error::HEAD (${GITHUB_SHA::8}) hat keinen Versionstag. Prozess: erst 'git tag vX.Y.Z' auf dem Release-Commit setzen, dann 'git push --tags' und 'git push' - erst danach deployt die Pipeline."
+            exit 1
+          fi
+
       - name: Determine image tag and app version
         id: image
         run: |
           echo "tag=${GITHUB_SHA::8}" >> "$GITHUB_OUTPUT"
           # Image-Tag (oben) bleibt die Commit-SHA - eindeutig pro Build, für Rollback/Traceability.
           # APP_VERSION (hier) ist die für Menschen sichtbare Versionsnummer im Toolbar-Header
-          # (siehe frontend/scripts/write-app-version.cjs) - der nächste erreichbare Git-Tag, wie
-          # lokal auch. Fällt auf die SHA zurück, falls es (noch) keinen Tag gibt.
-          echo "app_version=$(git describe --tags --abbrev=0 2>/dev/null || echo "${GITHUB_SHA::8}")" >> "$GITHUB_OUTPUT"
+          # (siehe frontend/scripts/write-app-version.cjs) - dank des Gates oben immer der exakte
+          # Tag auf HEAD, nie mehr veraltet oder auf eine SHA zurueckgefallen.
+          TAG="$(git describe --tags --exact-match HEAD)"
+          echo "app_version=${TAG#v}" >> "$GITHUB_OUTPUT"
 
       - name: Build & push backend image
         run: |
@@ -70,6 +83,22 @@ jobs:
       - name: Ensure namespace exists
         run: kubectl create namespace ai-app-hub --dry-run=client -o yaml | kubectl apply -f -
 
+      - name: Helm lint
+        run: |
+          helm lint ./helm/ai-app-hub-postgres --set-string secrets.postgresPassword=lint
+          helm lint ./helm/ai-app-hub-backend
+          helm lint ./helm/ai-app-hub-frontend
+          helm lint ./helm/ai-app-hub-ingress
+
+      # Postgres must be ready before the backend: its entrypoint runs `prisma migrate deploy` and
+      # exits without a reachable database (ADR-17).
+      - name: Helm upgrade postgres
+        run: |
+          helm upgrade --install ai-app-hub-postgres ./helm/ai-app-hub-postgres \
+            -f ./helm/ai-app-hub-postgres/values-test.yaml \
+            --set-string secrets.postgresPassword=${{ secrets.POSTGRES_PASSWORD }} \
+            -n ai-app-hub --wait --timeout 3m
+
       - name: Helm upgrade backend
         run: |
           helm upgrade --install ai-app-hub-backend ./helm/ai-app-hub-backend \
@@ -80,7 +109,28 @@ jobs:
             --set-string secrets.azureClientId=${{ vars.APP_AZURE_CLIENT_ID }} \
             --set-string secrets.azureClientSecret=${{ secrets.APP_AZURE_CLIENT_SECRET }} \
             --set-string secrets.tabletSessionJwtSecret=${{ secrets.TABLET_SESSION_JWT_SECRET }} \
+            --set-string secrets.databaseUrl=postgresql://postgres:${{ secrets.POSTGRES_PASSWORD }}@ai-app-hub-postgres:5432/ai_app_hub \
             -n ai-app-hub --wait
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+
+      # Initial catalog for a fresh database only (ADR-17) - `--if-empty` never touches admin edits.
+      - name: Seed hub app catalog (if empty)
+        working-directory: backend
+        env:
+          DATABASE_URL: postgresql://postgres:${{ secrets.POSTGRES_PASSWORD }}@localhost:15432/ai_app_hub
+        run: |
+          npm ci
+          npx prisma generate
+          kubectl port-forward svc/ai-app-hub-postgres 15432:5432 -n ai-app-hub &
+          PF_PID=$!
+          trap 'kill $PF_PID' EXIT
+          timeout 60 sh -c 'until pg_isready -h localhost -p 15432 >/dev/null 2>&1; do sleep 1; done'
+          npm run seed:hub-apps -- --if-empty
 
       - name: Helm upgrade frontend
         run: |
@@ -103,5 +153,6 @@ jobs:
 
       - name: Rollout status
         run: |
+          kubectl rollout status deployment/ai-app-hub-postgres -n ai-app-hub --timeout=180s
           kubectl rollout status deployment/ai-app-hub-backend -n ai-app-hub --timeout=120s
           kubectl rollout status deployment/ai-app-hub-frontend -n ai-app-hub --timeout=120s

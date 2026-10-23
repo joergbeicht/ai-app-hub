@@ -1,0 +1,31 @@
+replicaCount: 1
+
+image:
+  repository: postgres
+  tag: "16"
+  pullPolicy: IfNotPresent
+
+service:
+  port: 5432
+
+persistence:
+  size: 8Gi
+  storageClass: ""
+
+auth:
+  username: postgres
+  database: ai_app_hub
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 256Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
+
+# Never committed with a real value - passed via `--set-string secrets.postgresPassword=...` from the
+# GitHub environment secret POSTGRES_PASSWORD (see deployment.mdc). Hex only, it is embedded
+# unescaped in the backend's DATABASE_URL.
+secrets:
+  postgresPassword: ""

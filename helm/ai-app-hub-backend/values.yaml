@@ -36,3 +36,6 @@ secrets:
   # HS256-Signierschlüssel für die eigenen Tablet-Session-/Device-Tokens (siehe ADR-12) - z. B.
   # per `openssl rand -base64 32` erzeugen, pro Cluster unterschiedlich.
   tabletSessionJwtSecret: ""
+  # postgresql://postgres:<POSTGRES_PASSWORD>@ai-app-hub-postgres:5432/ai_app_hub (see ADR-17) -
+  # the backend entrypoint runs `prisma migrate deploy` and refuses to start without it.
+  databaseUrl: ""
