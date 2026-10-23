@@ -1,7 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
-import { Router } from '@angular/router';
+import { Router, UrlTree } from '@angular/router';
 import { BROWSER_NAVIGATION } from '../auth/browser-navigation';
 import { BffSessionStore, type BffSession } from '../auth/bff-session.store';
 import { RUNTIME_CONFIG, type RuntimeConfig } from '../runtime-config';
@@ -37,7 +37,7 @@ describe('BffAuthService', () => {
 
   beforeEach(() => {
     navigateTo = jasmine.createSpy('navigateTo');
-    router = jasmine.createSpyObj<Router>('Router', ['navigateByUrl']);
+    router = jasmine.createSpyObj<Router>('Router', ['navigateByUrl', 'createUrlTree']);
     TestBed.configureTestingModule({
       providers: [
         provideHttpClient(),
@@ -75,6 +75,22 @@ describe('BffAuthService', () => {
     await restored;
 
     expect(service.isLoggedIn()).toBeFalse();
+  });
+
+  it('shows the login error page instead of re-entering Keycloak when the session check fails', async () => {
+    const loginPage = new UrlTree();
+    router.createUrlTree.and.returnValue(loginPage);
+    const restored = service.restoreSession();
+    http
+      .expectOne(`${BACKEND}/auth/session`)
+      .flush(null, { status: 503, statusText: 'Service Unavailable' });
+    await restored;
+
+    expect(service.redirectToLogin('/settings/apps')).toBe(loginPage);
+    expect(router.createUrlTree).toHaveBeenCalledWith(['/login'], {
+      queryParams: { error: 'unavailable' },
+    });
+    expect(navigateTo).not.toHaveBeenCalled();
   });
 
   it('starts the login as a full page navigation to the backend', () => {

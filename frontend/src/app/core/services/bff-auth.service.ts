@@ -1,6 +1,6 @@
 import { HttpClient, HttpErrorResponse, HttpStatusCode } from '@angular/common/http';
 import { Injectable, computed, inject } from '@angular/core';
-import { Router } from '@angular/router';
+import { Router, type UrlTree } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { BROWSER_NAVIGATION } from '../auth/browser-navigation';
 import { BffSessionStore, type BffSession } from '../auth/bff-session.store';
@@ -14,6 +14,7 @@ interface LogoutResponse {
 
 const LOGIN_PATH = '/login';
 const DEFAULT_RETURN_TO = '/';
+const SESSION_CHECK_FAILED_ERROR = 'unavailable';
 
 /**
  * Anmeldung über Keycloak mit dem Backend als BFF (ADR-19): Der Browser sieht nie ein Token,
@@ -31,6 +32,8 @@ export class BffAuthService extends AuthService {
   readonly currentUser = computed(() => toHubUser(this.store.session()));
   readonly isLoggedIn = computed(() => this.currentUser() !== null);
 
+  private sessionCheckFailed = false;
+
   /** Läuft vor der ersten Navigation, damit `authGuard` eine bestehende Sitzung schon kennt. */
   async restoreSession(): Promise<void> {
     try {
@@ -38,9 +41,11 @@ export class BffAuthService extends AuthService {
         this.http.get<BffSession>(`${this.backendApiUrl}/auth/session`),
       );
       this.store.set(session);
+      this.sessionCheckFailed = false;
     } catch (error) {
       this.store.clear();
-      if (!(error instanceof HttpErrorResponse && error.status === HttpStatusCode.Unauthorized)) {
+      this.sessionCheckFailed = !isUnauthorized(error);
+      if (this.sessionCheckFailed) {
         console.warn('[auth] Session konnte nicht geladen werden', error);
       }
     }
@@ -51,8 +56,17 @@ export class BffAuthService extends AuthService {
     this.navigateTo(`${this.backendApiUrl}/auth/login?returnTo=${encodeURIComponent(returnTo)}`);
   }
 
-  /** Keine Zwischenseite: Keycloak ist die Login-Seite (Top-Level-Redirect, ADR-19). */
-  redirectToLogin(returnTo: string): false {
+  /**
+   * Keine Zwischenseite: Keycloak ist die Login-Seite (Top-Level-Redirect, ADR-19). Ist die
+   * Sitzungsprüfung selbst gescheitert (Backend/IAM gestört), führte Keycloak per SSO sofort
+   * zurück und die Prüfung scheiterte erneut - daher dann die Login-Seite mit Fehlermeldung.
+   */
+  redirectToLogin(returnTo: string): UrlTree | false {
+    if (this.sessionCheckFailed) {
+      return this.router.createUrlTree([LOGIN_PATH], {
+        queryParams: { error: SESSION_CHECK_FAILED_ERROR },
+      });
+    }
     this.login(returnTo);
     return false;
   }
@@ -70,6 +84,10 @@ export class BffAuthService extends AuthService {
       },
     });
   }
+}
+
+function isUnauthorized(error: unknown): boolean {
+  return error instanceof HttpErrorResponse && error.status === HttpStatusCode.Unauthorized;
 }
 
 function toHubUser(session: BffSession | null): HubUser | null {
