@@ -32,18 +32,11 @@ export class SessionCookieGuard implements CanActivate {
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest<SessionRequest>();
-    const session = await this.resolveSession(request);
-    request.authSession = session;
-    request.user = {
-      sub: session.subject,
-      name: session.displayName,
-      email: session.email ?? undefined,
-      roles: session.roles,
-    };
+    attachSession(request, await this.resolveSession(request));
     return true;
   }
 
-  protected async resolveSession(request: SessionRequest): Promise<ActiveSession> {
+  async resolveSession(request: SessionRequest): Promise<ActiveSession> {
     const session = await this.sessions.findActiveSession(readCookie(request, SESSION_COOKIE));
     if (!session) {
       throw new UnauthorizedException('No active session');
@@ -71,16 +64,26 @@ export class SessionCookieGuard implements CanActivate {
  * Access-Token und IAM-Rechte bei Bedarf aufgefrischt (ADR-20).
  */
 @Injectable()
-export class SessionAuthGuard extends SessionCookieGuard {
+export class SessionAuthGuard implements CanActivate {
   constructor(
-    sessions: AuthSessionService,
+    private readonly cookieGuard: SessionCookieGuard,
     private readonly sessionAccess: SessionAccessService,
-    @Inject(BFF_CONFIG) config: BffConfig,
-  ) {
-    super(sessions, config);
-  }
+  ) {}
 
-  protected override async resolveSession(request: SessionRequest): Promise<ActiveSession> {
-    return this.sessionAccess.ensureCurrent(await super.resolveSession(request));
+  async canActivate(context: ExecutionContext): Promise<boolean> {
+    const request = context.switchToHttp().getRequest<SessionRequest>();
+    const session = await this.cookieGuard.resolveSession(request);
+    attachSession(request, await this.sessionAccess.ensureCurrent(session));
+    return true;
   }
+}
+
+function attachSession(request: SessionRequest, session: ActiveSession): void {
+  request.authSession = session;
+  request.user = {
+    sub: session.subject,
+    name: session.displayName,
+    email: session.email ?? undefined,
+    roles: session.roles,
+  };
 }

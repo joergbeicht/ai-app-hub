@@ -1,7 +1,8 @@
 import { ExecutionContext, ForbiddenException, UnauthorizedException } from '@nestjs/common';
-import type { AuthSessionService, ActiveSession } from './auth-session.service';
-import type { BffConfig } from './bff-config';
-import type { SessionAccessService } from './session-access.service';
+import { Test } from '@nestjs/testing';
+import { AuthSessionService, type ActiveSession } from './auth-session.service';
+import { BFF_CONFIG, type BffConfig } from './bff-config';
+import { SessionAccessService } from './session-access.service';
 import { SessionAuthGuard, SessionCookieGuard, type SessionRequest } from './session-auth.guard';
 
 const FRONTEND_URL = 'https://localhost:6054';
@@ -40,16 +41,24 @@ function contextFor(request: SessionRequest): ExecutionContext {
   return { switchToHttp: () => ({ getRequest: () => request }) } as unknown as ExecutionContext;
 }
 
-function createGuards(session: ActiveSession | null) {
+async function createGuards(session: ActiveSession | null) {
   const sessions = { findActiveSession: jest.fn().mockResolvedValue(session) };
   const sessionAccess = {
     ensureCurrent: jest.fn(async (current: ActiveSession) => ({ ...current, roles: ['User'] })),
   };
-  const config = { frontendUrl: FRONTEND_URL } as BffConfig;
-  const store = sessions as unknown as AuthSessionService;
+  const config: Pick<BffConfig, 'frontendUrl'> = { frontendUrl: FRONTEND_URL };
+  const moduleRef = await Test.createTestingModule({
+    providers: [
+      { provide: AuthSessionService, useValue: sessions },
+      { provide: SessionAccessService, useValue: sessionAccess },
+      { provide: BFF_CONFIG, useValue: config },
+      SessionCookieGuard,
+      SessionAuthGuard,
+    ],
+  }).compile();
   return {
-    guard: new SessionAuthGuard(store, sessionAccess as unknown as SessionAccessService, config),
-    cookieGuard: new SessionCookieGuard(store, config),
+    guard: moduleRef.get(SessionAuthGuard),
+    cookieGuard: moduleRef.get(SessionCookieGuard),
     sessions,
     sessionAccess,
   };
@@ -57,14 +66,14 @@ function createGuards(session: ActiveSession | null) {
 
 describe('SessionAuthGuard', () => {
   it('rejects requests without an active session', async () => {
-    const { guard, sessionAccess } = createGuards(null);
+    const { guard, sessionAccess } = await createGuards(null);
 
     await expect(guard.canActivate(contextFor(createRequest()))).rejects.toThrow(UnauthorizedException);
     expect(sessionAccess.ensureCurrent).not.toHaveBeenCalled();
   });
 
   it('attaches the refreshed principal for read requests without CSRF token', async () => {
-    const { guard, sessions, sessionAccess } = createGuards(activeSession);
+    const { guard, sessions, sessionAccess } = await createGuards(activeSession);
     const request = createRequest();
 
     await expect(guard.canActivate(contextFor(request))).resolves.toBe(true);
@@ -81,7 +90,7 @@ describe('SessionAuthGuard', () => {
   });
 
   it('accepts writes from the frontend origin with a matching CSRF token', async () => {
-    const { guard } = createGuards(activeSession);
+    const { guard } = await createGuards(activeSession);
     const request = createRequest({ method: 'PUT', origin: FRONTEND_URL, csrf: 'csrf-token' });
 
     await expect(guard.canActivate(contextFor(request))).resolves.toBe(true);
@@ -92,7 +101,7 @@ describe('SessionAuthGuard', () => {
     ['with a wrong CSRF token', { method: 'DELETE', origin: FRONTEND_URL, csrf: 'other-token' }],
     ['from a foreign origin', { method: 'PUT', origin: 'https://evil.example', csrf: 'csrf-token' }],
   ])('rejects writes %s before touching IAM', async (_label, options) => {
-    const { guard, sessionAccess } = createGuards(activeSession);
+    const { guard, sessionAccess } = await createGuards(activeSession);
 
     await expect(guard.canActivate(contextFor(createRequest(options)))).rejects.toThrow(ForbiddenException);
     expect(sessionAccess.ensureCurrent).not.toHaveBeenCalled();
@@ -101,7 +110,7 @@ describe('SessionAuthGuard', () => {
 
 describe('SessionCookieGuard', () => {
   it('accepts the session without refreshing tokens or IAM access', async () => {
-    const { cookieGuard, sessionAccess } = createGuards(activeSession);
+    const { cookieGuard, sessionAccess } = await createGuards(activeSession);
     const request = createRequest({ method: 'POST', origin: FRONTEND_URL, csrf: 'csrf-token' });
 
     await expect(cookieGuard.canActivate(contextFor(request))).resolves.toBe(true);
@@ -111,7 +120,7 @@ describe('SessionCookieGuard', () => {
   });
 
   it('still requires the CSRF token for writes', async () => {
-    const { cookieGuard } = createGuards(activeSession);
+    const { cookieGuard } = await createGuards(activeSession);
 
     await expect(
       cookieGuard.canActivate(contextFor(createRequest({ method: 'POST', origin: FRONTEND_URL }))),
