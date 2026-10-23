@@ -43,9 +43,11 @@ coverage/
 frontend/ssl/*.pem
 frontend/ssl/*.key
 
-# Generated at start (write-app-version.cjs / write-runtime-config.cjs) - NOT runtime-config.template.json
+# Generated at start (write-app-version.cjs / write-runtime-config.cjs / write-dev-version-json.cjs)
+# - NOT runtime-config.template.json
 frontend/src/app/core/app-version.ts
 frontend/public/runtime-config.json
+frontend/public/version.json
 
 # Lokal generierte Test-Fixtures (z. B. Badge-Barcode-Bilder, siehe ADR-7) - nie committen.
 docs/test-fixtures/
