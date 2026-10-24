@@ -1479,13 +1479,16 @@ Die erste Ausbaustufe von `axora-iam-api` liegt jetzt im Plattform-Repository
 7. **Einladung:** Die IAM legt den Keycloak-Benutzer über ihren
    Service-Account `axora-iam-api` an (nur `view-/query-/manage-users`) und
    lässt Keycloak die Mail „E-Mail bestätigen + Passwort setzen“ senden
-   (Link 72 h gültig, Rücksprung zum Hub). Lokal fängt Mailpit die Mails ab
-   (http://localhost:6060). Der Browser spricht nie mit der
+   (Link 72 h gültig, Rücksprung zum Hub, Versand ADR-22). Keycloak prüft die
+   Rücksprungadresse gegen den Client `axora-invitation`, der nur die
+   Hub-Adresse erlaubt und keinen Login-Flow hat. Der BFF-Client behält
+   ausschließlich seinen Callback. Der Browser spricht nie mit der
    Keycloak-Admin-API.
 8. **Dev-Realm:** `ai-app-hub-bff` bekommt einen Audience-Mapper auf
    `axora-iam-api`; die Client-Rollen `Administrator`/`User` und ihr Mapper
-   sind entfernt. Neu: Client `axora-iam-api` (nur Service-Account), SMTP auf
-   Mailpit. Der Realm bleibt vorerst in diesem Repo (siehe ADR-19 Punkt 6).
+   sind entfernt. Neu: Client `axora-iam-api` (nur Service-Account) und
+   Client `axora-invitation` (nur Rücksprung nach der Einladung). Der Realm
+   bleibt vorerst in diesem Repo (siehe ADR-19 Punkt 6).
 
 **Konsequenz:** Rechte werden an einer Stelle gepflegt und wirken nach
 spätestens 30 s im Hub. Lokal muss `axora-platform` laufen (Start nach dem

@@ -113,6 +113,11 @@
   --mat-menu-item-label-text-color: var(--text-primary);
   --mat-autocomplete-background-color: var(--bg-secondary);
   --mat-datepicker-calendar-container-background-color: var(--bg-secondary);
+  /* Outline fields inset their text with max(16px, this shape). An unset token makes
+     that declaration invalid, so the global `* { padding: 0 }` wins and the first
+     glyph is clipped by the outline. */
+  --mat-sys-corner-extra-small: 4px;
+  --mdc-outlined-text-field-container-shape: 4px;
   --mat-form-field-outlined-input-text-color: var(--text-primary);
   --mat-form-field-outlined-label-text-color: var(--text-secondary);
   --mat-form-field-outlined-focus-label-text-color: var(--primary-400);

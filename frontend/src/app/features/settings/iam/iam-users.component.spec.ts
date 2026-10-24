@@ -1,7 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { of, throwError } from 'rxjs';
-import type { IamUser } from '../../../core/models/iam.model';
+import type { IamGroup, IamUser } from '../../../core/models/iam.model';
 import { IamAdminService } from '../../../core/services/iam-admin.service';
 import { IamUsersComponent } from './iam-users.component';
 import { IAM_ADMIN_METHODS, iamTestProviders, problem, transloco } from './iam-testing';
@@ -39,7 +39,9 @@ describe('IamUsersComponent', () => {
   beforeEach(() => {
     iamAdmin = jasmine.createSpyObj<IamAdminService>('IamAdminService', [...IAM_ADMIN_METHODS]);
     snackBar = jasmine.createSpyObj<MatSnackBar>('MatSnackBar', ['open']);
-    iamAdmin.listUsers.and.returnValue(of([user(), user({ id: 'p-2', email: 'admin@axora.local' })]));
+    iamAdmin.listUsers.and.returnValue(
+      of([user(), user({ id: 'p-2', email: 'admin@axora.local' })]),
+    );
   });
 
   it('loads the users of the organization', async () => {
@@ -48,6 +50,7 @@ describe('IamUsersComponent', () => {
     expect(iamAdmin.listUsers).toHaveBeenCalledWith('');
     expect(fixture.componentInstance.users().length).toBe(2);
     expect(fixture.componentInstance.canManage()).toBeFalse();
+    expect(iamAdmin.listGroups).not.toHaveBeenCalled();
   });
 
   it('shows the IAM error when loading fails', async () => {
@@ -63,7 +66,12 @@ describe('IamUsersComponent', () => {
     const fixture = await create(['iam.user.read', 'iam.user.manage']);
     const component = fixture.componentInstance;
 
-    component.inviteForm.setValue({ email: 'bob@axora.local', firstName: 'Bob', lastName: 'Builder' });
+    component.inviteForm.setValue({
+      email: 'bob@axora.local',
+      firstName: 'Bob',
+      lastName: 'Builder',
+      groupIds: [],
+    });
     component.invite();
 
     expect(iamAdmin.inviteUser).toHaveBeenCalledWith({
@@ -78,10 +86,56 @@ describe('IamUsersComponent', () => {
   it('does not submit an invalid invitation', async () => {
     const fixture = await create(['iam.user.read', 'iam.user.manage']);
 
-    fixture.componentInstance.inviteForm.setValue({ email: 'no-mail', firstName: 'B', lastName: 'B' });
+    fixture.componentInstance.inviteForm.setValue({
+      email: 'no-mail',
+      firstName: 'B',
+      lastName: 'B',
+      groupIds: [],
+    });
     fixture.componentInstance.invite();
 
     expect(iamAdmin.inviteUser).not.toHaveBeenCalled();
+  });
+
+  it('invites a person straight into the selected groups', async () => {
+    const group: IamGroup = {
+      id: 'g-1',
+      name: 'Mitarbeitende',
+      description: null,
+      source: 'LOCAL',
+      memberCount: 0,
+      roleAssignments: [],
+    };
+    iamAdmin.listGroups.and.returnValue(of([group]));
+    iamAdmin.inviteUser.and.returnValue(of(user({ id: 'p-3', membershipStatus: 'INVITED' })));
+    const fixture = await create(['iam.user.read', 'iam.user.manage', 'iam.group.read']);
+    const component = fixture.componentInstance;
+
+    expect(component.groups()).toEqual([group]);
+    component.inviteForm.patchValue({
+      email: 'bob@axora.local',
+      firstName: 'Bob',
+      lastName: 'Builder',
+    });
+    component.toggleGroup('g-1', true);
+    component.toggleGroup('g-2', true);
+    component.toggleGroup('g-2', false);
+    component.invite();
+
+    expect(iamAdmin.inviteUser).toHaveBeenCalledWith({
+      email: 'bob@axora.local',
+      firstName: 'Bob',
+      lastName: 'Builder',
+      groupIds: ['g-1'],
+    });
+  });
+
+  it('keeps the invitation usable when the group list fails', async () => {
+    iamAdmin.listGroups.and.returnValue(throwError(() => problem('IDP_UNAVAILABLE', 503)));
+    const fixture = await create(['iam.user.read', 'iam.user.manage', 'iam.group.read']);
+
+    expect(fixture.componentInstance.groupsError()).toBeTrue();
+    expect(fixture.componentInstance.groups()).toEqual([]);
   });
 
   it('suspends a user and reports IAM refusals', async () => {
@@ -92,8 +146,9 @@ describe('IamUsersComponent', () => {
     component.suspend(component.users()[0]);
     expect(component.users()[0].membershipStatus).toBe('SUSPENDED');
 
-    iamAdmin.reactivateUser.and.returnValue(throwError(() => problem('SELF_MODIFICATION_FORBIDDEN', 403)));
-    component.reactivate(component.users()[0]);
+    iamAdmin.reactivateUser.and.returnValue(
+      throwError(() => problem('SELF_MODIFICATION_FORBIDDEN', 403)),
+    );
     expect(snackBar.open).toHaveBeenCalledWith(
       'settings.iam.errors.SELF_MODIFICATION_FORBIDDEN',
       undefined,

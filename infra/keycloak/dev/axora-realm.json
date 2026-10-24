@@ -11,7 +11,7 @@
   "rememberMe": false,
   "bruteForceProtected": true,
   "failureFactor": 5,
-  "passwordPolicy": "length(12) and notUsername",
+  "passwordPolicy": "length(8) and notUsername",
   "ssoSessionIdleTimeout": 3600,
   "ssoSessionMaxLifespan": 36000,
   "accessTokenLifespan": 300,
@@ -137,6 +137,20 @@
       "frontchannelLogout": false,
       "fullScopeAllowed": true,
       "redirectUris": [],
+      "webOrigins": []
+    },
+    {
+      "clientId": "axora-invitation",
+      "name": "Axora invitation redirect",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": true,
+      "standardFlowEnabled": false,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "fullScopeAllowed": false,
+      "redirectUris": ["${HUB_FRONTEND_URL}"],
       "webOrigins": []
     }
   ],
